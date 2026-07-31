@@ -4,6 +4,7 @@
 (function (global) {
   'use strict';
   const V = global.DWVorlage = global.DWVorlage || {};
+  const S = global.DWStile;
 
   V.selbarOn = function (v, html, stil) {
     return v.selbarOn ? html`<div style=${stil(`position:absolute;${v.barPos}bottom:24px;height:60px;border-radius:999px;background:var(--glass);backdrop-filter:blur(18px) saturate(180%);-webkit-backdrop-filter:blur(18px) saturate(180%);border:0.5px solid var(--gbor);box-shadow:0 8px 28px rgba(0,0,0,0.14);display:flex;align-items:center;padding:0 8px 0 20px;gap:4px;z-index:30`)}>
@@ -44,7 +45,7 @@
     </div>
   </div>
   <div style=${stil('font-size:12.5px;color:var(--lab3);padding:6px 20px 8px')}>${v.docsCountLabel}</div>
-  ${v.viewIsList ? html`<div style=${stil('background:var(--card);border-radius:16px;margin:0 16px;overflow:hidden')}>
+  ${v.viewIsList ? html`<div style=${stil(S.karte)}>
       ${(v.visDocs || []).map((d, dIdx) => html`<div key=${d && d.id != null ? d.id : dIdx} style=${stil('position:relative;overflow:hidden')}>
         <div style=${stil('position:absolute;top:0;bottom:0;right:0;display:flex')}>
           <div onClick=${d.swFav} style=${stil('width:68px;background:#F7B500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:#fff')}>
@@ -98,7 +99,7 @@
       <div onClick=${v.retryLoad} style=${stil('display:inline-flex;margin-top:12px;height:38px;padding:0 18px;border-radius:999px;background:var(--fill);align-items:center;font-size:14.5px;font-weight:600;color:var(--acc);cursor:pointer')}>Erneut versuchen</div>
     </div>` : null}
   ${v.docsEmpty ? html`<div style=${stil('padding:56px 40px;text-align:center')}>
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--lab3)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style=${stil('margin:0 auto;display:block')}><path d="M7 3.5h6.5L18 8v12.5H7z"></path><path d="M13.5 3.5V8H18"></path></svg>
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--lab3)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style=${stil(S.mitte)}><path d="M7 3.5h6.5L18 8v12.5H7z"></path><path d="M13.5 3.5V8H18"></path></svg>
       <div style=${stil('font-size:17px;font-weight:600;margin-top:14px')}>Keine Dokumente gefunden</div>
       <div style=${stil('font-size:14px;color:var(--lab2);margin-top:6px;line-height:1.45')}>${v.docsEmptyText}</div>
       ${v.filterOn ? html`<div onClick=${v.resetFilter} style=${stil('display:inline-flex;margin-top:16px;height:38px;padding:0 18px;border-radius:999px;background:var(--fill);align-items:center;font-size:14.5px;font-weight:600;color:var(--acc);cursor:pointer')}>Filter zurücksetzen</div>` : null}
@@ -137,27 +138,27 @@
         </div>`)}
     </div>` : null}
   <div style=${stil('font-size:13px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding:22px 20px 8px')}>Erledigen</div>
-  <div style=${stil('background:var(--card);border-radius:16px;margin:0 16px;overflow:hidden')}>
+  <div style=${stil(S.karte)}>
     ${v.inboxHasNew ? html`<div onClick=${v.goInbox} style=${stil('display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;position:relative')}>
         <div style=${stil('width:32px;height:32px;border-radius:8px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0')}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--onAcc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5h13l2 8v6h-17v-6z"></path><path d="M3.5 13.5h5l1.6 2.4h3.8l1.6-2.4h5"></path></svg></div>
-        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Posteingang prüfen</div><div style=${stil('font-size:13px;color:var(--lab2)')}>${v.inboxCountLabel}</div></div>
+        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Posteingang prüfen</div><div style=${stil(S.neben)}>${v.inboxCountLabel}</div></div>
         <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--lab3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"></path></svg>
         <div style=${stil('position:absolute;left:60px;right:0;bottom:0;height:0.5px;background:var(--sep)')}></div>
       </div>` : null}
     ${v.dupOn ? html`<div onClick=${v.openDup} style=${stil('display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;position:relative')}>
         <div style=${stil('width:32px;height:32px;border-radius:8px;background:var(--org);display:flex;align-items:center;justify-content:center;flex-shrink:0')}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5L2.8 19.5h18.4z"></path><path d="M12 10.2v3.6"></path><path d="M12 16.8v0.1"></path></svg></div>
-        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Mögliches Duplikat prüfen</div><div style=${stil('font-size:13px;color:var(--lab2)')}>Beitragsrechnung Hausrat 2026</div></div>
+        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Mögliches Duplikat prüfen</div><div style=${stil(S.neben)}>Beitragsrechnung Hausrat 2026</div></div>
         <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--lab3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"></path></svg>
         <div style=${stil('position:absolute;left:60px;right:0;bottom:0;height:0.5px;background:var(--sep)')}></div>
       </div>` : null}
     ${v.missOn ? html`<div onClick=${v.openMissing} style=${stil('display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer')}>
         <div style=${stil('width:32px;height:32px;border-radius:8px;background:var(--fill2);display:flex;align-items:center;justify-content:center;flex-shrink:0')}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--lab2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c1-4 4-5.6 7-5.6s6 1.6 7 5.6"></path></svg></div>
-        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Angaben vervollständigen</div><div style=${stil('font-size:13px;color:var(--lab2)')}>Befundbericht Orthopädie – Absender fehlt</div></div>
+        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Angaben vervollständigen</div><div style=${stil(S.neben)}>Befundbericht Orthopädie – Absender fehlt</div></div>
         <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--lab3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"></path></svg>
       </div>` : null}
     ${v.inboxAllDone ? html`<div style=${stil('display:flex;align-items:center;gap:12px;padding:14px 16px')}>
         <div style=${stil('width:32px;height:32px;border-radius:8px;background:var(--grn);display:flex;align-items:center;justify-content:center;flex-shrink:0')}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div>
-        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Alles erledigt</div><div style=${stil('font-size:13px;color:var(--lab2)')}>Keine neuen Dokumente zu prüfen</div></div>
+        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Alles erledigt</div><div style=${stil(S.neben)}>Keine neuen Dokumente zu prüfen</div></div>
       </div>` : null}
   </div>
   <div style=${stil('font-size:13px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding:22px 20px 8px')}>Zuletzt hinzugefügt</div>
@@ -169,19 +170,19 @@
       </div>`)}
   </div>
   <div style=${stil('font-size:13px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding:20px 20px 8px')}>Zuletzt geöffnet</div>
-  <div style=${stil('background:var(--card);border-radius:16px;margin:0 16px;overflow:hidden')}>
+  <div style=${stil(S.karte)}>
     ${(v.lastOpened || []).map((r, rIdx) => html`<div key=${r && r.id != null ? r.id : rIdx} onClick=${r.open} style=${stil('display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;position:relative')}>
         <div style=${stil('width:34px;height:44px;border-radius:6px;background:var(--pg);border:0.5px solid var(--sep);padding:6px 5px;display:flex;flex-direction:column;gap:3px;flex-shrink:0')}><div style=${stil('height:3px;width:70%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3px;width:90%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3px;width:60%;background:var(--pgl);border-radius:2px')}></div></div>
-        <div style=${stil('flex:1;min-width:0')}><div style=${stil('font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')}>${r.titel}</div><div style=${stil('font-size:13px;color:var(--lab2)')}>${r.sub}</div></div>
+        <div style=${stil('flex:1;min-width:0')}><div style=${stil('font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')}>${r.titel}</div><div style=${stil(S.neben)}>${r.sub}</div></div>
         <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--lab3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"></path></svg>
         <div style=${stil('position:absolute;left:62px;right:0;bottom:0;height:0.5px;background:var(--sep)')}></div>
       </div>`)}
   </div>
   <div style=${stil('font-size:13px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding:20px 20px 8px')}>Favoriten</div>
-  <div style=${stil('background:var(--card);border-radius:16px;margin:0 16px;overflow:hidden')}>
+  <div style=${stil(S.karte)}>
     ${(v.favDocs || []).map((r, rIdx) => html`<div key=${r && r.id != null ? r.id : rIdx} onClick=${r.open} style=${stil('display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;position:relative')}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="#F7B500" stroke="none" style=${stil('flex-shrink:0')}><path d="M12 3.6l2.5 5.2 5.7.7-4.2 3.9 1.1 5.6-5.1-2.8-5.1 2.8 1.1-5.6-4.2-3.9 5.7-.7z"></path></svg>
-        <div style=${stil('flex:1;min-width:0')}><div style=${stil('font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')}>${r.titel}</div><div style=${stil('font-size:13px;color:var(--lab2)')}>${r.sub}</div></div>
+        <div style=${stil('flex:1;min-width:0')}><div style=${stil('font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')}>${r.titel}</div><div style=${stil(S.neben)}>${r.sub}</div></div>
         <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--lab3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"></path></svg>
         <div style=${stil('position:absolute;left:46px;right:0;bottom:0;height:0.5px;background:var(--sep)')}></div>
       </div>`)}
@@ -196,7 +197,7 @@
     <div style=${stil('font-size:14px;color:var(--lab2);margin-top:2px')}>${v.inboxCountLabel}</div>
   </div>
   ${v.inboxEmpty ? html`<div style=${stil('padding:80px 40px;text-align:center')}>
-      <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="var(--lab3)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style=${stil('margin:0 auto;display:block')}><path d="M5.5 5h13l2 8v6h-17v-6z"></path><path d="M3.5 13.5h5l1.6 2.4h3.8l1.6-2.4h5"></path></svg>
+      <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="var(--lab3)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style=${stil(S.mitte)}><path d="M5.5 5h13l2 8v6h-17v-6z"></path><path d="M3.5 13.5h5l1.6 2.4h3.8l1.6-2.4h5"></path></svg>
       <div style=${stil('font-size:17px;font-weight:600;margin-top:14px')}>Keine neuen Dokumente</div>
       <div style=${stil('font-size:14px;color:var(--lab2);margin-top:6px;line-height:1.45')}>Neue Scans, Uploads und E-Mail-Importe erscheinen hier zur Prüfung.</div>
       <div onClick=${v.startScan} style=${stil('display:inline-flex;margin-top:18px;height:42px;padding:0 20px;border-radius:999px;background:var(--acc);align-items:center;gap:7px;font-size:15px;font-weight:600;color:var(--onAcc);cursor:pointer')}>
@@ -234,7 +235,7 @@
     <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--lab3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"></path></svg>
   </div>
   <div style=${stil('font-size:13px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding:22px 20px 8px')}>Bibliothek</div>
-  <div style=${stil('background:var(--card);border-radius:16px;margin:0 16px;overflow:hidden')}>
+  <div style=${stil(S.karte)}>
     ${(v.bibRows || []).map((m, mIdx) => html`<div key=${m && m.id != null ? m.id : mIdx} onClick=${m.tap} style=${stil('display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;position:relative')}>
         <div style=${stil(m.iconStyle)}><span style=${stil('display:flex')} dangerouslySetInnerHTML=${m.svg}></span></div>
         <div style=${stil('flex:1;font-size:16px')}>${m.label}</div>
@@ -244,7 +245,7 @@
       </div>`)}
   </div>
   <div style=${stil('font-size:13px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding:22px 20px 8px')}>Organisation</div>
-  <div style=${stil('background:var(--card);border-radius:16px;margin:0 16px;overflow:hidden')}>
+  <div style=${stil(S.karte)}>
     ${(v.orgRows || []).map((m, mIdx) => html`<div key=${m && m.id != null ? m.id : mIdx} onClick=${m.tap} style=${stil('display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;position:relative')}>
         <div style=${stil(m.iconStyle)}><span style=${stil('display:flex')} dangerouslySetInnerHTML=${m.svg}></span></div>
         <div style=${stil('flex:1;font-size:16px')}>${m.label}</div>
@@ -254,7 +255,7 @@
       </div>`)}
   </div>
   <div style=${stil('font-size:13px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding:22px 20px 8px')}>Verwaltung</div>
-  <div style=${stil('background:var(--card);border-radius:16px;margin:0 16px;overflow:hidden')}>
+  <div style=${stil(S.karte)}>
     ${(v.adminRows || []).map((m, mIdx) => html`<div key=${m && m.id != null ? m.id : mIdx} onClick=${m.tap} style=${stil('display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;position:relative')}>
         <div style=${stil(m.iconStyle)}><span style=${stil('display:flex')} dangerouslySetInnerHTML=${m.svg}></span></div>
         <div style=${stil('flex:1;font-size:16px')}>${m.label}</div>

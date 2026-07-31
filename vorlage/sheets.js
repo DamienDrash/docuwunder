@@ -4,6 +4,7 @@
 (function (global) {
   'use strict';
   const V = global.DWVorlage = global.DWVorlage || {};
+  const S = global.DWStile;
 
   V.sheetOn = function (v, html, stil) {
     return v.sheetOn ? html`<div onClick=${v.closeSheet} style=${stil('position:absolute;inset:0;background:rgba(0,0,0,0.42);animation:fadeIn .25s ease;z-index:60')}></div>
@@ -15,15 +16,15 @@
     <div style=${stil('padding:4px 16px 0;display:flex;flex-direction:column;gap:8px')}>
       <div onClick=${v.startScan} style=${stil('display:flex;align-items:center;gap:13px;background:var(--fill);border-radius:14px;padding:13px 14px;cursor:pointer')}>
         <div style=${stil('width:36px;height:36px;border-radius:9px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0')}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--onAcc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2h3.1l1.9-2.7h6l1.9 2.7H20v10.3H4z"></path><circle cx="12" cy="13" r="3.1"></circle></svg></div>
-        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Dokument scannen</div><div style=${stil('font-size:13px;color:var(--lab2)')}>Mit der Kamera, mehrere Seiten möglich</div></div>
+        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Dokument scannen</div><div style=${stil(S.neben)}>Mit der Kamera, mehrere Seiten möglich</div></div>
       </div>
       <div onClick=${v.pickPhoto} style=${stil('display:flex;align-items:center;gap:13px;background:var(--fill);border-radius:14px;padding:13px 14px;cursor:pointer')}>
         <div style=${stil('width:36px;height:36px;border-radius:9px;background:#34C759;display:flex;align-items:center;justify-content:center;flex-shrink:0')}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"></rect><circle cx="8.6" cy="10" r="1.5"></circle><path d="M20.5 14.5L16 10l-8.6 9"></path></svg></div>
-        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Foto auswählen</div><div style=${stil('font-size:13px;color:var(--lab2)')}>Aus deiner Fotomediathek</div></div>
+        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Foto auswählen</div><div style=${stil(S.neben)}>Aus deiner Fotomediathek</div></div>
       </div>
       <div onClick=${v.pickFile} style=${stil('display:flex;align-items:center;gap:13px;background:var(--fill);border-radius:14px;padding:13px 14px;cursor:pointer')}>
         <div style=${stil('width:36px;height:36px;border-radius:9px;background:#5856D6;display:flex;align-items:center;justify-content:center;flex-shrink:0')}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h6.5L18 8v12.5H7z"></path><path d="M13.5 3.5V8H18"></path></svg></div>
-        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Datei hochladen</div><div style=${stil('font-size:13px;color:var(--lab2)')}>PDF oder Bild, auch mehrere</div></div>
+        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Datei hochladen</div><div style=${stil(S.neben)}>PDF oder Bild, auch mehrere</div></div>
       </div>
     </div>` : null}
 
@@ -50,7 +51,7 @@
     </div>
     <div onClick=${v.closeSheet} style=${stil('margin:20px 20px 0;height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer')}>${v.filterApplyLabel}</div>` : null}
 
-  ${v.shBulkTag ? html`<div style=${stil('font-size:18px;font-weight:700;padding:10px 20px 2px')}>Schlagwort hinzufügen</div>
+  ${v.shBulkTag ? html`<div style=${stil(S.sheetTitel)}>Schlagwort hinzufügen</div>
     <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 10px')}>Wird auf ${v.selCountText} angewendet – mit Widerrufen-Option.</div>
     <div style=${stil('display:flex;gap:7px;flex-wrap:wrap;padding:4px 20px 0')}>${(v.bulkTagRows || []).map((c, cIdx) => html`<div key=${c && c.id != null ? c.id : cIdx} onClick=${c.tap} style=${stil(c.style)}>${c.label}</div>`)}</div>` : null}
 
@@ -62,7 +63,7 @@
     <div onClick=${v.dmZuweisen} style=${stil('display:flex;align-items:center;gap:12px;padding:13px 20px;cursor:pointer;position:relative')}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2"></circle><path d="M3.5 19.5c.8-3.5 3-4.9 5.5-4.9s4.7 1.4 5.5 4.9"></path><path d="M17.5 8.5h5M20 6v5"></path></svg><span style=${stil('font-size:16px')}>Zuweisen …</span><div style=${stil('position:absolute;left:20px;right:0;bottom:0;height:0.5px;background:var(--sep)')}></div></div>
     <div onClick=${v.dmTrash} style=${stil('display:flex;align-items:center;gap:12px;padding:13px 20px;cursor:pointer')}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15"></path><path d="M8.5 6.2V4.5h7v1.7"></path><path d="M6.5 6.5l1 14h9l1-14"></path></svg><span style=${stil('font-size:16px;color:var(--red)')}>In den Papierkorb</span></div>` : null}
 
-  ${v.shZuweisen ? html`<div style=${stil('font-size:18px;font-weight:700;padding:10px 20px 2px')}>Zuweisen</div>
+  ${v.shZuweisen ? html`<div style=${stil(S.sheetTitel)}>Zuweisen</div>
     <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 10px;line-height:1.5')}>${v.zuweisenHinweis}</div>
     ${v.zuweisenLeer ? html`<div style=${stil('padding:24px 20px 34px;text-align:center')}>
         <div style=${stil('font-size:15px;font-weight:600')}>Niemand zum Zuweisen da</div>
@@ -107,7 +108,7 @@
         <div onClick=${v.pickCreate} style=${stil('height:44px;padding:0 16px;border-radius:12px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;font-size:15px;font-weight:600;cursor:pointer')}>Erstellen</div>
       </div>` : null}` : null}
 
-  ${v.shShare ? html`<div style=${stil('font-size:18px;font-weight:700;padding:10px 20px 2px')}>Teilen</div>
+  ${v.shShare ? html`<div style=${stil(S.sheetTitel)}>Teilen</div>
     <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')}>${v.dTitel}</div>
     ${v.shNoLink ? html`<div style=${stil('padding:4px 20px 0')}>
         <div style=${stil('font-size:14px;color:var(--lab2);line-height:1.5')}>Erstelle einen Link, den du per Nachricht oder E-Mail verschicken kannst. Der Link lässt sich jederzeit widerrufen.</div>
@@ -156,13 +157,13 @@
       ${v.orgDelOn ? html`<div onClick=${v.orgDelTap} style=${stil('margin-top:18px;height:46px;border-radius:14px;background:rgba(255,59,48,0.10);display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:600;color:var(--red);cursor:pointer')}>Löschen</div>` : null}
     </div>` : null}
 
-  ${v.shMitgliedNeu ? html`<div style=${stil('font-size:18px;font-weight:700;padding:10px 20px 2px')}>Mitglied hinzufügen</div>
+  ${v.shMitgliedNeu ? html`<div style=${stil(S.sheetTitel)}>Mitglied hinzufügen</div>
     <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 12px;line-height:1.5')}>Das Konto wird auf deinem Server angelegt. Die Zugangsdaten bekommst du danach einmalig angezeigt, zum Weitergeben.</div>
     <div style=${stil('padding:0 20px')}>
       <div style=${stil('font-size:12px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding-bottom:6px')}>Name</div>
-      <input value=${v.nmName} onInput=${v.setNmName} placeholder="Anna Beispiel" style=${stil('width:100%;height:46px;border-radius:12px;border:1px solid var(--sep);background:var(--fill);padding:0 14px;font-size:16px;color:var(--lab);outline:none')} />
+      <input value=${v.nmName} onInput=${v.setNmName} placeholder="Anna Beispiel" style=${stil(S.feld)} />
       <div style=${stil('font-size:12px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding:14px 0 6px')}>E-Mail</div>
-      <input value=${v.nmMail} onInput=${v.setNmMail} placeholder="anna@beispiel.de" style=${stil('width:100%;height:46px;border-radius:12px;border:1px solid var(--sep);background:var(--fill);padding:0 14px;font-size:16px;color:var(--lab);outline:none')} />
+      <input value=${v.nmMail} onInput=${v.setNmMail} placeholder="anna@beispiel.de" style=${stil(S.feld)} />
       ${v.nmOhneGruppe ? html`<div style=${stil('margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(194,118,27,0.10);border:0.5px solid var(--org)')}>
           <div style=${stil('font-size:13.5px;font-weight:600;color:var(--org)')}>Ohne Gruppe bleibt das Konto blind</div>
           <div style=${stil('font-size:12.5px;color:var(--lab2);margin-top:3px;line-height:1.45')}>${v.nmOhneGruppeText}</div>
@@ -175,7 +176,7 @@
       <div onClick=${v.nmSave} style=${stil('height:50px;border-radius:12px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer;margin:16px 0 30px')}>${v.nmSaveLabel}</div>
     </div>` : null}
 
-  ${v.shZugang ? html`<div style=${stil('font-size:18px;font-weight:700;padding:10px 20px 2px')}>Zugang für ${v.zuName}</div>
+  ${v.shZugang ? html`<div style=${stil(S.sheetTitel)}>Zugang für ${v.zuName}</div>
     <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 12px;line-height:1.5')}>Das Passwort wird nur jetzt angezeigt – dein Server speichert es ausschließlich verschlüsselt. Gib es weiter, bevor du dieses Fenster schließt.</div>
     <div style=${stil('margin:0 20px;background:var(--fill);border-radius:12px;padding:14px 16px')}>
       <div style=${stil('font-size:12px;color:var(--lab2)')}>Benutzername</div>
@@ -189,21 +190,21 @@
     </div>
     <div onClick=${v.closeSheet} style=${stil('text-align:center;padding:8px 20px 30px;font-size:15.5px;color:var(--lab2);cursor:pointer')}>Fertig</div>` : null}
 
-  ${v.shGruppeNeu ? html`<div style=${stil('font-size:18px;font-weight:700;padding:10px 20px 2px')}>Gruppe anlegen</div>
+  ${v.shGruppeNeu ? html`<div style=${stil(S.sheetTitel)}>Gruppe anlegen</div>
     <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 12px;line-height:1.5')}>Gruppen bündeln Rechte für mehrere Personen. Welche Rechte eine Gruppe hat, legst du in Paperless unter Einstellungen fest.</div>
     <div style=${stil('padding:0 20px 30px')}>
-      <input value=${v.ngName} onInput=${v.setNgName} placeholder="Buchhaltung" style=${stil('width:100%;height:46px;border-radius:12px;border:1px solid var(--sep);background:var(--fill);padding:0 14px;font-size:16px;color:var(--lab);outline:none')} />
+      <input value=${v.ngName} onInput=${v.setNgName} placeholder="Buchhaltung" style=${stil(S.feld)} />
       <div onClick=${v.ngSave} style=${stil('height:50px;border-radius:12px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;margin-top:16px')}>Anlegen</div>
     </div>` : null}
 
-  ${v.shGruppeWeg ? html`<div style=${stil('font-size:18px;font-weight:700;padding:10px 20px 2px')}>„${v.gwName}“ löschen?</div>
+  ${v.shGruppeWeg ? html`<div style=${stil(S.sheetTitel)}>„${v.gwName}“ löschen?</div>
     <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 14px;line-height:1.5')}>${v.gwHinweis}</div>
     <div style=${stil('padding:0 20px 30px')}>
       <div onClick=${v.gwGo} style=${stil('height:50px;border-radius:12px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer')}>Gruppe löschen</div>
       <div onClick=${v.closeSheet} style=${stil('text-align:center;padding:14px;font-size:15.5px;color:var(--lab2);cursor:pointer')}>Abbrechen</div>
     </div>` : null}
 
-  ${v.shUser ? html`<div style=${stil('font-size:18px;font-weight:700;padding:10px 20px 2px')}>${v.userName}</div>
+  ${v.shUser ? html`<div style=${stil(S.sheetTitel)}>${v.userName}</div>
     <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 8px')}>In welchen Gruppen ist diese Person?</div>
     ${v.userKeineGruppen ? html`<div style=${stil('padding:6px 20px 20px;font-size:13.5px;color:var(--lab2);line-height:1.5')}>Es gibt noch keine Gruppen. Lege unten auf dem Bildschirm eine an.</div>` : null}
     ${(v.userGruppen || []).map((r, rIdx) => html`<div key=${r && r.id != null ? r.id : rIdx} onClick=${r.pick} style=${stil('display:flex;justify-content:space-between;align-items:center;padding:12px 20px;cursor:pointer;position:relative')}>
