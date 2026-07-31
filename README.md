@@ -86,6 +86,11 @@ PAPERLESS_TOKEN=… python3 tests/run_e2e.py
 
 Ersatzweise aus `tests/.token` — die Datei ist bewusst nicht versioniert.
 
+## Roadmap
+
+Was als Nächstes ansteht und warum, steht in [`docs/ROADMAP.md`](docs/ROADMAP.md) — samt der
+Befunde aus dem bisherigen Aufbau.
+
 ## Marke
 
 Farben, Typografie und Sprachregeln stehen in [`docs/brand/BRAND_GUIDELINES.md`](docs/brand/BRAND_GUIDELINES.md),
@@ -99,7 +104,7 @@ Copyleft, das auch den Betrieb als Netzwerkdienst erfasst: Wer DocuWunder verän
 anderen zugänglich macht — auch nur über das Netz — muss den Quelltext dieser Fassung
 ebenfalls unter der AGPL zugänglich machen.
 
-## Marke
+## Markenvorbehalt
 
 Der Name **DocuWunder**, die Wortmarke und die Gestaltungsmittel unter `assets/brand/` sind
 **nicht** Teil der Softwarelizenz. Die AGPL erlaubt das Verändern und Weitergeben des

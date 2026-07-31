@@ -331,7 +331,7 @@ def main():
             def t_huelle_liegt_im_cache():
                 fehlt = seite.evaluate(
                     """async () => {
-                        const namen = (await caches.keys()).filter(n => n.startsWith('ablage-huelle-'));
+                        const namen = (await caches.keys()).filter(n => n.startsWith('docuwunder-huelle-'));
                         if (namen.length !== 1) return ['unerwartete Caches: ' + namen.join()];
                         const cache = await caches.open(namen[0]);
                         const soll = ['./index.html', './support.js', './mobile.dc.html',

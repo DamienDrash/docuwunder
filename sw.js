@@ -31,8 +31,8 @@
 
 // Aendert sich die Aufteilung oben oder die Liste unten, hochzaehlen: beim
 // naechsten Start wird der alte Cache dann verworfen statt weitergefuehrt.
-const VERSION = 'v1';
-const CACHE = 'ablage-huelle-' + VERSION;
+const VERSION = 'v2';
+const CACHE = 'docuwunder-huelle-' + VERSION;
 
 // Wie lange auf das Netz gewartet wird, bevor der Cache einspringt. Kurz
 // genug, dass ein totes WLAN den Start nicht aufhaelt, lang genug, dass eine
@@ -65,6 +65,11 @@ const HUELLE = [
   './vendor/manrope-latin-ext.woff2',
   './icons/icon-192.png',
   './icons/apple-touch-icon-180.png',
+  // Favicons: der Tab-Titel soll auch offline sein Symbol behalten.
+  './favicon.svg',
+  './favicon.ico',
+  './favicon-16x16.png',
+  './favicon-32x32.png',
 ];
 
 self.addEventListener('install', (e) => {
@@ -96,7 +101,8 @@ self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
     const namen = await caches.keys();
     await Promise.all(namen.map((n) => {
-      if (n.startsWith('ablage-huelle-') && n !== CACHE) return caches.delete(n);
+      // Auch den Cache unter dem alten Produktnamen aufraeumen.
+      if ((n.startsWith('docuwunder-huelle-') || n.startsWith('ablage-huelle-')) && n !== CACHE) return caches.delete(n);
     }));
     await self.clients.claim();
   })());

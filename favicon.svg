@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">DocuWunder favicon</title>
+  <desc id="desc">High-contrast DocuWunder document archive symbol optimized for small sizes.</desc>
+  <rect width="1024" height="1024" rx="196" fill="#0D1B2A"/>
+  <g transform="translate(112 112) scale(3.15)">
+    <path d="M34 126 C34 112 45 101 59 101 H197 C211 101 222 112 222 126 V186 C222 209 204 227 181 227 H75 C52 227 34 209 34 186 Z" fill="#8EE5DA"/>
+    <path d="M34 140 H222 V186 C222 209 204 227 181 227 H75 C52 227 34 209 34 186 Z" fill="#42CFC0"/>
+    <path d="M72 24 H158 L194 60 V150 H72 Z" fill="#FFFFFF" stroke="#0D1B2A" stroke-width="14" stroke-linejoin="round"/>
+    <path d="M158 24 V60 H194" fill="none" stroke="#0D1B2A" stroke-width="14" stroke-linejoin="round"/>
+    <path d="M96 82 H164 M96 106 H164 M96 130 H145" fill="none" stroke="#0D1B2A" stroke-width="13" stroke-linecap="round"/>
+    <rect x="101" y="171" width="54" height="22" rx="11" fill="#FFFFFF"/>
+    <path d="M224 22 C224 39 232 47 249 47 C232 47 224 55 224 72 C224 55 216 47 199 47 C216 47 224 39 224 22 Z" fill="#8EE5DA"/>
+  </g>
+</svg>
