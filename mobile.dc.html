@@ -1776,8 +1776,7 @@ class Component extends DCLogic {
           groups: u.groups || [],
           // Initialen: bei fehlendem Nachnamen liefert ''[0] undefined, das sich
           // sonst an den Vornamen anhaengt ("DUNDEFINED"). Deshalb charAt.
-          ini: (((u.first_name || '').charAt(0) + (u.last_name || '').charAt(0))
-                || (u.username || '?').slice(0, 2)).toUpperCase(),
+          ini: this.initialen(u.first_name, u.last_name, u.username),
           name: [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username,
           rolle: u.is_superuser ? 'Administrator' : 'Kann bearbeiten'
         }))
@@ -1950,6 +1949,14 @@ class Component extends DCLogic {
   // Listen neben dem Dokumente-Tab: Startseite, Favoriten, Geteilt,
   // Posteingang und Papierkorb. Sie folgen den Filtern des Dokumente-Tabs
   // absichtlich nicht und werden deshalb getrennt geholt.
+  // Initialen einer Person. Vor- und Nachname, sonst die ersten zwei Zeichen
+  // des Benutzernamens - eine Regel fuer die ganze App.
+  initialen(vor, nach, benutzername) {
+    const a = (vor || '').trim(), b = (nach || '').trim();
+    const aus = (a || b) ? (a.charAt(0) + b.charAt(0)) : String(benutzername || '?').slice(0, 2);
+    return aus.toUpperCase() || '?';
+  }
+
   // --- Mitglieder ---------------------------------------------------------
   // Paperless kennt keinen Einladungslink: ein Konto anzulegen erfordert
   // Administratorrechte, die der Eingeladene noch nicht haben kann. Deshalb
@@ -2574,7 +2581,7 @@ class Component extends DCLogic {
     // ordnerKinder() und die Ordnerzweige in renderVals.
     if (kind === 'ort') return { title: 'Ordner', hint: '', rows: [] };
     if (kind === 'feld') return { title: 'Eigene Felder', hint: 'In Paperless: benutzerdefinierte Felder', rows: s.felderM.map(f => ({ name: f.name, count: f.n, typ: f.typ })) };
-    return { title: 'Gespeicherte Suchen', hint: 'In Paperless: gespeicherte Ansichten', rows: s.suchenM.map(f => ({ name: f.name, count: f.n })) };
+    return { title: 'Gespeicherte Suchen', hint: 'In Paperless: gespeicherte Ansichten', rows: s.suchenM.map(f => ({ name: f.name, text: f.q ? 'Sucht nach „' + f.q + '“' : 'Gespeicherte Ansicht' })) };
   }
   tg(on) { return { bg: 'width:51px;height:31px;border-radius:999px;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s;background:' + (on ? 'var(--grn)' : 'var(--fill2)'), knob: 'position:absolute;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);transition:left .2s;left:' + (on ? '22px' : '2px') }; }
   seg(on) { return 'flex:1;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:600;cursor:pointer;' + (on ? 'background:var(--card);box-shadow:0 1px 4px rgba(0,0,0,0.12);color:var(--lab)' : 'color:var(--lab2)'); }
@@ -3303,7 +3310,7 @@ class Component extends DCLogic {
       showOrg: top.t === 'org' && !!org,
       orgTitle: (top.kind === 'ort') ? ((top.pfad || '').split('/').pop() || 'Ordner') : (org ? org.title : ''),
       orgHint: (top.kind === 'ort') ? (top.pfad || '') : (org ? org.hint : ''),
-      orgList: org ? org.rows.map(r => ({ name: r.name, countLabel: top.kind === 'such' ? r.count + ' Treffer' : (r.typ ? r.typ + ' · ' : '') + (r.count === 1 ? '1 Dokument' : r.count + ' Dokumente'), tap: () => { if (top.kind === 'such') { this.setState({ q: r.name.split(' ')[0] }); this.pushV({ t: 'search' }); } else { this.setState({ orgDraft: { kind: top.kind, alt: r.name, name: r.name, count: r.count, err: '', warn: false }, sheet: 'orgedit' }); } } })) : [],
+      orgList: org ? org.rows.map(r => ({ name: r.name, countLabel: top.kind === 'such' ? (r.text || '') : (r.typ ? r.typ + ' · ' : '') + (r.count === 1 ? '1 Dokument' : r.count + ' Dokumente'), tap: () => { if (top.kind === 'such') { this.setState({ q: r.name.split(' ')[0] }); this.pushV({ t: 'search' }); } else { this.setState({ orgDraft: { kind: top.kind, alt: r.name, name: r.name, count: r.count, err: '', warn: false }, sheet: 'orgedit' }); } } })) : [],
       orgAdd: () => this.setState({ orgDraft: { kind: (top.kind || 'abs'), alt: null, name: '', count: 0, err: '', warn: false, pfad: (top.pfad || '') }, sheet: 'orgedit' }),
 
       // --- Ordner ---------------------------------------------------------
@@ -3349,7 +3356,7 @@ class Component extends DCLogic {
       toggleFace: () => this.setState({ faceId: !s.faceId }), tFaceBg: tgF.bg, tFaceKnob: tgF.knob,
       serverAddr: (s.serverUrl || '').replace(/^https?:\/\//, '').replace(/\/api$/, ''),
       kontoName: s.me ? ([s.me.first_name, s.me.last_name].filter(Boolean).join(' ') || s.me.username) : '—',
-      kontoInitialen: s.me ? (((s.me.first_name || s.me.username || '?')[0] + ((s.me.last_name || '')[0] || '')).toUpperCase()) : '–',
+      kontoInitialen: s.me ? this.initialen(s.me.first_name, s.me.last_name, s.me.username) : '–',
       kontoMail: s.me && s.me.email ? s.me.email : 'Keine E-Mail hinterlegt',
       switchServer: () => this.setState({ screenSet: 'onb', onbStep: 1, onbServer: s.serverUrl || '', onbErr: '', stack: [], sheet: null }),
       // Lokal liegen nur Suchverlauf und Dokument-Cache; alles andere holt die
