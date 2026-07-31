@@ -220,6 +220,42 @@ def main():
                 seite.wait_for_selector("text=Übersicht", timeout=20000)
                 return "Oberflaeche aufgebaut"
 
+            def t_leiste_folgt_der_wahl():
+                # theme-color faerbt im installierten Zustand die Leiste des
+                # Systems ueber der App. Im Kopf steht sie je Systemschema -
+                # waehlt jemand in den Einstellungen ausdruecklich Hell oder
+                # Dunkel, muss sie mitgehen. Geprueft wird deshalb die Wirkung
+                # des Schalters, nicht sein Vorhandensein.
+                soll = dict(re.findall(
+                    r"const LEISTE_(HELL|DUNKEL) = '(#[0-9A-Fa-f]{6})'",
+                    (ROOT / "index.html").read_text(encoding="utf-8")))
+                assert len(soll) == 2, f"Farben in index.html nicht gefunden: {soll}"
+
+                def farben():
+                    return seite.eval_on_selector_all(
+                        "meta[name='theme-color']", "ms => ms.map(m => m.content)")
+
+                tab("Mehr")
+                # Die Einstellungen haengen an der Kontokarte - dem ersten
+                # Eintrag des Bildschirms nach seiner Ueberschrift.
+                seite.locator("[data-screen-label='Mehr'] > div").nth(1).click()
+                seite.wait_for_selector("[data-screen-label='Einstellungen']", timeout=10000)
+                einst = seite.locator("[data-screen-label='Einstellungen']")
+                try:
+                    for wahl, farbe in (("Dunkel", soll["DUNKEL"]), ("Hell", soll["HELL"])):
+                        einst.get_by_text(wahl, exact=True).click()
+                        seite.wait_for_timeout(400)
+                        ist = farben()
+                        assert ist and set(ist) == {farbe}, f"nach Wahl „{wahl}“: {ist}"
+                finally:
+                    # Zurueck in den Ausgangszustand, damit die folgenden
+                    # Pruefungen dieselbe App vorfinden wie ohne diese hier.
+                    einst.get_by_text("System", exact=True).click()
+                    seite.keyboard.press("Escape")
+                    seite.wait_for_timeout(400)
+                    tab("Übersicht")
+                return "Leiste folgt der Wahl in der App"
+
             def t_startseite_hat_daten():
                 txt = seite.inner_text("body")
                 assert "ZULETZT HINZUGEFÜGT" in txt, "Startseite ohne Abschnitt für neue Dokumente"
@@ -398,6 +434,7 @@ def main():
 
             for name, fn in [
                 ("Oberflaeche baut sich auf", t_aufgebaut),
+                ("Leiste folgt dem gewaehlten Schema", t_leiste_folgt_der_wahl),
                 ("Startseite zeigt Serverdaten", t_startseite_hat_daten),
                 ("Dokumente werden geladen", t_dokumente_geladen),
                 ("Liste kommt sortiert vom Server", t_serverseitig_geladen),

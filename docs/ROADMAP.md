@@ -17,7 +17,7 @@ Sortiert nach dem, was zuerst weh tut.
 | Oberfläche | Eine für Telefon und Desktop, ab 900 px zweispaltig |
 | Verdrahtet | Anmeldung, Lesen, Suchen, Filtern, Bearbeiten, Upload, Löschen, Papierkorb, Ordner, Zuweisen, Mitglieder, Freigaben |
 | Offline | Läuft ohne Internet, keine externen Requests |
-| Tests | 5 Stufen, 1.403 Zeilen: Syntax, Template-Bindungen, API-Vertrag, Browser, PWA |
+| Tests | 5 Stufen, 1.463 Zeilen: Syntax, Template-Bindungen, API-Vertrag, Browser, PWA |
 | Visuell geprüft | 38 Stationen × 3 Varianten (schmal, Split-View, dunkel) |
 | Bekannte Schuld | `mobile.dc.html` mit 3.617 Zeilen, `renderVals()` mit 259 Schlüsseln |
 
@@ -32,7 +32,9 @@ Sortiert nach dem, was zuerst weh tut.
   Datenbestand) ist entfallen; `index.html` schrumpfte auf 119 Zeilen.
 - ✅ **Split-View ab 900 px**, an der Grenze nachgemessen.
 - ✅ **Mockdaten entfernt**, alle Lese- und Schreibpfade an der echten API.
-- ✅ **PWA**: Manifest, Service Worker, Icons, installierbar, startet offline.
+- ✅ **PWA**: Manifest, Service Worker, Icons, installierbar, startet offline. Im installierten
+  Zustand folgt die Systemleiste dem in der App gewählten Schema statt dem des Systems — ein
+  Browser-Test prüft die *Wirkung* des Schalters, nicht seine Anwesenheit.
 - ✅ **Fünf Attrappen entfernt** (siehe „Was gelogen war").
 - ✅ **Kontrast im dunklen Schema**: weiß auf Mint hatte 1.46, jetzt Navy auf Mint mit 11.9.
 - ✅ **Escape** schließt Sheets und navigiert zurück — vorher gab es keinerlei Tastaturbedienung.

@@ -109,6 +109,13 @@ if manifest:
     pruefe(any(s.get("sizes") == "512x512" for s in symbole),
            "es gibt ein Symbol mit 512x512", grund="kleiner nimmt der Installationsdialog nicht")
 
+    # Die App hat genau ein Fenster und raeumt ihr ?tab= nach dem Start weg.
+    # Ohne diese Angabe oeffnet ein Kurzbefehl daneben ein zweites - zwei
+    # Fenster derselben App, die nichts voneinander wissen.
+    pruefe(manifest.get("launch_handler", {}).get("client_mode") == "navigate-existing",
+           "ein Kurzbefehl benutzt das offene Fenster",
+           grund=str(manifest.get("launch_handler")))
+
 # --- Kurzbefehle gegen die Komponente ---------------------------------------
 print("\nKurzbefehle")
 komponente = (ROOT / "mobile.dc.html").read_text(encoding="utf-8")
@@ -163,6 +170,22 @@ pruefe("apple-mobile-web-app-capable" in index, "index.html erlaubt den eigensta
 pruefe("serviceWorker" in index and "sw.js" in index, "index.html meldet den Service Worker an")
 pruefe("viewport-fit=cover" in index,
        "index.html fordert den ganzen Bildschirm an", grund="sonst meldet das System keine safe-area-Werte")
+
+# theme-color faerbt im installierten Zustand die Leiste des Systems ueber der
+# App. Im Kopf steht sie je Systemschema - wer in den App-Einstellungen
+# ausdruecklich Hell oder Dunkel waehlt, bekaeme sonst eine Leiste, die zum
+# System passt statt zur Oberflaeche davor.
+pruefe('onDark="{{ onDark }}"' in index and 'meta[name="theme-color"]' in index,
+       "die Leiste folgt dem Schema der App, nicht dem des Systems",
+       grund="index.html schreibt die theme-color nicht um")
+
+# Die Farben stehen zweimal da: als Angabe im Kopf und als Konstante fuer das
+# Umschreiben. Laufen sie auseinander, springt die Leiste beim Start.
+kopf = set(re.findall(r'<meta name="theme-color" content="(#[0-9A-Fa-f]{6})"', index))
+um = set(re.findall(r"const LEISTE_(?:HELL|DUNKEL) = '(#[0-9A-Fa-f]{6})'", index))
+pruefe(len(kopf) == 2 and kopf == um, "Kopf und Umschaltung nennen dieselben Farben",
+       grund=f"Kopf {sorted(kopf)}, Umschaltung {sorted(um)}")
+
 pruefe("env(safe-area-inset-bottom" in komponente,
        "die Oberflaeche weicht dem Bereich des Systems aus",
        grund="sonst liegt die Tableiste auf dem Streifen der Home-Geste")

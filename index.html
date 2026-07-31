@@ -20,6 +20,10 @@
   Schrift dann aber immer hell ist - im Hellmodus waere die Uhrzeit unlesbar.
   Mit "default" beginnt die Seite unter der Statusleiste, und diese uebernimmt
   die theme-color darunter.
+
+  Die beiden theme-color-Angaben folgen der Systemeinstellung. Das ist die
+  richtige Farbe, solange die App noch nicht laeuft - danach hat ihre eigene
+  Einstellung Vorrang und die Komponente unten schreibt sie um.
 -->
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#F7FAFA" media="(prefers-color-scheme: light)">
@@ -88,10 +92,15 @@ input,textarea,button{font-family:inherit}
 </style>
 </helmet>
 <div style="position:fixed;inset:0;overflow:hidden">
-  <dc-import name="mobile" farbschema="{{ farbschema }}"></dc-import>
+  <dc-import name="mobile" farbschema="{{ farbschema }}" onDark="{{ onDark }}"></dc-import>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;farbschema&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;System&quot;, &quot;Hell&quot;, &quot;Dunkel&quot;], &quot;default&quot;: &quot;System&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Darstellung&quot;}}">
+// Die Farben der beiden Schemata, wie sie oben im Kopf stehen. Sie faerben im
+// installierten Zustand die Leisten des Systems um die App herum.
+const LEISTE_HELL = '#F7FAFA';
+const LEISTE_DUNKEL = '#0D1B2A';
+
 class Component extends DCLogic {
   constructor(p) {
     super(p);
@@ -107,13 +116,37 @@ class Component extends DCLogic {
   componentWillUnmount() {
     if (this._mq && this._onScheme) this._mq.removeEventListener('change', this._onScheme);
   }
+  // Die Oberflaeche meldet hierher, in welchem Schema sie tatsaechlich steht.
+  //
+  // Das ist nicht dasselbe wie die Systemeinstellung: in den App-Einstellungen
+  // laesst sich Hell oder Dunkel ausdruecklich waehlen. Ohne diese Rueckmeldung
+  // bliebe die Leiste des Systems bei der Farbe des Systemschemas stehen - im
+  // Browser faellt das kaum auf, in der installierten App steht dann ein heller
+  // Streifen ueber einer dunklen Oberflaeche.
+  //
+  // Umgeschrieben werden beide Angaben aus dem Kopf: welche davon greift,
+  // entscheidet die Medienabfrage, und die kennt nur das System. Dieselbe Farbe
+  // in beiden heisst deshalb: die Wahl in der App gilt.
+  leiste(dunkel) {
+    const farbe = dunkel ? LEISTE_DUNKEL : LEISTE_HELL;
+    if (this._leiste === farbe) return;
+    this._leiste = farbe;
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', farbe));
+    // Sichtbar ist der Hintergrund nur an den Raendern, die die Oberflaeche
+    // freilaesst; er muss aber zur gewaehlten Farbe passen, nicht zum System.
+    document.documentElement.style.background = farbe;
+    document.body.style.background = farbe;
+  }
   renderVals() {
     // Die Oberflaeche kennt nur 'Hell' und 'Dunkel'. 'System' wird hier
     // aufgeloest, damit sie der Systemeinstellung folgt, solange in den
     // App-Einstellungen nichts anderes gewaehlt ist.
     const wahl = this.props.farbschema ?? 'System';
     const dunkel = wahl === 'System' ? this.state.systemDark : wahl === 'Dunkel';
-    return { farbschema: dunkel ? 'Dunkel' : 'Hell' };
+    return {
+      farbschema: dunkel ? 'Dunkel' : 'Hell',
+      onDark: (d) => this.leiste(d),
+    };
   }
 }
 </script>

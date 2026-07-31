@@ -22,6 +22,26 @@ Dieses Projekt dient dem Aufbau und der Wartung einer modernen, performanten, be
   vor `support.js` geladen werden**. Deshalb kommt die App ohne Internet aus (Voraussetzung für T4).
   Beim Aktualisieren einer Version: Datei neu laden und ihren sha384-Hash gegen den SRI-Wert in
   `support.js` prüfen — nur dann ist es dasselbe Artefakt.
+- `manifest.webmanifest` / `sw.js` / `icons/` — installierbare App. Der Worker hält **nur die Hülle**
+  vor (HTML, Komponente, Runtime, React, Schriften, Symbole), nichts unter `/paperless/`: Dokumente
+  gehören nicht in einen Cache, den kein Abmelden leert, und eine zwischengespeicherte Liste wäre
+  wieder eine Aussage über den Bestand (siehe Datenfluss). Ändert sich die Liste `HUELLE`, muss
+  `VERSION` in `sw.js` hoch — sonst wird der alte Cache weitergeführt.
+
+## Installierter Zustand
+- `theme-color` steht zweimal in `index.html`, je Systemschema. Sobald die App läuft, hat **ihre**
+  Einstellung Vorrang: `mobile.dc.html` meldet das tatsächliche Schema über `onDark` zurück, und
+  `Component.leiste()` schreibt beide Angaben auf dieselbe Farbe. Ohne das stünde eine helle
+  Systemleiste über einer dunklen Oberfläche, sobald jemand „Dunkel“ ausdrücklich wählt.
+- Die Ränder, die das Gerät für sich beansprucht, meldet das System nur mit `viewport-fit=cover`
+  (`index.html`) als `env(safe-area-inset-*)`; ausgewertet werden sie in `mobile.dc.html` als
+  Polsterung des äußersten Kastens (`SICHER`). Oben bewusst nicht — die Bildschirme setzen ihre
+  Überschriften ohnehin 64px unter die Oberkante.
+- Kurzbefehle des Manifests springen über `?tab=…` an ein Ziel aus `startZiel()`; `adresseAufraeumen()`
+  entfernt den Parameter danach wieder, sonst landete jedes Neuladen dort. `launch_handler:
+  navigate-existing` sorgt dafür, dass dabei kein zweites Fenster aufgeht.
+- **Caddy ist fertig konfiguriert**: `sw.js` mit `no-store` (sonst ließe sich eine kaputte Fassung
+  nicht mehr ersetzen), `*.webmanifest` mit `Content-Type: application/manifest+json`.
 
 ## Datenfluss
 Gefiltert, sortiert und gesucht wird **auf dem Server**, nicht lokal: die App hält immer nur die geladenen Seiten. Lokal zu filtern wäre eine Aussage über den gesamten Bestand, die sie nicht treffen kann.
@@ -72,4 +92,9 @@ Aktueller Status und Fortschritt werden über den Chaya PO-Cronjob verwaltet.
 - **T1: Weichenstellung:** erledigt — durch eine responsive Oberfläche ersetzt, Geräte-Sniffing entfällt.
 - **T2: API-Anbindung (Read):** erledigt — Liste, Suche, Filter, Vorschau, Stammdaten, Papierkorb, Aufgaben.
 - **T3: API-Anbindung (Write):** erledigt — Upload, Metadaten, Notizen, Massenaktionen, Freigaben, gespeicherte Suchen.
-- **T4: PWA Manifest & PWA Standalone CSS:** offen. Caddy leitet bereits `/paperless-app/sw.js` weiter; Manifest und Service Worker fehlen noch.
+- **T4: PWA Manifest & PWA Standalone CSS:** erledigt — Manifest mit Symbolen (`any` und `maskable`),
+  Kurzbefehlen und `launch_handler`, Service Worker für den Start ohne Netz, Safe-Area und
+  `theme-color` nach dem in der App gewählten Schema. Geprüft von `tests/pwa_check.py` (statisch) und
+  im Browser: Worker übernimmt, Hülle im Cache, keine Serverdaten im Cache, Start im Flugmodus.
+  Bewusst **nicht** enthalten: Push-Benachrichtigungen (bräuchte VAPID und serverseitige Auslöser,
+  die Paperless nicht mitbringt) und `apple-touch-startup-image` (ein Satz Startbilder je Gerätemaß).
