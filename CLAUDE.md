@@ -8,33 +8,47 @@ Dieses Projekt dient dem Aufbau und der Wartung einer modernen, performanten, be
 - **REST API:** `/paperless/api/` (Session/Cookie und LocalStorage Token auth).
 
 ## Build- & Laufzeit-Konzept
-- Kein schwerer Build-Prozess (Vite/Webpack). Statische, dynamisch durch `support.js` im Browser evaluierte React-Komponenten.
-- **Eine** Oberfläche für alle Geräte: `mobile.dc.html`. Sie schaltet ab 900px Viewport-Breite selbst auf zwei Spalten um (Liste links, Detail rechts). Eine Geräteweiche gibt es nicht.
-- `index.html` ist der Einstiegspunkt und lädt `api.js` + `support.js`. `design/iphone.html` ist nur eine Design-Vorschau derselben Komponente in einer simulierten iOS-Hülle.
+- Kein Build-Schritt, kein Paketmanager. React wird direkt geladen, JSX-nahe Schreibweise
+  liefert **htm** (1,2 KB, `vendor/htm.js`) als Tagged Template — kein Compiler nötig.
+- **Eine** Oberfläche für alle Geräte. Sie schaltet ab `WIDE_MIN` (900px) selbst zweispaltig
+  um (Liste links, Detail rechts). Eine Geräteweiche gibt es nicht.
+- Reihenfolge in `index.html` zählt: React → htm → `ui.js` → `logik.js` → `api.js` →
+  `vorlage/*` → `vorlage.js` → `app.js`.
 
 ## Dateien
-- `api.js` — Zugriffsschicht auf die REST-API (`window.PaperlessAPI`). Token im `localStorage`, Zeitlimits, Abbruch überholter Anfragen.
-- `mobile.dc.html` — Vorlage (`{{ Bindungen }}`, `sc-if`, `sc-for`) plus Komponentenlogik im `<script type="text/x-dc">`. **`sc-else` gibt es im Runtime nicht** — stattdessen zwei `sc-if` mit gegenläufigen Flags.
-- `support.js` / `vendor/` — generiertes DC-Runtime und lokale Kopien von React. Nicht von Hand ändern.
-  `support.js` hat die CDN-URLs für React, ReactDOM und Babel fest eingebaut (unpkg.com) und lässt sich
-  nicht neu bauen: das Quellprojekt `dc-runtime` liegt nirgends vor. Der vorgesehene Ausweg ist
-  `window.__resources` — `vendor/resources.js` biegt die URLs dort auf die lokalen Kopien um und **muss
-  vor `support.js` geladen werden**. Deshalb kommt die App ohne Internet aus (Voraussetzung für T4).
-  Beim Aktualisieren einer Version: Datei neu laden und ihren sha384-Hash gegen den SRI-Wert in
-  `support.js` prüfen — nur dann ist es dasselbe Artefakt.
-- `manifest.webmanifest` / `sw.js` / `icons/` — installierbare App. Der Worker hält **nur die Hülle**
-  vor (HTML, Komponente, Runtime, React, Schriften, Symbole), nichts unter `/paperless/`: Dokumente
-  gehören nicht in einen Cache, den kein Abmelden leert, und eine zwischengespeicherte Liste wäre
-  wieder eine Aussage über den Bestand (siehe Datenfluss). Ändert sich die Liste `HUELLE`, muss
-  `VERSION` in `sw.js` hoch — sonst wird der alte Cache weitergeführt.
+- `ui.js` — Grundlage. `html` (htm an React gebunden), `stil()` übersetzt CSS-Zeichenketten in
+  die Style-Objekte, die React verlangt, und merkt sie sich (die Oberfläche hat rund 940
+  solcher Zeichenketten). Dazu ein Fehlerfang und `starten()`.
+- `app.js` — Zustand und Verhalten. `renderVals()` liefert alles, was die Bildschirme brauchen;
+  `render()` reicht es an `DWVorlage.wurzel()` weiter.
+- `vorlage/*.js` — die Bildschirme, nach Bereichen getrennt (tabs, dokument, ordnung,
+  verwaltung, sheets, erfassen, onboarding). Jeder Bildschirm ist eine Funktion
+  `(v, html, stil)`. **Werte kommen ausschließlich über `v`** — Schleifenvariablen sind
+  unqualifiziert. `tests/template_check.py` prüft beide Richtungen.
+- `logik.js` — reine Logik ohne Zustand, DOM oder Netz. Lädt im Browser als Script und in Node
+  per `require`; `tests/logik.test.js` prüft sie ohne Browser.
+- `api.js` — Zugriffsschicht auf die REST-API (`window.PaperlessAPI`).
+- `tools/konvert.py` — hat die frühere DC-Vorlage nach htm übersetzt. **Kein laufendes
+  Werkzeug**: Änderungen gehören in `vorlage/`, nicht in eine erneute Übersetzung. Steht im
+  Repository, weil er die Herkunft der Dateien belegt.
+- `manifest.webmanifest` / `sw.js` / `icons/` — installierbare App. Der Worker hält **nur die
+  Hülle** vor, nichts unter `/paperless/`: Dokumente gehören nicht in einen Cache, den kein
+  Abmelden leert, und eine zwischengespeicherte Liste wäre wieder eine Aussage über den
+  Bestand (siehe Datenfluss). Ändert sich `HUELLE`, muss `VERSION` hoch — sonst wird der alte
+  Cache weitergeführt.
+
+**Das DC-Runtime ist Geschichte.** `support.js` lief ohne Quelltext (das Projekt `dc-runtime`
+lag nirgends vor), war nicht neu baubar und in einem AGPL-Repository heikel. Mit ihm sind
+`mobile.dc.html`, `vendor/resources.js`, `vendor/babel.min.js` (3 MB) und die Design-Vorschau
+entfallen. `vendor/` liegt bei 336 KB.
 
 ## Installierter Zustand
 - `theme-color` steht zweimal in `index.html`, je Systemschema. Sobald die App läuft, hat **ihre**
-  Einstellung Vorrang: `mobile.dc.html` meldet das tatsächliche Schema über `onDark` zurück, und
-  `Component.leiste()` schreibt beide Angaben auf dieselbe Farbe. Ohne das stünde eine helle
+  Einstellung Vorrang: `app.js` meldet das tatsächliche Schema über `onDark` zurück, und `leiste()` in
+  `index.html` schreibt beide Angaben auf dieselbe Farbe. Ohne das stünde eine helle
   Systemleiste über einer dunklen Oberfläche, sobald jemand „Dunkel“ ausdrücklich wählt.
 - Die Ränder, die das Gerät für sich beansprucht, meldet das System nur mit `viewport-fit=cover`
-  (`index.html`) als `env(safe-area-inset-*)`; ausgewertet werden sie in `mobile.dc.html` als
+  (`index.html`) als `env(safe-area-inset-*)`; ausgewertet werden sie in `app.js` als
   Polsterung des äußersten Kastens (`SICHER`). Oben bewusst nicht — die Bildschirme setzen ihre
   Überschriften ohnehin 64px unter die Oberkante.
 - Kurzbefehle des Manifests springen über `?tab=…` an ein Ziel aus `startZiel()`; `adresseAufraeumen()`
@@ -84,7 +98,7 @@ Das eigene Konto lässt sich weder herabstufen noch entfernen — das wäre die 
 ## Build- & Testkommandos
 - **Alle Tests:** `python3 /opt/paperless-app/tests/run_e2e.py`
 - **Nur ohne Server:** `python3 tests/run_e2e.py --statisch`
-- Stufen: `syntax_check` (node --check) → `template_check` (jede `{{ Bindung }}` hat einen Wert aus `renderVals`) → `api_check` (Zusagen der Paperless-API) → `browser_check` (App im Chromium gegen den echten Server).
+- Stufen: `syntax_check` → `logik_check` (Unit-Tests ohne Browser) → `template_check` (jeder gelesene Wert kommt aus `renderVals`) → `pwa_check` → `api_check` → `browser_check`.
 - Token für die letzten beiden Stufen: `PAPERLESS_TOKEN=…` oder `tests/.token` (nicht versioniert).
 
 ## Roadmap & Status

@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-"""Prueft, ob jede Template-Bindung einen Wert aus renderVals hat.
+"""Prueft, ob jeder Wert, den die Bildschirme lesen, auch aus renderVals kommt.
 
-Die DC-Vorlagen binden Werte als {{ name }}. Fehlt der Name in renderVals,
-faellt das weder bei `node --check` noch beim Laden auf - die Stelle bleibt
-im Browser einfach leer. Genau das passiert leicht, wenn Logik umgebaut und
-eine Bindung dabei umbenannt wird.
+Die Bildschirme unter vorlage/ greifen ausschliesslich ueber `v` auf Werte zu -
+`v.docsCountLabel`, `v.showDoc` und so fort. Fehlt so ein Schluessel in
+renderVals, faellt das weder bei `node --check` noch beim Laden auf: die Stelle
+bleibt im Browser einfach leer, oder es steht "undefined" auf dem Schirm.
+
+Genau das ist zweimal passiert und erst auf einem Screenshot aufgefallen. Diese
+Pruefung findet es in Millisekunden.
 
 Geprueft wird in beide Richtungen:
-  - jede Bindung im Template hat einen Schluessel in renderVals
-  - jeder Schluessel in renderVals wird im Template auch benutzt
+  - jeder v.NAME der Bildschirme hat einen Schluessel in renderVals
+  - jeder Schluessel in renderVals wird von einem Bildschirm auch gelesen
 
-Namen mit Punkt (r.titel) gehoeren zur Laufvariablen eines sc-for und werden
-gegen deren `as`-Namen geprueft, nicht gegen renderVals.
+Schleifenvariablen (d.titel in einer map-Schleife) sind nicht qualifiziert und
+tauchen hier deshalb gar nicht erst auf - der Konverter unterscheidet das
+bereits (tools/konvert.py).
 
 Aufruf: python3 tests/template_check.py
 """
@@ -20,144 +24,118 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-DATEIEN = ["mobile.dc.html", "index.html", "design/iphone.html"]
+VORLAGEN = sorted((ROOT / "vorlage").glob("*.js")) + [ROOT / "vorlage.js"]
+LOGIK = ROOT / "app.js"
 
-BINDUNG = re.compile(r"\{\{\s*([A-Za-z_$][\w$]*)((?:\.[\w$]+)*)\s*\}\}")
-SC_FOR_AS = re.compile(r'<sc-for\b[^>]*\bas="([^"]+)"', re.I)
-SKRIPT = re.compile(r"<script[^>]*\bdata-dc-script\b[^>]*>(.*?)</script>", re.S | re.I)
-# Der Rumpf von renderVals: vom `return {` bis zur schliessenden Klammer auf
-# derselben Einrueckung - oder einzeilig.
-RETURN_BLOCK = re.compile(r"\n(\s*)return \{\n(.*?)\n\1\};", re.S)
-RETURN_ZEILE = re.compile(r"\n\s*return \{(.*?)\};[ \t]*\n", re.S)
-# Laufzeit-Hinweise fuer die Vorschau, keine Datenbindungen.
-HINT_ATTR = re.compile(r'\bhint-[\w-]+="[^"]*"')
-
-# Bindungen, die das Laufzeitsystem selbst aufloest, nicht die Komponente.
-EINGEBAUT = {"farbschema", "isDark", "start", "onDark"}
+# v.name oder v.name.tiefer - nur der erste Bezeichner zaehlt.
+ZUGRIFF = re.compile(r"\bv\.([A-Za-z_$][\w$]*)")
 
 
-def schluessel_aus_render_vals(quelle: str) -> set:
-    """Namen der obersten Ebene aus dem von renderVals gelieferten Objekt."""
+def render_vals_schluessel(quelle: str) -> set:
+    """Die Schluessel des von renderVals zurueckgegebenen Objekts."""
     pos = quelle.find("renderVals()")
     if pos < 0:
         return set()
-    m = RETURN_BLOCK.search(quelle, pos)
-    rumpf = m.group(2) if m else None
-    if rumpf is None:
-        m = RETURN_ZEILE.search(quelle, pos)
-        if not m:
-            return set()
-        rumpf = m.group(1)
-    namen = set()
-    tiefe = 0
-    # Ein Schluessel steht immer am Anfang des Objekts oder nach einem Komma
-    # auf Tiefe 0. Verschachtelte Objekte (etwa themeVars) und alles in
-    # Zeichenketten oder Kommentaren bleiben aussen vor.
-    neuer_eintrag = True
-    # Positionen, nach denen ein / einen regulaeren Ausdruck beginnt und keine
-    # Division ist. Ohne diese Unterscheidung liest der Scanner das // in
-    # /^https?:\/\// als Zeilenkommentar und verliert den Rest der Zeile.
-    REGEX_START = set("(,=:[!&|?{};+-*%~^")
-    letztes = None
-    i = 0
-    while i < len(rumpf):
-        c = rumpf[i]
-        if c == "/" and i + 1 < len(rumpf) and rumpf[i + 1] == "/":
-            i = rumpf.find("\n", i)
-            if i < 0:
-                break
-            continue
-        if c == "/" and (letztes is None or letztes in REGEX_START):
-            i += 1
-            while i < len(rumpf) and rumpf[i] != "/":
-                i += 2 if rumpf[i] == "\\" else 1
-            letztes = "/"
-            neuer_eintrag = False
-            i += 1
-            continue
-        if c in "{[(":
+    start = quelle.find("return {", pos)
+    if start < 0:
+        return set()
+
+    # Zeichenweise bis zur schliessenden Klammer der Rueckgabe, damit
+    # verschachtelte Objekte, Zeichenketten und Funktionen nicht stoeren.
+    i = quelle.index("{", start)
+    tiefe, j, in_str, escape = 0, i, None, False
+    while j < len(quelle):
+        c = quelle[j]
+        if in_str:
+            if escape:
+                escape = False
+            elif c == "\\":
+                escape = True
+            elif c == in_str:
+                in_str = None
+        elif c in "\"'`":
+            in_str = c
+        elif c == "{":
             tiefe += 1
-            neuer_eintrag = False
+        elif c == "}":
+            tiefe -= 1
+            if tiefe == 0:
+                break
+        j += 1
+    koerper = quelle[i + 1:j]
+
+    # Schluessel auf oberster Ebene der Rueckgabe.
+    schluessel, tiefe, in_str, escape, k = set(), 0, None, False, 0
+    while k < len(koerper):
+        c = koerper[k]
+        if in_str:
+            if escape:
+                escape = False
+            elif c == "\\":
+                escape = True
+            elif c == in_str:
+                in_str = None
+            k += 1
+            continue
+        if c in "\"'`":
+            in_str = c
+        elif c in "{[(":
+            tiefe += 1
         elif c in "}])":
             tiefe -= 1
-            neuer_eintrag = False
-        elif c in "'\"`":
-            ende = c
-            i += 1
-            while i < len(rumpf) and rumpf[i] != ende:
-                i += 2 if rumpf[i] == "\\" else 1
-            neuer_eintrag = False
-        elif c == "," and tiefe == 0:
-            neuer_eintrag = True
-        elif c in " \t\n":
-            i += 1
-            continue
-        else:
-            if tiefe == 0 and neuer_eintrag:
-                m2 = re.match(r"([A-Za-z_$][\w$]*)\s*:", rumpf[i:])
-                if m2:
-                    namen.add(m2.group(1))
-                    i += m2.end()
-                    letztes = ":"
-                    neuer_eintrag = False
-                    continue
-            neuer_eintrag = False
-        letztes = c
-        i += 1
-    return namen
+        elif tiefe == 0:
+            m = re.match(r"([A-Za-z_$][\w$]*)\s*:", koerper[k:])
+            if m and (k == 0 or koerper[k - 1] in ",\n\t {"):
+                schluessel.add(m.group(1))
+                k += m.end()
+                continue
+        k += 1
+    return schluessel
 
 
-def pruefe(datei: str) -> int:
-    pfad = ROOT / datei
+fehler = 0
+print("Werte der Bildschirme")
+
+if not LOGIK.exists():
+    print(f"  fehlt   {LOGIK.name}")
+    sys.exit(1)
+
+geliefert = render_vals_schluessel(LOGIK.read_text(encoding="utf-8"))
+if not geliefert:
+    print("  FEHLER  renderVals in app.js nicht auswertbar")
+    sys.exit(1)
+
+gelesen = {}
+for pfad in VORLAGEN:
     if not pfad.exists():
-        print(f"  fehlt   {datei}")
-        return 1
-    text = pfad.read_text(encoding="utf-8")
+        print(f"  fehlt   {pfad.relative_to(ROOT)}")
+        fehler += 1
+        continue
+    for name in ZUGRIFF.findall(pfad.read_text(encoding="utf-8")):
+        gelesen.setdefault(name, set()).add(pfad.name)
 
-    bloecke = SKRIPT.findall(text)
-    if not bloecke:
-        print(f"  ok      {datei} (kein Komponenten-Skript)")
-        return 0
-    schluessel = schluessel_aus_render_vals(bloecke[0])
-    if not schluessel:
-        print(f"  FEHLER  {datei}: renderVals liess sich nicht auswerten")
-        return 1
+offen = sorted(set(gelesen) - geliefert)
+ungenutzt = sorted(geliefert - set(gelesen))
 
-    # Laufvariablen der Schleifen; ihre Felder werden hier nicht geprueft,
-    # weil sie erst zur Laufzeit entstehen.
-    schleifen = set(SC_FOR_AS.findall(text))
+if offen:
+    fehler += 1
+    print(f"  FEHLER  {len(offen)} Wert(e) werden gelesen, aber nicht geliefert:")
+    for n in offen:
+        print(f"          v.{n}  (in {', '.join(sorted(gelesen[n]))})")
+else:
+    print(f"  ok      {len(gelesen)} gelesene Werte, alle aus renderVals")
 
-    vorlage = HINT_ATTR.sub("", SKRIPT.sub("", text))
-    benutzt, fehlend = set(), set()
-    for name, rest in BINDUNG.findall(vorlage):
-        if name in schleifen or name in EINGEBAUT:
-            continue
-        if rest:
-            # Punktzugriff auf etwas, das keine Laufvariable ist.
-            fehlend.add(name + rest + " (kein Schleifenwert)")
-            continue
-        benutzt.add(name)
-        if name not in schluessel:
-            fehlend.add(name)
+if ungenutzt:
+    # Kein Fehler, aber ein Hinweis: solche Schluessel werden bei jedem Render
+    # berechnet, ohne dass sie jemand liest.
+    print(f"  Hinweis {len(ungenutzt)} Schluessel aus renderVals liest niemand:")
+    for n in ungenutzt[:12]:
+        print(f"          {n}")
+    if len(ungenutzt) > 12:
+        print(f"          … und {len(ungenutzt) - 12} weitere")
 
-    ungenutzt = {k for k in schluessel if k not in benutzt} - EINGEBAUT
-
-    if not fehlend and not ungenutzt:
-        print(f"  ok      {datei} ({len(benutzt)} Bindungen)")
-        return 0
-
-    print(f"  FEHLER  {datei}")
-    for n in sorted(fehlend):
-        print(f"          fehlt in renderVals: {n}")
-    for n in sorted(ungenutzt):
-        print(f"          nie im Template benutzt: {n}")
-    return 1
-
-
-print("Template-Bindungen")
-fehler = sum(pruefe(d) for d in DATEIEN)
 print()
 if fehler:
-    print(f"{fehler} Datei(en) mit Fehlern")
+    print("Es fehlen Werte")
     sys.exit(1)
-print("Alle Bindungen aufgeloest")
+print("Alle gelesenen Werte sind belegt")

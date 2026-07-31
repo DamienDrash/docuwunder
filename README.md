@@ -45,19 +45,21 @@ Paperless ausgeliefert werden.
 
 | Datei | Zweck |
 |---|---|
-| `index.html` | Einstiegspunkt, lädt Laufzeit und API-Schicht |
-| `mobile.dc.html` | Die gesamte Oberfläche: Vorlage und Komponentenlogik |
+| `index.html` | Einstiegspunkt, lädt die Bausteine in der nötigen Reihenfolge |
+| `ui.js` | Grundlage: `html`, `stil()`, Fehlerfang, `starten()` |
+| `app.js` | Zustand und Verhalten der Oberfläche |
+| `vorlage/` | Die Bildschirme, nach Bereichen getrennt |
+| `vorlage.js` | Setzt die Bildschirme zusammen |
+| `logik.js` | Reine Logik: Übersetzung, Formatierung, Ableitungen — ohne Browser testbar |
 | `api.js` | Zugriffsschicht auf die Paperless-ngx-REST-API |
 | `sw.js` | Service Worker, hält die Hülle für den Offline-Start vor |
-| `logik.js` | Reine Logik: Übersetzung, Formatierung, Ableitungen — ohne Browser testbar |
-| `support.js`, `vendor/` | Laufzeitumgebung und lokale Kopien von React und den Schriften |
-| `design/` | Entwurfsvorschau, nicht Teil der App |
-| `tests/` | Vierstufige Prüfung, siehe unten |
+| `vendor/` | Lokale Kopien von React, htm und den Schriften |
+| `tools/konvert.py` | Übersetzte die frühere DC-Vorlage nach htm |
 
 Es gibt **eine** Oberfläche für alle Geräte. Ab 900 px Fensterbreite schaltet sie selbst
 zweispaltig um — Liste links, Dokument rechts. Eine Geräteweiche gibt es nicht.
 
-Die App lädt **nichts** von fremden Servern: React und die Schriften liegen unter
+Die App lädt **nichts** von fremden Servern: React, htm und die Schriften liegen unter
 `vendor/`. Das ist Voraussetzung dafür, dass sie offline und im LAN ohne Internet läuft.
 
 ## Voraussetzungen
@@ -77,7 +79,7 @@ Die Stufen bauen aufeinander auf und laufen von schnell nach langsam:
 
 1. **syntax_check** — Syntax der Komponentenskripte und JS-Dateien
 2. **logik_check** — Unit-Tests der reinen Logik (`node --test`), ohne Browser und Server
-3. **template_check** — jede `{{ Bindung }}` bekommt einen Wert aus `renderVals`
+3. **template_check** — jeder Wert, den ein Bildschirm liest, kommt aus `renderVals`
 4. **pwa_check** — Manifest, Service Worker und Symbole passen zusammen
 5. **api_check** — die Zusagen der Paperless-API, auf die die App baut
 6. **browser_check** — die App im echten Browser gegen den echten Server

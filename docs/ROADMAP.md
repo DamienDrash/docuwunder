@@ -19,7 +19,8 @@ Sortiert nach dem, was zuerst weh tut.
 | Offline | Läuft ohne Internet, keine externen Requests |
 | Tests | 5 Stufen, 1.463 Zeilen: Syntax, Template-Bindungen, API-Vertrag, Browser, PWA |
 | Visuell geprüft | 38 Stationen × 3 Varianten (schmal, Split-View, dunkel) |
-| Bekannte Schuld | `mobile.dc.html` mit 3.617 Zeilen, `renderVals()` mit 259 Schlüsseln |
+| Aufbau | React direkt, htm statt JSX, kein Build-Schritt. Bildschirme einzeln in `vorlage/` |
+| Offene Schuld | `renderVals()` mit 385 gelesenen Werten, wiederholte Stilfragmente |
 
 ---
 
@@ -48,7 +49,7 @@ Sortiert nach dem, was zuerst weh tut.
 
 Diese drei entscheiden, ob DocuWunder in sechs Monaten noch änderbar ist.
 
-### 🔴 1.1 `mobile.dc.html` zerschlagen
+### ✅ 1.1 `mobile.dc.html` zerschlagen
 3.617 Zeilen, 751 Inline-Styles, 121 Methoden, 91 Zustandsfelder in **einer** Datei.
 Die längste Zeile hat 3.240 Zeichen. Kein Diff ist reviewbar, zwei Leute können nicht
 parallel daran arbeiten.
@@ -57,7 +58,7 @@ Vorschlag: Vorlage nach Bildschirm trennen, Stile in benannte Konstanten, Logik 
 nach Sachgebiet (Dokumente, Ordner, Team, Onboarding). Das DC-Runtime erlaubt mehrere
 Komponenten — genutzt wird es bisher nur für `mobile` und `IOSDevice`.
 
-### 🔴 1.2 Das DC-Runtime ersetzen
+### ✅ 1.2 Das DC-Runtime ersetzen
 `support.js:1` sagt: *„GENERATED from dc-runtime/src/*.ts — do not edit. Rebuild with
 `cd dc-runtime && bun run build`."* **Dieses Projekt existiert nirgends** — nicht im
 Repository, nicht auf dem Server.
@@ -69,7 +70,7 @@ AGPL-Repository ist das zusätzlich heikel: Empfänger können den Quelltext nic
 Wege: Quelltext von `dc-runtime` beschaffen und beilegen — oder auf React ohne
 Zwischenschicht wechseln. Zweiteres ist Arbeit, beendet die Abhängigkeit aber endgültig.
 
-### 🔴 1.3 Unit-Tests für die Übersetzungsschicht
+### ✅ 1.3 Unit-Tests für die Übersetzungsschicht
 1.403 Zeilen Tests, aber **keine einzige Funktion isoliert geprüft**. `mapDoc()`,
 `toApiPatch()`, `ordnerKinder()`, `initialen()`, `felderAus()` — dort sitzen die Fehler,
 die man sonst auf Screenshots sucht.
@@ -78,6 +79,19 @@ Beleg: „DUNDEFINED" und „undefined Treffer" fielen erst im visuellen Durchla
 hätte ein dreizeiliger Test beim Schreiben gefunden.
 
 ---
+
+**Stand:** Phase 1 ist abgeschlossen. Die Migration lief in einem Zug:
+
+- `tools/konvert.py` hat die Vorlage mechanisch übersetzt — 145 `sc-if`, 46 `sc-for`,
+  659 Bindungen, 940 Stil-Attribute. Von Hand wäre das nicht nachvollziehbar gewesen.
+- Die Bildschirme liegen jetzt einzeln in `vorlage/` (73–291 Zeilen je Bereich) statt in
+  einer Datei mit 3.617 Zeilen.
+- `support.js`, `mobile.dc.html`, `vendor/resources.js` und die Design-Vorschau sind
+  entfallen. Damit ist die Abhängigkeit ohne Quelltext beendet.
+- Der Konverter hat dabei zwei eigene Fehler offengelegt (Alias `f` + Präfix `i` = `if`;
+  htm dekodiert keine HTML-Entitäten, `&amp;` stand wörtlich auf dem Schirm). Beide fand
+  die Prüfung, nicht das Auge.
+- Verifiziert: 6 Teststufen, 114 visuelle Stationen über schmal, Split-View und dunkel.
 
 ## Phase 2 — Ehrlichkeit und Sicherheit
 
@@ -92,16 +106,16 @@ Face ID ist entfernt, weil es nur ein Boolean war. Ein Wiederaufbau per WebAuthn
 die WebAuthn-PRF-Erweiterung oder eine zusätzliche PIN — **Browserunterstützung vorher
 prüfen**. Nichts davon versprechen, bevor es trägt.
 
-### 🟠 2.3 Drei stille `catch`
+### ✅ 2.3 Drei stille `catch`
 `.catch(() => {})` verschluckt Fehler, ohne dass Nutzer, Log oder Entwickler es erfahren.
 Entweder behandeln oder wenigstens protokollieren.
 
-### 🟡 2.4 Berechtigungen beim Anlegen eines Mitglieds
+### ✅ 2.4 Berechtigungen beim Anlegen eines Mitglieds
 Ein per API angelegter Benutzer hat **keinerlei Django-Rechte** und läuft schon beim
 Auflisten in 403 — das Konto ist blind, bis es einer Gruppe mit Rechten angehört. Die App
 sollte beim Anlegen entweder eine Gruppe erzwingen oder unmissverständlich warnen.
 
-### 🟡 2.5 Social Preview hochladen
+### ✅ 2.5 Social Preview hochladen
 `assets/brand/github-social-preview.png` liegt bereit, muss aber von Hand in den
 Repository-Einstellungen gesetzt werden — dafür gibt es keine API.
 
@@ -155,22 +169,22 @@ serverseitige Auslöser — Paperless liefert das nicht mit.
 
 ## Phase 4 — Aufräumen
 
-### 🟡 4.1 Drei Megabyte Babel
+### ✅ 4.1 Drei Megabyte Babel
 `vendor/` wiegt 3,4 MB, davon 3,0 MB Babel — gebraucht **nur** von `iphone.html`, der
 Design-Vorschau mit simulierter iPhone-Hülle. 88 % des Vendor-Gewichts für ein
 Entwicklerspielzeug im öffentlichen Repository. Vorschlag: `iphone.html`, `ios-frame.jsx`
 und Babel in einen Zweig oder ein eigenes Verzeichnis, das nicht mit ausgeliefert wird.
 
-### 🟡 4.2 Zwei Vokabulare für dieselben Daten
+### 🟡 4.2 Zwei Vokabulare für dieselben Daten (offen)
 `titel`/`abs`/`art`/`ort` gegen `title`/`correspondent`/`document_type`/`storage_path`.
 Aus dem Mockup geerbt, `mapDoc()` ist die Zollstation. Jedes neue Feld muss durch beide.
 Nebenbei liest sich `abs` wie `Math.abs`.
 
-### ⚪ 4.3 Zurück-Pfeil vereinheitlichen
+### ✅ 4.3 Zurück-Pfeil vereinheitlichen
 Das Dokument-Detail nutzt ein anderes Glyph (`M10 2L2 10l8 8`) als alle übrigen Bildschirme
 (`M8.5 1.5L1.5 8.5l7 7`). Rein kosmetisch, aber uneinheitlich.
 
-### ⚪ 4.4 Wiederholte Stilfragmente
+### 🟡 4.4 Wiederholte Stilfragmente (offen)
 `display:flex;align-items:center;justify-content:center` steht 76-mal wörtlich da,
 `border-radius:999px` 19-mal. Gehört in benannte Konstanten — fällt mit 1.1 zusammen.
 

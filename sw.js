@@ -23,7 +23,7 @@
  *                     verschenkt. Aendern sie sich doch, greift die neue Fassung
  *                     beim naechsten Start.
  *   alles Uebrige     Zuerst aus dem Netz, mit kurzer Frist und Rueckfall auf
- *                     den Cache. index.html, mobile.dc.html und api.js gehoeren
+ *                     den Cache. index.html, app.js und die Bildschirme gehoeren
  *                     zusammen - sie duerfen nicht in verschiedenen Staenden
  *                     nebeneinander laufen, deshalb bekommt das Netz hier den
  *                     Vortritt, solange es antwortet.
@@ -31,7 +31,7 @@
 
 // Aendert sich die Aufteilung oben oder die Liste unten, hochzaehlen: beim
 // naechsten Start wird der alte Cache dann verworfen statt weitergefuehrt.
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = 'docuwunder-huelle-' + VERSION;
 
 // Wie lange auf das Netz gewartet wird, bevor der Cache einspringt. Kurz
@@ -49,12 +49,20 @@ const HUELLE = [
   './index.html',
   './logik.js',
   './api.js',
-  './support.js',
-  './mobile.dc.html',
+  './ui.js',
+  './app.js',
+  './vorlage.js',
+  './vorlage/tabs.js',
+  './vorlage/dokument.js',
+  './vorlage/ordnung.js',
+  './vorlage/verwaltung.js',
+  './vorlage/sheets.js',
+  './vorlage/erfassen.js',
+  './vorlage/onboarding.js',
   './manifest.webmanifest',
-  './vendor/resources.js',
   './vendor/react.production.min.js',
   './vendor/react-dom.production.min.js',
+  './vendor/htm.js',
   './vendor/inter.css',
   './vendor/inter-latin.woff2',
   './vendor/inter-latin-ext.woff2',

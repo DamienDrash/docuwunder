@@ -15,8 +15,11 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-HTML = ["index.html", "mobile.dc.html", "design/iphone.html"]
-JS = ["logik.js", "api.js", "vendor/resources.js", "sw.js"]
+HTML = []  # keine DC-Skriptbloecke mehr - die Oberflaeche ist reines JavaScript
+JS = ["logik.js", "api.js", "ui.js", "app.js", "vorlage.js",
+      "vorlage/tabs.js", "vorlage/dokument.js", "vorlage/ordnung.js",
+      "vorlage/verwaltung.js", "vorlage/sheets.js", "vorlage/erfassen.js",
+      "vorlage/onboarding.js", "sw.js"]
 
 BLOCK = re.compile(
     r'<script[^>]*\bdata-dc-script\b[^>]*>(.*?)</script>', re.S | re.I

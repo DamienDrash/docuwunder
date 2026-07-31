@@ -206,7 +206,7 @@ def t_filter_id_in():
 
 
 def t_sortierung():
-    # Genau die Werte aus SORT_API in mobile.dc.html.
+    # Genau die Werte aus SORT_API in app.js.
     for ordering in ("-created", "created", "title", "correspondent__name"):
         st, d, _ = hole("/documents/", {"page_size": 5, "ordering": ordering, "fields": "id"})
         assert st == 200, f"ordering={ordering} -> HTTP {st}"

@@ -370,7 +370,7 @@ def main():
                         const namen = (await caches.keys()).filter(n => n.startsWith('docuwunder-huelle-'));
                         if (namen.length !== 1) return ['unerwartete Caches: ' + namen.join()];
                         const cache = await caches.open(namen[0]);
-                        const soll = ['./index.html', './support.js', './mobile.dc.html',
+                        const soll = ['./index.html', './app.js', './vorlage.js', './ui.js',
                                       './api.js', './vendor/react.production.min.js'];
                         const da = await Promise.all(soll.map(p => cache.match(p, {ignoreVary: true})));
                         return soll.filter((p, i) => !da[i]);
@@ -397,27 +397,6 @@ def main():
                 )
                 assert not drin, f"im Cache gelandet: {drin[:3]}"
                 return "keine Serverdaten im Cache"
-
-            def t_vorschau_weicht_dem_telefon():
-                # iphone.html zeigt die Oberflaeche in einer nachgebauten
-                # iOS-Huelle. Auf einem echten Telefon waere das ein Rahmen im
-                # Rahmen - wer dort ankommt, will die App.
-                telefon = browser.new_context(
-                    viewport={"width": 393, "height": 852}, is_mobile=True,
-                    has_touch=True, device_scale_factor=3,
-                )
-                try:
-                    p2 = telefon.new_page()
-                    p2.goto(basis + "design/iphone.html", wait_until="domcontentloaded", timeout=30000)
-                    p2.wait_for_url("**/index.html", timeout=10000)
-                    # Mit ?rahmen bleibt der Entwurf absichtlich erreichbar.
-                    p2.goto(basis + "design/iphone.html?rahmen", wait_until="domcontentloaded", timeout=30000)
-                    p2.wait_for_timeout(800)
-                    assert p2.url.endswith("design/iphone.html?rahmen"), \
-                        f"?rahmen haelt den Entwurf nicht offen: {p2.url}"
-                finally:
-                    telefon.close()
-                return "Telefon landet in der App, ?rahmen zeigt den Entwurf"
 
             def t_startet_ohne_netz():
                 seite.context.set_offline(True)
@@ -446,7 +425,6 @@ def main():
                 ("Service Worker steuert die Seite", t_worker_uebernimmt),
                 ("Huelle liegt im Cache", t_huelle_liegt_im_cache),
                 ("Keine Serverdaten im Cache", t_keine_dokumente_im_cache),
-                ("Entwurfsvorschau weicht dem Telefon", t_vorschau_weicht_dem_telefon),
                 ("App startet ohne Netz", t_startet_ohne_netz),
             ]:
                 pruefe(name, fn)

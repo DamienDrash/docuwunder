@@ -12,7 +12,7 @@
 
   viewport-fit=cover oben laesst die Seite bis in die Ecken des Bildschirms
   laufen; was dort vom Geraet verdeckt wird, meldet das System als
-  env(safe-area-inset-*). Ausgewertet wird das in mobile.dc.html, weil dort die
+  env(safe-area-inset-*). Ausgewertet wird das in app.js, weil dort die
   Leisten sitzen, die davon betroffen sind.
 
   apple-mobile-web-app-status-bar-style bleibt bewusst auf "default":
@@ -23,7 +23,7 @@
 
   Die beiden theme-color-Angaben folgen der Systemeinstellung. Das ist die
   richtige Farbe, solange die App noch nicht laeuft - danach hat ihre eigene
-  Einstellung Vorrang und die Komponente unten schreibt sie um.
+  Einstellung Vorrang und leiste() unten schreibt sie um.
 -->
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#F7FAFA" media="(prefers-color-scheme: light)">
@@ -38,44 +38,6 @@
 <link rel="icon" href="./favicon-16x16.png" type="image/png" sizes="16x16">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon-180.png" sizes="180x180">
 
-<script src="./vendor/resources.js"></script>
-<script src="./logik.js"></script>
-<script src="./api.js"></script>
-<script src="./support.js"></script>
-<script>
-// Der Service Worker haelt die Huelle der App vor, damit sie ohne Netz
-// startet (siehe sw.js). Er ist Zubehoer: schlaegt die Anmeldung fehl - kein
-// sicherer Kontext, abgeschaltet, Privatfenster -, laeuft die App wie bisher.
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js', { scope: './' })
-      .catch((e) => console.warn('Service Worker nicht angemeldet:', e));
-  });
-}
-</script>
-</head>
-<body>
-<!--
-  Einstiegspunkt der App.
-
-  Es gibt nur noch EINE Oberflaeche: die iOS-optimierte Oberflaeche aus
-  mobile.dc.html. Sie bedient Telefon und Desktop gleichermassen und schaltet
-  ab WIDE_MIN (900px) selbst zweispaltig um - Liste links, Dokument-Detail
-  rechts. Die frueher hier eingebettete separate Desktop-Shell ist entfallen:
-  sie war ein zweiter, vollstaendig eigener Nachbau derselben Funktionen mit
-  eigenem Datenbestand und liess sich nicht gemeinsam pflegen.
-
-  Damit entfaellt auch die Geraeteweiche (detectDevice): es gibt nichts mehr
-  zu entscheiden, das Layout richtet sich allein nach der Viewport-Breite.
-
-  Das Farbschema folgt der Systemeinstellung; in der App laesst es sich unter
-  Einstellungen uebersteuern.
-
-  iphone.html ist kein Einstiegspunkt, sondern nur noch eine Design-Vorschau,
-  die dieselbe Komponente in einer simulierten iOS-Huelle zeigt.
--->
-<x-dc>
-<helmet>
 <link rel="stylesheet" href="./vendor/inter.css">
 <link rel="stylesheet" href="./vendor/manrope.css">
 <style>
@@ -90,65 +52,93 @@ html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;backgrou
 @media (prefers-color-scheme: dark){html,body{background:#0D1B2A}}
 *{box-sizing:border-box}
 input,textarea,button{font-family:inherit}
+@keyframes pushIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes sheetUp{from{transform:translateY(105%)}to{transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{display:none}
+a{color:var(--acc);text-decoration:none}
 </style>
-</helmet>
-<div style="position:fixed;inset:0;overflow:hidden">
-  <dc-import name="mobile" farbschema="{{ farbschema }}" onDark="{{ onDark }}"></dc-import>
-</div>
-</x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;farbschema&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;System&quot;, &quot;Hell&quot;, &quot;Dunkel&quot;], &quot;default&quot;: &quot;System&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Darstellung&quot;}}">
+</head>
+<body>
+<!--
+  Einstiegspunkt der App.
+
+  Es gibt eine Oberflaeche fuer alle Geraete. Sie schaltet ab WIDE_MIN (900px)
+  selbst zweispaltig um - Liste links, Dokument-Detail rechts. Eine
+  Geraeteweiche gibt es nicht.
+
+  Aufbau seit der Migration weg vom DC-Runtime:
+
+      vendor/react*      React, lokal - die App laedt nichts aus dem Netz
+      vendor/htm.js      JSX-nahe Schreibweise ohne Compiler (1,2 KB)
+      ui.js              Grundlage: html, stil(), Fehlerfang, starten()
+      logik.js           reine Logik, ohne Browser testbar
+      api.js             Zugriff auf die Paperless-API
+      vorlage/*.js       die Bildschirme, nach Bereichen getrennt
+      vorlage.js         setzt die Bildschirme zusammen
+      app.js             Zustand und Verhalten
+
+  Die Reihenfolge zaehlt: ui.js braucht React und htm, app.js braucht alles
+  davor.
+-->
+<div id="app" style="position:fixed;inset:0;overflow:hidden"></div>
+
+<script src="./vendor/react.production.min.js"></script>
+<script src="./vendor/react-dom.production.min.js"></script>
+<script src="./vendor/htm.js"></script>
+<script src="./ui.js"></script>
+<script src="./logik.js"></script>
+<script src="./api.js"></script>
+<script src="./vorlage/tabs.js"></script>
+<script src="./vorlage/dokument.js"></script>
+<script src="./vorlage/ordnung.js"></script>
+<script src="./vorlage/verwaltung.js"></script>
+<script src="./vorlage/sheets.js"></script>
+<script src="./vorlage/erfassen.js"></script>
+<script src="./vorlage/onboarding.js"></script>
+<script src="./vorlage.js"></script>
+<script src="./app.js"></script>
+<script>
 // Die Farben der beiden Schemata, wie sie oben im Kopf stehen. Sie faerben im
 // installierten Zustand die Leisten des Systems um die App herum.
 const LEISTE_HELL = '#F7FAFA';
 const LEISTE_DUNKEL = '#0D1B2A';
+let leisteJetzt = null;
 
-class Component extends DCLogic {
-  constructor(p) {
-    super(p);
-    this.state = { systemDark: false };
-  }
-  componentDidMount() {
-    if (!window.matchMedia) return;
-    this._mq = window.matchMedia('(prefers-color-scheme: dark)');
-    this.setState({ systemDark: this._mq.matches });
-    this._onScheme = (e) => this.setState({ systemDark: e.matches });
-    this._mq.addEventListener('change', this._onScheme);
-  }
-  componentWillUnmount() {
-    if (this._mq && this._onScheme) this._mq.removeEventListener('change', this._onScheme);
-  }
-  // Die Oberflaeche meldet hierher, in welchem Schema sie tatsaechlich steht.
-  //
-  // Das ist nicht dasselbe wie die Systemeinstellung: in den App-Einstellungen
-  // laesst sich Hell oder Dunkel ausdruecklich waehlen. Ohne diese Rueckmeldung
-  // bliebe die Leiste des Systems bei der Farbe des Systemschemas stehen - im
-  // Browser faellt das kaum auf, in der installierten App steht dann ein heller
-  // Streifen ueber einer dunklen Oberflaeche.
-  //
-  // Umgeschrieben werden beide Angaben aus dem Kopf: welche davon greift,
-  // entscheidet die Medienabfrage, und die kennt nur das System. Dieselbe Farbe
-  // in beiden heisst deshalb: die Wahl in der App gilt.
-  leiste(dunkel) {
-    const farbe = dunkel ? LEISTE_DUNKEL : LEISTE_HELL;
-    if (this._leiste === farbe) return;
-    this._leiste = farbe;
-    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', farbe));
-    // Sichtbar ist der Hintergrund nur an den Raendern, die die Oberflaeche
-    // freilaesst; er muss aber zur gewaehlten Farbe passen, nicht zum System.
-    document.documentElement.style.background = farbe;
-    document.body.style.background = farbe;
-  }
-  renderVals() {
-    // Die Oberflaeche kennt nur 'Hell' und 'Dunkel'. 'System' wird hier
-    // aufgeloest, damit sie der Systemeinstellung folgt, solange in den
-    // App-Einstellungen nichts anderes gewaehlt ist.
-    const wahl = this.props.farbschema ?? 'System';
-    const dunkel = wahl === 'System' ? this.state.systemDark : wahl === 'Dunkel';
-    return {
-      farbschema: dunkel ? 'Dunkel' : 'Hell',
-      onDark: (d) => this.leiste(d),
-    };
-  }
+// Die Oberflaeche meldet hierher, in welchem Schema sie tatsaechlich steht.
+//
+// Das ist nicht dasselbe wie die Systemeinstellung: in den App-Einstellungen
+// laesst sich Hell oder Dunkel ausdruecklich waehlen. Ohne diese Rueckmeldung
+// bliebe die Leiste des Systems bei der Farbe des Systemschemas stehen - im
+// Browser faellt das kaum auf, in der installierten App steht dann ein heller
+// Streifen ueber einer dunklen Oberflaeche.
+//
+// Umgeschrieben werden beide Angaben aus dem Kopf: welche davon greift,
+// entscheidet die Medienabfrage, und die kennt nur das System. Dieselbe Farbe
+// in beiden heisst deshalb: die Wahl in der App gilt.
+function leiste(dunkel) {
+  const farbe = dunkel ? LEISTE_DUNKEL : LEISTE_HELL;
+  if (leisteJetzt === farbe) return;
+  leisteJetzt = farbe;
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', farbe));
+  // Sichtbar ist der Hintergrund nur an den Raendern, die die Oberflaeche
+  // freilaesst; er muss aber zur gewaehlten Farbe passen, nicht zum System.
+  document.documentElement.style.background = farbe;
+  document.body.style.background = farbe;
+}
+
+DWUi.starten(DWApp.Wurzel, '#app', { farbschema: 'System', onDark: leiste });
+
+// Der Service Worker haelt die Huelle der App vor, damit sie ohne Netz
+// startet (siehe sw.js). Er ist Zubehoer: schlaegt die Anmeldung fehl - kein
+// sicherer Kontext, abgeschaltet, Privatfenster -, laeuft die App wie bisher.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .catch((e) => console.warn('Service Worker nicht angemeldet:', e));
+  });
 }
 </script>
 </body>

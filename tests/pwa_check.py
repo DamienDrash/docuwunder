@@ -118,10 +118,10 @@ if manifest:
 
 # --- Kurzbefehle gegen die Komponente ---------------------------------------
 print("\nKurzbefehle")
-komponente = (ROOT / "mobile.dc.html").read_text(encoding="utf-8")
+komponente = (ROOT / "app.js").read_text(encoding="utf-8")
 m = re.search(r"\n  startZiel\(\) \{(.*?)\n  \}\n", komponente, re.S)
 if not m:
-    pruefe(False, "startZiel() in mobile.dc.html gefunden",
+    pruefe(False, "startZiel() in app.js gefunden",
            grund="ohne die Methode laesst sich nicht pruefen, welche Ziele die App kennt")
 else:
     quelle = m.group(1)
@@ -175,7 +175,9 @@ pruefe("viewport-fit=cover" in index,
 # App. Im Kopf steht sie je Systemschema - wer in den App-Einstellungen
 # ausdruecklich Hell oder Dunkel waehlt, bekaeme sonst eine Leiste, die zum
 # System passt statt zur Oberflaeche davor.
-pruefe('onDark="{{ onDark }}"' in index and 'meta[name="theme-color"]' in index,
+# Seit der Migration reicht index.html die Rueckmeldung als Prop weiter, statt
+# sie ueber eine Template-Bindung zu verdrahten.
+pruefe("onDark: leiste" in index and 'meta[name="theme-color"]' in index,
        "die Leiste folgt dem Schema der App, nicht dem des Systems",
        grund="index.html schreibt die theme-color nicht um")
 
@@ -199,7 +201,8 @@ fehlend = sorted(noetig - set(huelle))
 pruefe(not fehlend, "index.html laedt nichts, was der Huelle fehlt", grund=", ".join(fehlend))
 
 # Die Komponente holt sich das Runtime zur Laufzeit nach (dc-import).
-pruefe("./mobile.dc.html" in huelle, "die Oberflaeche selbst steht in der Huelle")
+pruefe("./app.js" in huelle and "./vorlage.js" in huelle,
+       "die Oberflaeche selbst steht in der Huelle")
 
 print()
 if fehler:
