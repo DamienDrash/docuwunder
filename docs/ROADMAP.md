@@ -105,11 +105,28 @@ Die Einstellungen sagen unter „Zugangsschlüssel" klar, wo er liegt und wer ih
 **Offen bleibt echter Schutz**: dafür braucht es ein Geheimnis, das der Nutzer beisteuert
 (PIN) oder das Gerät verwahrt (WebAuthn-PRF) — siehe 2.2.
 
-### 🟠 2.2 Biometrie — falls überhaupt, dann ehrlich
-Face ID ist entfernt, weil es nur ein Boolean war. Ein Wiederaufbau per WebAuthn sperrt die
-**Oberfläche**, schützt aber den Schlüssel im `localStorage` nicht. Echter Schutz braucht
-die WebAuthn-PRF-Erweiterung oder eine zusätzliche PIN — **Browserunterstützung vorher
-prüfen**. Nichts davon versprechen, bevor es trägt.
+### ✅ 2.2 Biometrie — mit echtem Schutz
+Geprüft, gebaut, belegt. Die PRF-Erweiterung ist vorhanden (`extension:prf: true`), also
+gibt es keine Oberflächensperre, sondern **echte Verschlüsselung**: der Authentifikator des
+Geräts leitet aus einem festen Salz Schlüsselmaterial ab, daraus wird ein AES-GCM-Schlüssel,
+und der Zugangsschlüssel liegt nur noch verschlüsselt (`sperre.js`).
+
+Drei Gegenbeweise mit virtuellem Authentifikator:
+
+| Angriff | Ergebnis |
+|---|---|
+| Gerät weg (Authentifikator entfernt) | abgewiesen |
+| Biometrie schlägt fehl | abgewiesen |
+| **Ablage auf ein anderes Gerät kopiert** | **abgewiesen** |
+
+Der dritte ist der entscheidende: eine kopierte `localStorage`-Ablage nützt nichts. Bei
+aktiver Sperre gibt es keine unverschlüsselte Zweitkopie — der Schlüssel lebt nur im
+Speicher der laufenden Sitzung.
+
+**Was nicht versprochen wird:** Schutz gegen jemanden, der Code in die Origin einschleusen
+kann. Wer das kann, wartet die Entsperrung ab. Das schützt gegen ein verlorenes Gerät und
+fremde Blicke, nicht gegen einen kompromittierten Server. Ohne Plattform-Authentifikator
+wird die Funktion gar nicht erst angeboten.
 
 ### ✅ 2.3 Drei stille `catch`
 `.catch(() => {})` verschluckt Fehler, ohne dass Nutzer, Log oder Entwickler es erfahren.

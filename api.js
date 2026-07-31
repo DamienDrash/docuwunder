@@ -362,10 +362,18 @@ window.PaperlessAPI = (function () {
     defaultBase: defaultBase,
 
     hasToken: function () { return !!token; },
-    setToken: function (t) {
+    // Der Schluessel im Klartext - nur fuer die Sperre, die ihn verschluesselt
+    // ablegt. Sonst niemand.
+    rohToken: function () { return token; },
+    // fluechtig = nur fuer diese Sitzung im Speicher halten, nichts ablegen.
+    // Gebraucht, wenn die Sperre aktiv ist: dann liegt der Schluessel
+    // ausschliesslich verschluesselt in docuwunder.sperre, und eine zweite,
+    // unverschluesselte Kopie waere genau das Loch, das die Sperre schliesst.
+    setToken: function (t, fluechtig) {
       token = t || '';
       zuletztVerlaengert = token ? Date.now() : 0;
-      schluesselSchreiben(token);
+      if (fluechtig) localStorage.removeItem(TOKEN_KEY);
+      else schluesselSchreiben(token);
     },
     // Wann der Zugang ablaeuft, damit die Einstellungen es benennen koennen.
     gueltigBis: function () {

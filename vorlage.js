@@ -52,7 +52,7 @@ ${DWVorlage.scanOn(v, html, stil)}
 
 ${DWVorlage.toastOn(v, html, stil)}` : null}
 
-${DWVorlage.showOnb(v, html, stil)}
+${DWVorlage.showOnb(v, html, stil)}${DWVorlage.sperreOffen(v, html, stil)}
 </div>
 </div>`;
   };

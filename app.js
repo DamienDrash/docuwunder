@@ -139,6 +139,9 @@ class Oberflaeche extends React.Component {
       loading: true, loadErr: null,
       // Angemeldeter Benutzer (aus /api/ui_settings/).
       me: null,
+      // Sperre: ist sie eingerichtet, muss beim Start entsperrt werden.
+      sperreAn: !!(window.DWSperre && window.DWSperre.eingerichtet()),
+      sperreOffen: false, sperreMoeglich: false, sperreFehler: '', sperreBusy: false,
       // Serveradresse, die im Onboarding geprueft wurde.
       serverUrl: window.PaperlessAPI ? window.PaperlessAPI.getBase() : '',
     };
@@ -195,6 +198,19 @@ class Oberflaeche extends React.Component {
 
     const A = this.api();
     if (!A) { this.setState({ loading: false, loadErr: 'api.js wurde nicht geladen.' }); return; }
+
+    // Kann dieses Geraet die Sperre ueberhaupt? Erst danach darf sie
+    // angeboten werden - eine Sperre, die nicht traegt, waere ein leeres
+    // Versprechen.
+    if (window.DWSperre) {
+      window.DWSperre.moeglich().then(m => this.setState({ sperreMoeglich: m }));
+      // Ist sie eingerichtet, liegt der Schluessel nur verschluesselt vor.
+      // Ohne Entsperren gibt es nichts zu laden.
+      if (window.DWSperre.eingerichtet() && !A.hasToken()) {
+        this.setState({ sperreOffen: true, loading: false });
+        return;
+      }
+    }
     // Laeuft der Token ab oder wird er serverseitig entzogen, landet der
     // naechste Aufruf bei 401 - dann zurueck ins Onboarding statt leerer Listen.
     A.onUnauthorized = () => {
@@ -531,6 +547,54 @@ class Oberflaeche extends React.Component {
   // des Benutzernamens - eine Regel fuer die ganze App.
   initialen(vor, nach, benutzername) { return DWLogik.initialen(vor, nach, benutzername); }
 
+
+  // --- Sperre --------------------------------------------------------------
+  entsperrenGo() {
+    const A = this.api();
+    this.setState({ sperreBusy: true, sperreFehler: '' });
+    window.DWSperre.entsperren().then(token => {
+      // Fluechtig: der Schluessel bleibt nur im Speicher, abgelegt ist er
+      // ausschliesslich verschluesselt.
+      A.setToken(token, true);
+      this.setState({ sperreOffen: false, sperreBusy: false, loading: true });
+      this.loadAll();
+    }).catch(e => {
+      this.setState({
+        sperreBusy: false,
+        sperreFehler: e && e.name === 'NotAllowedError'
+          ? 'Nicht bestätigt. Versuche es erneut.'
+          : (e && e.message) || 'Entsperren fehlgeschlagen.',
+      });
+    });
+  }
+
+  sperreEinrichten() {
+    const A = this.api();
+    if (!A.hasToken()) { this.note('Erst anmelden.'); return; }
+    this.setState({ sperreBusy: true });
+    const name = this.state.me ? this.state.me.username : 'DocuWunder';
+    window.DWSperre.einrichten(A.rohToken(), name).then(() => {
+      // Ab jetzt liegt der Schluessel nur noch verschluesselt.
+      A.setToken(A.rohToken(), true);
+      this.setState({ sperreAn: true, sperreBusy: false });
+      this.note('Entsperren beim Öffnen ist aktiv');
+    }).catch(e => {
+      this.setState({ sperreBusy: false });
+      this.note(e && e.name === 'PrfFehlt'
+        ? 'Dieses Gerät unterstützt die nötige Verschlüsselung nicht.'
+        : 'Nicht eingerichtet: ' + ((e && e.message) || 'abgebrochen'));
+    });
+  }
+
+  sperreAufheben() {
+    const A = this.api();
+    window.DWSperre.aufheben();
+    // Zurueck in die normale Ablage, sonst waere der Zugang nach dem
+    // naechsten Start verloren.
+    A.setToken(A.rohToken(), false);
+    this.setState({ sperreAn: false });
+    this.note('Entsperren beim Öffnen ist aus');
+  }
 
   // --- Mitglieder ---------------------------------------------------------
   // Paperless kennt keinen Einladungslink: ein Konto anzulegen erfordert
@@ -1712,7 +1776,11 @@ class Oberflaeche extends React.Component {
     return {
       isDark: dark,
       themeVars: dark ? { ...SICHER, background: 'var(--bg)', color: 'var(--lab)', '--bg': '#0D1B2A', '--card': '#152436', '--fill': 'rgba(120,120,128,0.24)', '--fill2': 'rgba(120,120,128,0.36)', '--lab': '#FFFFFF', '--lab2': 'rgba(226,239,237,0.62)', '--lab3': 'rgba(235,235,245,0.30)', '--sep': 'rgba(142,229,218,0.16)', '--acc': '#8EE5DA', '--onAcc': '#0D1B2A', '--mint': '#8EE5DA', '--accT': 'rgba(142,229,218,0.16)', '--grn': '#8EE5DA', '--org': '#F0B454', '--red': '#FF6B60', '--glass': 'rgba(21,36,54,0.86)', '--gbor': 'rgba(255,255,255,0.10)', '--mark': 'rgba(142,229,218,0.32)', '--pg': '#1B2B3E', '--pgl': 'rgba(235,235,245,0.16)' } : { ...SICHER, color: 'var(--lab)' },
-      showApp: this.screenEff() === 'app', showOnb: this.screenEff() === 'onb',
+      showApp: this.screenEff() === 'app' && !s.sperreOffen,
+      // Bei aktiver Sperre gibt es keinen abgelegten Schluessel, weshalb
+      // screenEff() das Onboarding waehlen wuerde. Es hat dort aber nichts zu
+      // suchen - es wuerde unter dem Entsperrbildschirm kurz aufblitzen.
+      showOnb: this.screenEff() === 'onb' && !s.sperreOffen,
       tabHome: s.tab === 'home' && !nav.length, tabDocs: s.tab === 'docs' && !nav.length, tabInbox: s.tab === 'inbox' && !nav.length, tabMore: s.tab === 'more' && !nav.length,
       goHome: () => this.setState({ tab: 'home', stack: [], selMode: false, sel: [] }), goDocs: () => this.setState({ tab: 'docs', stack: [], selMode: false, sel: [] }), goInbox: () => this.setState({ tab: 'inbox', stack: [], selMode: false, sel: [] }), goMore: () => this.setState({ tab: 'more', stack: [], selMode: false, sel: [] }),
       cHome: s.tab === 'home' ? 'var(--acc)' : 'var(--lab2)', cDocs: s.tab === 'docs' ? 'var(--acc)' : 'var(--lab2)', cInbox: s.tab === 'inbox' ? 'var(--acc)' : 'var(--lab2)', cMore: s.tab === 'more' ? 'var(--acc)' : 'var(--lab2)',
@@ -1898,6 +1966,21 @@ class Oberflaeche extends React.Component {
       // App ohnehin vom Server.
       // Ehrlich benennen, wo der Schluessel liegt und was das heisst - statt
       // Sicherheit zu behaupten, die die Ablage nicht hergibt.
+      // --- Sperre ----------------------------------------------------------
+      sperreOffen: s.sperreOffen,
+      sperreFehler: s.sperreFehler,
+      sperreLabel: s.sperreBusy ? 'Warte auf Bestätigung …' : 'Entsperren',
+      entsperren: () => this.entsperrenGo(),
+      sperreAbmelden: () => { window.DWSperre.aufheben(); this.logoutGo(); },
+      // Der Schalter erscheint nur, wo er auch traegt.
+      sperreZeigen: s.sperreMoeglich,
+      sperreBg: this.tg(s.sperreAn).bg,
+      sperreKnob: this.tg(s.sperreAn).knob,
+      sperreToggle: () => (s.sperreAn ? this.sperreAufheben() : this.sperreEinrichten()),
+      sperreHinweis: s.sperreAn
+        ? 'Dein Zugangsschlüssel liegt verschlüsselt. Ohne Face ID, Touch ID oder Windows Hello ist er unbrauchbar — auch für jemanden mit Zugriff auf das Gerät.'
+        : 'Verschlüsselt den Zugangsschlüssel. Er lässt sich dann nur noch mit der Biometrie dieses Geräts entsperren.',
+
       schluesselHinweis: (() => {
         const A = this.api();
         if (!A || !A.hasToken()) return 'Nicht angemeldet.';
