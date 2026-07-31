@@ -7,10 +7,20 @@
   const S = global.DWStile;
 
   V.sheetOn = function (v, html, stil) {
-    return v.sheetOn ? html`<div onClick=${v.closeSheet} style=${stil('position:absolute;inset:0;background:rgba(0,0,0,0.42);animation:fadeIn .25s ease;z-index:60')}></div>
+    return v.sheetOn ? html`
+      <div onClick=${v.closeSheet} style=${stil('position:absolute;inset:0;background:rgba(0,0,0,0.42);animation:fadeIn .25s ease;z-index:60')}></div>
 <div style=${stil(`position:absolute;${v.sheetPos}bottom:0;background:var(--card);border-radius:22px 22px 0 0;animation:sheetUp .34s cubic-bezier(.32,.72,.36,1);z-index:61;max-height:78%;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,0.18)`)}>
   <div style=${stil('width:36px;height:5px;border-radius:3px;background:var(--fill2);margin:8px auto 0;flex-shrink:0')}></div>
   <div style=${stil('overflow-y:auto;padding:6px 0 44px')}>
+
+  ${v.shAusloeser ? html`<div style=${stil(S.sheetTitel)}>Auslöser</div>
+      <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 10px;line-height:1.5')}>Wann soll die Automatisierung laufen?</div>
+      ${(v.ausloeserRows || []).map((r, rIdx) => html`<div key=${rIdx} onClick=${r.pick} style=${stil('display:flex;justify-content:space-between;align-items:center;padding:13px 20px;cursor:pointer;position:relative')}>
+        <span style=${stil('font-size:16px')}>${r.label}</span>
+        ${r.on ? html`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"></path></svg>` : null}
+        <div style=${stil(S.trenner)}></div>
+      </div>`)}
+      <div style=${stil('height:20px')}></div>` : null}
 
   ${v.shAdd ? html`<div style=${stil('font-size:18px;font-weight:700;padding:10px 20px 6px')}>Hinzufügen</div>
     <div style=${stil('padding:4px 16px 0;display:flex;flex-direction:column;gap:8px')}>

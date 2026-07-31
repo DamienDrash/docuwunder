@@ -205,6 +205,41 @@ def t_filter_id_in():
     assert got == set(teil), f"id__in liefert {got}, erwartet {set(teil)}"
 
 
+def t_workflow_zuordnung():
+    """Die App uebersetzt Ausloeser und Aktionen von Zahlen in Worte.
+
+    Diese Zahlen kommen aus der API. Waren sie einmal falsch zugeordnet, zeigt
+    die Oberflaeche stumm den falschen Ausloeser an - genau das war der Fall.
+    """
+    st, d, _ = hole("/workflows/", method="OPTIONS")
+    assert st == 200, f"OPTIONS /workflows/ -> HTTP {st}"
+    felder = (d.get("actions") or {}).get("POST") or {}
+
+    def auswahl(pfad):
+        k = felder
+        for teil in pfad:
+            k = (k.get(teil) or {})
+        return {c["value"]: c["display_name"] for c in k.get("choices", [])}
+
+    ausloeser = auswahl(["triggers", "child", "children", "type"])
+    aktionen = auswahl(["actions", "child", "children", "type"])
+    assert ausloeser, "keine Ausloesertypen im Schema"
+
+    # Genau die Zuordnung aus app.js. Kommt ein Typ dazu oder verschiebt sich
+    # einer, faellt es hier auf und nicht erst dem Nutzer.
+    ERWARTET_AUSLOESER = {1: "Consumption Started", 2: "Document Added",
+                          3: "Document Updated", 4: "Scheduled"}
+    ERWARTET_AKTIONEN = {1: "Assignment", 2: "Removal", 3: "Email",
+                         4: "Webhook", 5: "Password removal", 6: "Move to trash"}
+    for nr, name in ERWARTET_AUSLOESER.items():
+        assert ausloeser.get(nr) == name, \
+            f"Ausloeser {nr} heisst jetzt {ausloeser.get(nr)!r}, erwartet {name!r}"
+    for nr, name in ERWARTET_AKTIONEN.items():
+        assert aktionen.get(nr) == name, \
+            f"Aktion {nr} heisst jetzt {aktionen.get(nr)!r}, erwartet {name!r}"
+    return f"{len(ausloeser)} Ausloeser, {len(aktionen)} Aktionen"
+
+
 def t_sortierung():
     # Genau die Werte aus SORT_API in app.js.
     for ordering in ("-created", "created", "title", "correspondent__name"):
@@ -453,6 +488,7 @@ PRUEFUNGEN = [
     ("Filter Ausschluss (Posteingang)", t_filter_ausschluss),
     ("Filter Jahr", t_filter_jahr),
     ("Filter feste Kennungen", t_filter_id_in),
+    ("Workflow-Zuordnungen", t_workflow_zuordnung),
     ("Sortierung", t_sortierung),
     ("Seitenweises Laden", t_paginierung),
     ("Volltextsuche mit Hervorhebung", t_volltextsuche),

@@ -11,7 +11,7 @@
   <div style=${stil(S.kopf)}>
     <div onClick=${v.popPush} style=${stil(S.kopfKnopf)}><svg width="10" height="17" viewBox="0 0 10 17" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 1.5L1.5 8.5l7 7"></path></svg></div>
     <div style=${stil(S.kopfTitel)}>Automatisierungen</div>
-    <div style=${stil('width:36px;flex-shrink:0')}></div>
+    <div onClick=${v.autoNeu} style=${stil(S.kopfKnopf)}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></div>
   </div>
   <div style=${stil(S.blatt)}>
     <div style=${stil('font-size:12.5px;color:var(--lab3);padding:0 20px 10px;line-height:1.5')}>Automatisierungen führen Aktionen aus, wenn neue Dokumente bestimmte Bedingungen erfüllen. In Paperless: Workflows.</div>
@@ -39,20 +39,25 @@
       <div><div style=${stil(S.zeileTitel)}>Aktiv</div><div style=${stil('font-size:12.5px;color:var(--lab2)')}>${v.adVerlauf}</div></div>
       <div onClick=${v.adToggle} style=${stil(v.adTgBg)}><div style=${stil(v.adTgKnob)}></div></div>
     </div>
-    <div style=${stil(S.abschnitt)}>Wenn</div>
-    <div style=${stil('background:var(--card);border-radius:16px;margin:0 16px;padding:12px 16px')}>
-      <div style=${stil(S.zeileText)}>${v.adAusl}</div>
+    <div style=${stil(S.abschnitt)}>Name</div>
+    <div style=${stil('margin:0 16px')}>
+      <input value=${v.adNameVal} onInput=${v.setAdName} onBlur=${v.adNameSichern} style=${stil(S.feld)} />
     </div>
-    <div style=${stil(S.abschnitt)}>Und</div>
+    <div style=${stil(S.abschnitt)}>Wenn</div>
+    <div onClick=${v.adAuslWaehlen} style=${stil('background:var(--card);border-radius:16px;margin:0 16px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer')}>
+      <div style=${stil(S.zeileText)}>${v.adAusl}</div>
+      <span style=${stil('font-size:14px;color:var(--acc)')}>Ändern</span>
+    </div>
+    ${v.adHatBed ? html`<div style=${stil(S.abschnitt)}>Und</div>
     <div style=${stil(S.karte)}>
       ${(v.adBed || []).map((b, bIdx) => html`<div key=${b && b.id != null ? b.id : bIdx} style=${stil('padding:12px 16px;font-size:15px;position:relative')}>${b.t}<div style=${stil(S.trenner)}></div></div>`)}
-    </div>
-    <div style=${stil(S.abschnitt)}>Dann</div>
+    </div>` : null}
+    ${v.adHatAkt ? html`<div style=${stil(S.abschnitt)}>Dann</div>
     <div style=${stil(S.karte)}>
       ${(v.adAkt || []).map((b, bIdx) => html`<div key=${b && b.id != null ? b.id : bIdx} style=${stil('padding:12px 16px;font-size:15px;position:relative')}>${b.t}<div style=${stil(S.trenner)}></div></div>`)}
-    </div>
-    <div onClick=${v.adTest} style=${stil('margin:16px 16px 0;height:46px;border-radius:14px;background:var(--fill);display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:600;color:var(--acc);cursor:pointer')}>Testlauf starten</div>
-    <div style=${stil('font-size:12.5px;color:var(--lab3);text-align:center;padding:10px 40px;line-height:1.5')}>Ein Testlauf zeigt, welche Dokumente betroffen wären – ohne etwas zu ändern.</div>
+    </div>` : null}
+    <div style=${stil('font-size:12.5px;color:var(--lab3);padding:16px 24px 0;line-height:1.55')}>${v.adHinweis}</div>
+    <div onClick=${v.adEntfernen} style=${stil('margin:16px;padding:13px 16px;border-radius:14px;background:rgba(179,38,30,0.10);text-align:center;cursor:pointer')}><span style=${stil('font-size:15.5px;font-weight:600;color:var(--red)')}>Automatisierung löschen</span></div>
   </div>
 </div>` : null;
   };

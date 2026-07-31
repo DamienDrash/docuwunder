@@ -21,7 +21,9 @@
 
     // Trennlinie innerhalb einer Karte. Sie beginnt eingerückt, damit sie unter
     // dem Text ansetzt und nicht unter dem Symbol davor.
-    trenner: 'position:absolute;left:16px;right:0;bottom:0;height:0.5px;background:var(--sep)',
+    // pointer-events:none ist wichtig: die Linie liegt absolut ueber der Zeile
+    // und wuerde sonst Klicks abfangen, die dem Eintrag darunter gelten.
+    trenner: 'position:absolute;left:16px;right:0;bottom:0;height:0.5px;background:var(--sep);pointer-events:none',
 
     // --- Kopfbereich --------------------------------------------------------
     // Die Leiste über einem aufgeschobenen Bildschirm. Der Verlauf lässt den

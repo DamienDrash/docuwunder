@@ -585,6 +585,9 @@ window.PaperlessAPI = (function () {
     // vorerst nur an; Bearbeiten findet in der Paperless-Oberflaeche statt.
     workflows: {
       all: function () { return listAll('/workflows/'); },
+      update: function (id, patch) { return request('PATCH', '/workflows/' + id + '/', { json: patch }); },
+      remove: function (id) { return request('DELETE', '/workflows/' + id + '/'); },
+      create: function (daten) { return request('POST', '/workflows/', { json: daten }); },
       setEnabled: function (id, on) { return request('PATCH', '/workflows/' + id + '/', { json: { enabled: !!on } }); }
     },
     mailRules: {

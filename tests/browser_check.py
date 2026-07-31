@@ -16,6 +16,7 @@ sie aus ihrer eigenen ab.
 Braucht Playwright mit Chromium (python3 -m playwright install chromium).
 """
 import http.server
+import json
 import os
 import pathlib
 import socket
@@ -344,6 +345,65 @@ def main():
                 assert bild.count() > 0, "kein Vorschaubild im Dokument"
                 return "Vorschau geladen und angezeigt"
 
+            # --- Automatisierungen ------------------------------------------
+            # Der Bildschirm legt an, benennt um, wechselt den Ausloeser,
+            # schaltet und loescht. Geprueft wird die Wirkung am Server, nicht
+            # das Vorhandensein der Knoepfe: ein Knopf, der nichts tut, hat
+            # diese App schon einmal beschaeftigt.
+
+            def workflows():
+                r = urllib.request.Request(BACKEND + "/workflows/")
+                r.add_header("Authorization", "Token " + TOKEN)
+                d = json.loads(urllib.request.urlopen(r).read())
+                return [(w["id"], w["name"], [t["type"] for t in w["triggers"]],
+                         w["enabled"]) for w in d["results"]]
+
+            def t_automatisierung_bearbeiten():
+                # Die vorige Pruefung laesst ein Dokument offen; die Tableiste
+                # liegt dann darunter. Neu laden bringt die App an den Anfang -
+                # der Zugangsschluessel liegt im Browser und ueberlebt das.
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                seite.locator('text="Mehr"').last.click()
+                seite.wait_for_timeout(900)
+                seite.locator('text="Automatisierungen"').last.click()
+                seite.wait_for_timeout(1500)
+                vorher = len(workflows())
+                seite.locator("svg").filter(has=seite.locator("path")).nth(1).click()
+                seite.wait_for_timeout(2800)
+                assert len(workflows()) == vorher + 1, "nicht angelegt"
+
+                seite.locator('text="Neue Automatisierung"').last.click()
+                seite.wait_for_timeout(1400)
+                feld = seite.locator("input").first
+                feld.fill("zz-Pruefung")
+                feld.blur()
+                seite.wait_for_timeout(2500)
+                assert any(w[1] == "zz-Pruefung" for w in workflows()), "nicht umbenannt"
+
+                seite.locator('text="Ändern"').last.click()
+                seite.wait_for_timeout(1200)
+                seite.locator('text="Dokument aktualisiert"').last.click()
+                seite.wait_for_timeout(3000)
+                mein = [w for w in workflows() if w[1] == "zz-Pruefung"][0]
+                assert mein[2] == [3], f"Ausloeser nicht gewechselt: {mein[2]}"
+
+                schalter = seite.locator('text="Aktiv"').last.locator("xpath=../..").locator("div").last
+                schalter.click()
+                seite.wait_for_timeout(2500)
+                mein = [w for w in workflows() if w[1] == "zz-Pruefung"][0]
+                assert mein[3] is True, "nicht aktiviert"
+                assert seite.locator('text="Läuft automatisch"').count() > 0, \
+                    "Untertitel folgt dem Zustand nicht"
+
+                seite.locator('text="Automatisierung löschen"').last.click()
+                seite.wait_for_timeout(3000)
+                assert not any(w[1] == "zz-Pruefung" for w in workflows()), "nicht geloescht"
+                assert seite.locator("[data-screen-label]").last.get_attribute(
+                    "data-screen-label") == "Automatisierungen", \
+                    "nach dem Loeschen nicht in der Liste"
+                return "anlegen, umbenennen, Ausloeser, schalten, loeschen"
+
             def t_keine_ausnahmen():
                 assert not fehlerkonsole, "; ".join(fehlerkonsole[:3])
                 return "keine Konsolenfehler"
@@ -421,6 +481,7 @@ def main():
                 ("Filter laedt neu", t_filter_laedt_neu),
                 ("Suche geht an den Server", t_suche_serverseitig),
                 ("Treffer oeffnet mit Vorschau", t_treffer_oeffnet_mit_vorschau),
+                ("Automatisierung bearbeiten", t_automatisierung_bearbeiten),
                 ("Keine Fehler in der Konsole", t_keine_ausnahmen),
                 ("Service Worker steuert die Seite", t_worker_uebernimmt),
                 ("Huelle liegt im Cache", t_huelle_liegt_im_cache),

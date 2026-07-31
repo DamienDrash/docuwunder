@@ -393,13 +393,23 @@ class Oberflaeche extends React.Component {
   // der Paperless-Oberflaeche vorbehalten, weil die Datenstruktur dort
   // deutlich reicher ist als dieser Bildschirm abbilden kann.
   mapWorkflow(w) {
+    // Die Zahlen stammen aus der API (OPTIONS auf /workflows/). Sie waren hier
+    // durchgehend um eine Position verschoben, wodurch jeder Workflow den
+    // falschen Ausloeser anzeigte. tests/api_check.py prueft die Zuordnung
+    // jetzt gegen den Server, damit das nicht wieder abdriftet.
     const TRIGGER = {
-      1: 'Dokument hinzugefügt', 2: 'Dokument verarbeitet',
-      3: 'Geplanter Zeitpunkt', 4: 'Dokument aktualisiert'
+      1: 'Aufnahme begonnen',      // Consumption Started
+      2: 'Dokument hinzugefügt',   // Document Added
+      3: 'Dokument aktualisiert',  // Document Updated
+      4: 'Geplanter Zeitpunkt'     // Scheduled
     };
     const AKTION = {
-      1: 'Metadaten zuweisen', 2: 'Berechtigungen setzen',
-      3: 'Dokument entfernen', 4: 'E-Mail senden', 5: 'Webhook auslösen'
+      1: 'Angaben zuweisen',       // Assignment
+      2: 'Angaben entfernen',      // Removal
+      3: 'E-Mail senden',          // Email
+      4: 'Webhook auslösen',       // Webhook
+      5: 'Passwort entfernen',     // Password removal
+      6: 'In den Papierkorb'       // Move to trash
     };
     return {
       id: w.id,
@@ -408,9 +418,10 @@ class Oberflaeche extends React.Component {
       ausl: (w.triggers || []).map(t => TRIGGER[t.type] || 'Auslöser').join(', ') || 'Kein Auslöser',
       bed: (w.triggers || []).map(t => this.triggerText(t)).filter(Boolean),
       akt: (w.actions || []).map(a => AKTION[a.type] || 'Aktion'),
-      verlauf: 'Wird in Paperless verwaltet',
-      // Dieser Bildschirm bearbeitet Workflows nicht.
-      readOnly: true
+      // Der urspruengliche Datensatz. Beim Aendern des Ausloesers ersetzt
+      // Paperless das ganze Feld - die uebrigen Angaben des vorhandenen
+      // Ausloesers (Quellen, Filter) muessen deshalb mitgeschickt werden.
+      raw: w
     };
   }
   triggerText(t) {
@@ -547,6 +558,64 @@ class Oberflaeche extends React.Component {
   // des Benutzernamens - eine Regel fuer die ganze App.
   initialen(vor, nach, benutzername) { return DWLogik.initialen(vor, nach, benutzername); }
 
+
+  // --- Automatisierungen ---------------------------------------------------
+  // Bearbeitbar sind Name, Zustand und Ausloeser - das, was man im Alltag
+  // aendert. Bedingungen und Aktionen bleiben in Paperless: dort haengen 27
+  // Filter- und 14 Aktionsfelder dran, die dieser Bildschirm nicht sinnvoll
+  // abbilden kann, ohne selbst zur Verwaltungsoberflaeche zu werden.
+  autoNameSichern(id, name) {
+    const A = this.api(), sauber = String(name || '').trim();
+    if (!sauber) { this.note('Der Name darf nicht leer sein.'); return; }
+    this.setState(s => ({ autos: s.autos.map(a => a.id === id ? Object.assign({}, a, { name: sauber }) : a) }));
+    A.workflows.update(id, { name: sauber })
+      .then(() => this.note('Gesichert'))
+      .catch(e => { this.loadAll(); this.note('Nicht gesichert: ' + e.message); });
+  }
+
+  // Der Untertitel zum Schalter. Er kommt aus dem Zustand, damit er dem
+  // Umschalten sofort folgt und nicht bis zum naechsten Laden hinterherhinkt.
+  autoLage(on) { return on ? 'Läuft automatisch' : 'Pausiert'; }
+
+  autoAusloeser(id, typ) {
+    const A = this.api();
+    const auto = (this.state.autos || []).find(a => a.id === id);
+    if (!auto || !auto.raw) return;
+    // Paperless ersetzt das ganze Ausloeser-Feld; die uebrigen Angaben des
+    // vorhandenen Ausloesers bleiben deshalb erhalten.
+    const alt = (auto.raw.triggers || [])[0] || { sources: [1] };
+    const neu = Object.assign({}, alt, { type: typ });
+    delete neu.id;
+    A.workflows.update(id, { triggers: [neu] })
+      .then(() => this.loadAll())
+      .then(() => { this.setState({ sheet: null }); this.note('Auslöser geändert'); })
+      .catch(e => this.note('Nicht geändert: ' + e.message));
+  }
+
+  autoEntfernen(id) {
+    const A = this.api();
+    const auto = (this.state.autos || []).find(a => a.id === id);
+    A.workflows.remove(id)
+      .then(() => this.loadAll())
+      // Nur den Detailbildschirm schliessen: die Liste dahinter bleibt stehen,
+      // sonst landet man nach dem Loeschen unvermittelt am Anfang.
+      .then(() => { this.setState(st => ({ stack: st.stack.slice(0, -1), sheet: null })); this.note('„' + (auto ? auto.name : 'Automatisierung') + '“ gelöscht'); })
+      .catch(e => this.note('Nicht gelöscht: ' + e.message));
+  }
+
+  autoAnlegen() {
+    const A = this.api();
+    A.workflows.create({
+      name: 'Neue Automatisierung',
+      order: (this.state.autos || []).length + 1,
+      enabled: false,
+      // Ein Ausloeser ist Pflicht; "Dokument hinzugefuegt" ist der haeufigste.
+      triggers: [{ type: 2, sources: [1] }],
+      actions: [{ type: 1 }],
+    }).then(() => this.loadAll())
+      .then(() => this.note('Angelegt — Bedingungen und Aktionen legst du in Paperless fest'))
+      .catch(e => this.note('Nicht angelegt: ' + e.message));
+  }
 
   // --- Sperre --------------------------------------------------------------
   entsperrenGo() {
@@ -2003,13 +2072,27 @@ class Oberflaeche extends React.Component {
       doHelp: () => this.note('Hilfe öffnet sich im Browser'), doPrivacy: () => this.note('Datenschutzerklärung öffnet sich'),
       logout: () => this.logoutGo(),
       showAuto: top.t === 'auto',
-      autoRows: s.autos.map(a => { const t = this.tg(a.on); return { name: a.name, verlauf: a.verlauf, tgBg: t.bg, tgKnob: t.knob, toggle: () => this.autoSchalten(a.id, !a.on), open: () => this.pushV({ t: 'autoD', id: a.id }) }; }),
+      autoRows: s.autos.map(a => { const t = this.tg(a.on); return { name: a.name, verlauf: this.autoLage(a.on), tgBg: t.bg, tgKnob: t.knob, toggle: () => this.autoSchalten(a.id, !a.on), open: () => this.pushV({ t: 'autoD', id: a.id }) }; }),
       showAutoD: top.t === 'autoD' && !!auto,
-      adName: auto ? auto.name : '', adVerlauf: auto ? auto.verlauf : '', adAusl: auto ? auto.ausl : '',
+      adName: auto ? auto.name : '', adVerlauf: auto ? this.autoLage(auto.on) : '', adAusl: auto ? auto.ausl : '',
       adBed: auto ? auto.bed.map(t => ({ t })) : [], adAkt: auto ? auto.akt.map(t => ({ t })) : [],
+      // Eine Ueberschrift ohne Inhalt darunter sieht nach einem Fehler aus.
+      adHatBed: !!(auto && auto.bed.length), adHatAkt: !!(auto && auto.akt.length),
       adTgBg: this.tg(!!(auto && auto.on)).bg, adTgKnob: this.tg(!!(auto && auto.on)).knob,
       adToggle: () => { if (auto) this.autoSchalten(auto.id, !auto.on); },
-      adTest: () => this.note('Automatisierungen werden in Paperless bearbeitet und getestet.'),
+      adNameVal: auto ? auto.name : '',
+      setAdName: (e) => { const v = e.target.value; this.setState(st => ({ autos: st.autos.map(a => a.id === auto.id ? Object.assign({}, a, { name: v }) : a) })); },
+      adNameSichern: () => { if (auto) this.autoNameSichern(auto.id, auto.name); },
+      adAuslWaehlen: () => this.setState({ sheet: 'ausloeser' }),
+      adEntfernen: () => { if (auto) this.autoEntfernen(auto.id); },
+      adHinweis: 'Bedingungen und Aktionen legst du in Paperless fest — dort hängen deutlich mehr Felder dran, als dieser Bildschirm sinnvoll zeigen kann.',
+      shAusloeser: s.sheet === 'ausloeser',
+      ausloeserRows: [[1, 'Aufnahme begonnen'], [2, 'Dokument hinzugefügt'], [3, 'Dokument aktualisiert'], [4, 'Geplanter Zeitpunkt']]
+        .map(([nr, label]) => ({
+          label, on: !!(auto && auto.raw && (auto.raw.triggers || [])[0] && auto.raw.triggers[0].type === nr),
+          pick: () => { if (auto) this.autoAusloeser(auto.id, nr); },
+        })),
+      autoNeu: () => this.autoAnlegen(),
       showMail: top.t === 'mail',
       mailFetch: () => this.note('Der Abruf läuft nach dem Zeitplan des Servers.'),
       mailRules: s.mailRules.map(r => { const t = this.tg(r.on); return { name: r.name, desc: r.desc, tgBg: t.bg, tgKnob: t.knob, toggle: () => this.regelSchalten(r.id, !r.on) }; }),

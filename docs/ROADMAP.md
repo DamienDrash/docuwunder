@@ -219,9 +219,24 @@ Virtualisierung die Antwort — vorher nicht.
 „Scannen" öffnet die Systemkamera und lädt **ein** Foto hoch. Die frühere Mehrseiten-Erfassung
 war Attrappe. Echtes Scannen bräuchte Seitenverwaltung, Zuschnitt und PDF-Erzeugung im Browser.
 
-### ⚪ 3.5 Automatisierungen bearbeiten
-Workflows werden angezeigt und lassen sich aktivieren — bearbeiten muss man sie in
-Paperless. Die Datenstruktur dort ist deutlich reicher als dieser Bildschirm abbildet.
+### ✅ 3.5 Automatisierungen bearbeiten
+Anlegen, umbenennen, Auslöser wechseln, schalten und löschen gehen jetzt in der App.
+Bewusst **nicht** übernommen: Bedingungen und Aktionen. Daran hängen in Paperless 27
+Filter- und 14 Aktionsfelder — ein Bildschirm, der die alle abbildet, ist keine App
+mehr, sondern eine zweite Verwaltungsoberfläche. Der Hinweis im Detail sagt das offen.
+
+Dabei kamen vier eigene Fehler ans Licht, die vorher niemand bemerkt hätte:
+
+| Fund | Wirkung |
+|---|---|
+| Auslöser- und Aktionsnamen um eins verschoben | „Aufnahme begonnen“ hiess in der App „Dokument hinzugefügt“ — jede Anzeige war falsch beschriftet. Jetzt durch einen Vertragstest gegen die API abgesichert. |
+| Auswahl-Sheet ausserhalb des Sheet-Rahmens | Wurde oben am Rand hinter der Abdunklung gezeichnet: sichtbar, aber nicht anklickbar. |
+| Hinweis und Löschen ausserhalb des Scrollbereichs | Lagen unter der Kopfleiste. |
+| `S.trenner` fing Klicks ab | Die Trennlinie liegt absolut über der Zeile — ohne `pointer-events:none` gehen Klicks an sie statt an den Eintrag. |
+
+Die ersten drei sahen im Bild richtig aus. Gefunden hat sie erst der Test, der auf die
+**Wirkung am Server** prüft statt auf das Vorhandensein der Knöpfe — dieselbe Lehre wie
+bei Face ID.
 
 ### ⚪ 3.6 Benachrichtigungen
 Entfernt, weil nie implementiert. Bräuchte Push-Infrastruktur (VAPID, Push-Dienst) und
