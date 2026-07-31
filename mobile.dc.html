@@ -23,7 +23,7 @@ input,textarea,button{font-family:inherit}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </helmet>
-<div style="position:absolute;inset:0;z-index:0;--bg:#F7FAFA;--card:#FFFFFF;--fill:rgba(94,107,120,0.10);--fill2:rgba(94,107,120,0.20);--lab:#0D1B2A;--lab2:#5E6B78;--lab3:rgba(94,107,120,0.55);--sep:#E2EFED;--acc:#147E73;--accT:rgba(142,229,218,0.30);--mint:#8EE5DA;--grn:#147E73;--org:#C2761B;--red:#B3261E;--glass:rgba(247,250,250,0.86);--gbor:rgba(13,27,42,0.07);--mark:rgba(142,229,218,0.55);--pg:#FFFFFF;--pgl:rgba(94,107,120,0.16);background:var(--bg);color:var(--lab);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;-webkit-font-smoothing:antialiased">
+<div style="position:absolute;inset:0;z-index:0;--bg:#F7FAFA;--card:#FFFFFF;--fill:rgba(94,107,120,0.10);--fill2:rgba(94,107,120,0.20);--lab:#0D1B2A;--lab2:#5E6B78;--lab3:rgba(94,107,120,0.55);--sep:#E2EFED;--acc:#147E73;--onAcc:#FFFFFF;--accT:rgba(142,229,218,0.30);--mint:#8EE5DA;--grn:#147E73;--org:#C2761B;--red:#B3261E;--glass:rgba(247,250,250,0.86);--gbor:rgba(13,27,42,0.07);--mark:rgba(142,229,218,0.55);--pg:#FFFFFF;--pgl:rgba(94,107,120,0.16);background:var(--bg);color:var(--lab);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;-webkit-font-smoothing:antialiased">
 <div style="{{ themeVars }}">
 <sc-if value="{{ showApp }}" hint-placeholder-val="{{ true }}">
 
@@ -65,7 +65,7 @@ input,textarea,button{font-family:inherit}
   <div style="background:var(--card);border-radius:16px;margin:0 16px;overflow:hidden">
     <sc-if value="{{ inboxHasNew }}">
       <div onClick="{{ goInbox }}" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;position:relative">
-        <div style="width:32px;height:32px;border-radius:8px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5h13l2 8v6h-17v-6z"></path><path d="M3.5 13.5h5l1.6 2.4h3.8l1.6-2.4h5"></path></svg></div>
+        <div style="width:32px;height:32px;border-radius:8px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--onAcc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5h13l2 8v6h-17v-6z"></path><path d="M3.5 13.5h5l1.6 2.4h3.8l1.6-2.4h5"></path></svg></div>
         <div style="flex:1"><div style="font-size:16px;font-weight:600">Posteingang prüfen</div><div style="font-size:13px;color:var(--lab2)">{{ inboxCountLabel }}</div></div>
         <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--lab3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"></path></svg>
         <div style="position:absolute;left:60px;right:0;bottom:0;height:0.5px;background:var(--sep)"></div>
@@ -134,7 +134,7 @@ input,textarea,button{font-family:inherit}
     <div style="font-size:31px;font-weight:700;letter-spacing:-0.6px">Dokumente</div>
     <div style="display:flex;gap:8px;align-items:center">
       <div onClick="{{ toggleSelMode }}" style="height:34px;padding:0 13px;border-radius:999px;background:var(--fill);display:flex;align-items:center;font-size:14px;font-weight:600;color:var(--acc);cursor:pointer">{{ selBtnLabel }}</div>
-      <div onClick="{{ openAdd }}" style="width:34px;height:34px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></div>
+      <div onClick="{{ openAdd }}" style="width:34px;height:34px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--onAcc)" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></div>
     </div>
   </div>
   <div onClick="{{ openSearch }}" style="margin:14px 16px 0;display:flex;gap:8px;align-items:center;background:var(--fill);border-radius:12px;padding:10px 12px;color:var(--lab2);cursor:pointer">
@@ -175,7 +175,7 @@ input,textarea,button{font-family:inherit}
         </div>
         <div onClick="{{ d.tap }}" onPointerDown="{{ d.pd }}" onPointerMove="{{ d.pm }}" onPointerUp="{{ d.pu }}" onPointerLeave="{{ d.pu }}" style="{{ d.rowStyle }}">
           <sc-if value="{{ d.selMode }}">
-            <sc-if value="{{ d.selected }}"><div style="width:22px;height:22px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div></sc-if>
+            <sc-if value="{{ d.selected }}"><div style="width:22px;height:22px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--onAcc)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div></sc-if>
             <sc-if value="{{ d.unselected }}"><div style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--lab3);flex-shrink:0"></div></sc-if>
           </sc-if>
           <div style="width:40px;height:52px;border-radius:6px;background:var(--pg);border:0.5px solid var(--sep);padding:7px 6px;display:flex;flex-direction:column;gap:3.5px;flex-shrink:0"><div style="height:3px;width:65%;background:var(--pgl);border-radius:2px"></div><div style="height:3px;width:90%;background:var(--pgl);border-radius:2px"></div><div style="height:3px;width:75%;background:var(--pgl);border-radius:2px"></div><div style="height:3px;width:85%;background:var(--pgl);border-radius:2px"></div></div>
@@ -210,7 +210,7 @@ input,textarea,button{font-family:inherit}
           <div style="font-size:11.5px;color:var(--lab2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.sub }}</div>
           <sc-if value="{{ d.selMode }}">
             <div style="position:absolute;top:16px;right:16px">
-              <sc-if value="{{ d.selected }}"><div style="width:22px;height:22px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.2)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div></sc-if>
+              <sc-if value="{{ d.selected }}"><div style="width:22px;height:22px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.2)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--onAcc)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div></sc-if>
               <sc-if value="{{ d.unselected }}"><div style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--lab3);background:rgba(255,255,255,0.6)"></div></sc-if>
             </div>
           </sc-if>
@@ -254,8 +254,8 @@ input,textarea,button{font-family:inherit}
       <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="var(--lab3)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block"><path d="M5.5 5h13l2 8v6h-17v-6z"></path><path d="M3.5 13.5h5l1.6 2.4h3.8l1.6-2.4h5"></path></svg>
       <div style="font-size:17px;font-weight:600;margin-top:14px">Keine neuen Dokumente</div>
       <div style="font-size:14px;color:var(--lab2);margin-top:6px;line-height:1.45">Neue Scans, Uploads und E-Mail-Importe erscheinen hier zur Prüfung.</div>
-      <div onClick="{{ startScan }}" style="display:inline-flex;margin-top:18px;height:42px;padding:0 20px;border-radius:999px;background:var(--acc);align-items:center;gap:7px;font-size:15px;font-weight:600;color:#fff;cursor:pointer">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2h3.1l1.9-2.7h6l1.9 2.7H20v10.3H4z"></path><circle cx="12" cy="13" r="3.1"></circle></svg>
+      <div onClick="{{ startScan }}" style="display:inline-flex;margin-top:18px;height:42px;padding:0 20px;border-radius:999px;background:var(--acc);align-items:center;gap:7px;font-size:15px;font-weight:600;color:var(--onAcc);cursor:pointer">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--onAcc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2h3.1l1.9-2.7h6l1.9 2.7H20v10.3H4z"></path><circle cx="12" cy="13" r="3.1"></circle></svg>
         Dokument scannen
       </div>
     </div>
@@ -493,7 +493,7 @@ input,textarea,button{font-family:inherit}
       <sc-for list="{{ revFields }}" as="f" hint-placeholder-count="4">
         <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;position:relative">
           <div onClick="{{ f.toggle }}" style="cursor:pointer;flex-shrink:0">
-            <sc-if value="{{ f.ok }}"><div style="width:24px;height:24px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div></sc-if>
+            <sc-if value="{{ f.ok }}"><div style="width:24px;height:24px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--onAcc)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></div></sc-if>
             <sc-if value="{{ f.notOk }}"><div style="width:24px;height:24px;border-radius:50%;border:1.5px solid var(--lab3)"></div></sc-if>
           </div>
           <div onClick="{{ f.edit }}" style="flex:1;min-width:0;cursor:pointer">
@@ -514,7 +514,7 @@ input,textarea,button{font-family:inherit}
     <div onClick="{{ revDelete }}" style="width:36px;height:36px;border-radius:50%;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:0.5px solid var(--gbor);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15"></path><path d="M8.5 6.2V4.5h7v1.7"></path><path d="M6.5 6.5l1 14h9l1-14"></path></svg></div>
   </div>
   <div style="position:absolute;left:16px;right:16px;bottom:24px;z-index:30;display:flex;flex-direction:column;gap:8px">
-    <div onClick="{{ revConfirm }}" style="height:50px;border-radius:14px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,122,255,0.35)">Übernehmen &amp; weiter</div>
+    <div onClick="{{ revConfirm }}" style="height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(13,27,42,0.18)">Übernehmen &amp; weiter</div>
     <div onClick="{{ revSkip }}" style="height:44px;border-radius:14px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:0.5px solid var(--gbor);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:600;cursor:pointer">Überspringen</div>
   </div>
 </div>
@@ -826,7 +826,7 @@ input,textarea,button{font-family:inherit}
   <div style="position:absolute;inset:0;overflow-y:auto;padding:112px 0 40px">
     <div style="background:var(--card);border-radius:16px;margin:0 16px;padding:14px 16px">
       <div style="display:flex;align-items:center;gap:12px">
-        <div style="width:34px;height:34px;border-radius:8px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect><path d="M4.5 7.5l7.5 5.5 7.5-5.5"></path></svg></div>
+        <div style="width:34px;height:34px;border-radius:8px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--onAcc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect><path d="M4.5 7.5l7.5 5.5 7.5-5.5"></path></svg></div>
         <div style="flex:1;min-width:0"><div style="font-size:15.5px;font-weight:600">{{ kontoMail }}</div><div style="display:flex;align-items:center;gap:5px;margin-top:2px"><span style="width:7px;height:7px;border-radius:50%;background:var(--grn)"></span><span style="font-size:13px;color:var(--lab2)">imap.gmx.net · Verbunden</span></div></div>
       </div>
       <div style="font-size:12.5px;color:var(--lab2);margin-top:10px">Letzter Abruf vor 12 Minuten · 1 Anhang importiert</div>
@@ -963,7 +963,7 @@ input,textarea,button{font-family:inherit}
     <div style="font-size:18px;font-weight:700;padding:10px 20px 6px">Hinzufügen</div>
     <div style="padding:4px 16px 0;display:flex;flex-direction:column;gap:8px">
       <div onClick="{{ startScan }}" style="display:flex;align-items:center;gap:13px;background:var(--fill);border-radius:14px;padding:13px 14px;cursor:pointer">
-        <div style="width:36px;height:36px;border-radius:9px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2h3.1l1.9-2.7h6l1.9 2.7H20v10.3H4z"></path><circle cx="12" cy="13" r="3.1"></circle></svg></div>
+        <div style="width:36px;height:36px;border-radius:9px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--onAcc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2h3.1l1.9-2.7h6l1.9 2.7H20v10.3H4z"></path><circle cx="12" cy="13" r="3.1"></circle></svg></div>
         <div style="flex:1"><div style="font-size:16px;font-weight:600">Dokument scannen</div><div style="font-size:13px;color:var(--lab2)">Mit der Kamera, mehrere Seiten möglich</div></div>
       </div>
       <div onClick="{{ pickPhoto }}" style="display:flex;align-items:center;gap:13px;background:var(--fill);border-radius:14px;padding:13px 14px;cursor:pointer">
@@ -1003,7 +1003,7 @@ input,textarea,button{font-family:inherit}
     <div style="display:flex;background:var(--fill);border-radius:10px;margin:0 20px;padding:2px">
       <sc-for list="{{ fZeitRows }}" as="z"><div onClick="{{ z.tap }}" style="{{ z.style }}">{{ z.label }}</div></sc-for>
     </div>
-    <div onClick="{{ closeSheet }}" style="margin:20px 20px 0;height:50px;border-radius:14px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer">{{ filterApplyLabel }}</div>
+    <div onClick="{{ closeSheet }}" style="margin:20px 20px 0;height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer">{{ filterApplyLabel }}</div>
   </sc-if>
 
   <sc-if value="{{ shBulkTag }}">
@@ -1076,7 +1076,7 @@ input,textarea,button{font-family:inherit}
     <sc-if value="{{ pickCanCreate }}">
       <div style="display:flex;gap:8px;padding:12px 20px 0">
         <input value="{{ pickNew }}" onInput="{{ setPickNew }}" placeholder="{{ pickNewPlaceholder }}" style="flex:1;height:44px;border-radius:12px;border:1px solid var(--sep);background:var(--bg);padding:0 13px;font-size:15.5px;color:var(--lab);outline:none" style-focus="border-color:var(--acc)">
-        <div onClick="{{ pickCreate }}" style="height:44px;padding:0 16px;border-radius:12px;background:var(--acc);color:#fff;display:flex;align-items:center;font-size:15px;font-weight:600;cursor:pointer">Erstellen</div>
+        <div onClick="{{ pickCreate }}" style="height:44px;padding:0 16px;border-radius:12px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;font-size:15px;font-weight:600;cursor:pointer">Erstellen</div>
       </div>
     </sc-if>
   </sc-if>
@@ -1091,7 +1091,7 @@ input,textarea,button{font-family:inherit}
         <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><sc-for list="{{ shAblaufRows }}" as="c"><div onClick="{{ c.pick }}" style="{{ c.style }}">{{ c.label }}</div></sc-for></div>
         <div style="font-size:12.5px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;margin-top:16px">Berechtigung</div>
         <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px"><sc-for list="{{ shRechtRows }}" as="c"><div onClick="{{ c.pick }}" style="{{ c.style }}">{{ c.label }}</div></sc-for></div>
-        <div onClick="{{ shMake }}" style="margin-top:22px;height:50px;border-radius:14px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer">Freigabelink erstellen</div>
+        <div onClick="{{ shMake }}" style="margin-top:22px;height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer">Freigabelink erstellen</div>
       </div>
     </sc-if>
     <sc-if value="{{ shHasLink }}">
@@ -1099,7 +1099,7 @@ input,textarea,button{font-family:inherit}
         <div style="display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:12px;padding:12px 13px">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M10.2 13.8a4 4 0 005.6 0l3.1-3.1a4 4 0 00-5.7-5.6l-1.5 1.5"></path><path d="M13.8 10.2a4 4 0 00-5.6 0l-3.1 3.1a4 4 0 005.7 5.6l1.5-1.5"></path></svg>
           <span style="flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--lab2)">{{ shLink }}</span>
-          <div onClick="{{ shCopy }}" style="height:32px;padding:0 13px;border-radius:999px;background:var(--acc);color:#fff;display:flex;align-items:center;font-size:13.5px;font-weight:600;cursor:pointer;flex-shrink:0">Kopieren</div>
+          <div onClick="{{ shCopy }}" style="height:32px;padding:0 13px;border-radius:999px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;font-size:13.5px;font-weight:600;cursor:pointer;flex-shrink:0">Kopieren</div>
         </div>
         <div style="font-size:13px;color:var(--lab2);margin-top:10px">{{ shMeta }}</div>
         <div style="background:var(--bg);border-radius:12px;margin-top:16px;overflow:hidden">
@@ -1161,7 +1161,7 @@ input,textarea,button{font-family:inherit}
         </div>
       </sc-if>
       <sc-if value="{{ nmErrOn }}"><div style="font-size:13px;color:var(--red);margin-top:10px">{{ nmErr }}</div></sc-if>
-      <div onClick="{{ nmSave }}" style="height:50px;border-radius:12px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer;margin:16px 0 30px">{{ nmSaveLabel }}</div>
+      <div onClick="{{ nmSave }}" style="height:50px;border-radius:12px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer;margin:16px 0 30px">{{ nmSaveLabel }}</div>
     </div>
   </sc-if>
 
@@ -1174,7 +1174,7 @@ input,textarea,button{font-family:inherit}
       <div style="font-size:12px;color:var(--lab2);margin-top:12px">Passwort</div>
       <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:16px;font-weight:600;margin-top:2px;letter-spacing:0.5px">{{ zuPasswort }}</div>
     </div>
-    <div onClick="{{ zuTeilen }}" style="height:50px;border-radius:12px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer;margin:16px 20px 10px">
+    <div onClick="{{ zuTeilen }}" style="height:50px;border-radius:12px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer;margin:16px 20px 10px">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11"></path><path d="M8.2 7L12 3.3 15.8 7"></path><path d="M6.5 11H5v9.5h14V11h-1.5"></path></svg>
       Zugangsdaten weitergeben
     </div>
@@ -1186,7 +1186,7 @@ input,textarea,button{font-family:inherit}
     <div style="font-size:13.5px;color:var(--lab2);padding:0 20px 12px;line-height:1.5">Gruppen bündeln Rechte für mehrere Personen. Welche Rechte eine Gruppe hat, legst du in Paperless unter Einstellungen fest.</div>
     <div style="padding:0 20px 30px">
       <input value="{{ ngName }}" onInput="{{ setNgName }}" placeholder="Buchhaltung" style="width:100%;height:46px;border-radius:12px;border:1px solid var(--sep);background:var(--fill);padding:0 14px;font-size:16px;color:var(--lab);outline:none">
-      <div onClick="{{ ngSave }}" style="height:50px;border-radius:12px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;margin-top:16px">Anlegen</div>
+      <div onClick="{{ ngSave }}" style="height:50px;border-radius:12px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;margin-top:16px">Anlegen</div>
     </div>
   </sc-if>
 
@@ -1255,7 +1255,7 @@ input,textarea,button{font-family:inherit}
       <div style="width:46px;height:46px;position:relative">
         <sc-if value="{{ scanHasPages }}">
           <div onClick="{{ toSeiten }}" style="width:44px;height:56px;border-radius:6px;background:#E9E7E2;border:2px solid #fff;cursor:pointer;position:absolute;bottom:0"></div>
-          <div style="position:absolute;top:-6px;right:-8px;min-width:20px;height:20px;border-radius:10px;background:var(--acc);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px;z-index:2">{{ scanCount }}</div>
+          <div style="position:absolute;top:-6px;right:-8px;min-width:20px;height:20px;border-radius:10px;background:var(--acc);color:var(--onAcc);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px;z-index:2">{{ scanCount }}</div>
         </sc-if>
       </div>
       <div onClick="{{ shutter }}" style="width:70px;height:70px;border-radius:50%;border:4px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer"><div style="width:56px;height:56px;border-radius:50%;background:#fff"></div></div>
@@ -1280,7 +1280,7 @@ input,textarea,button{font-family:inherit}
       <div style="font-size:13px;color:rgba(235,235,245,0.5);text-align:center;margin-top:16px;line-height:1.5">Halte eine Seite gedrückt, um sie neu anzuordnen.<br>Zuschneiden und Drehen öffnen sich beim Antippen.</div>
     </div>
     <div style="padding:0 20px 46px;flex-shrink:0">
-      <div onClick="{{ toMeta }}" style="height:50px;border-radius:14px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer">Weiter</div>
+      <div onClick="{{ toMeta }}" style="height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer">Weiter</div>
     </div>
   </sc-if>
   <sc-if value="{{ scanMeta }}">
@@ -1296,7 +1296,7 @@ input,textarea,button{font-family:inherit}
       </div>
     </div>
     <div style="padding:0 20px 46px;flex-shrink:0">
-      <div onClick="{{ doUpload }}" style="height:50px;border-radius:14px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer">Hochladen</div>
+      <div onClick="{{ doUpload }}" style="height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer">Hochladen</div>
     </div>
   </sc-if>
   <sc-if value="{{ scanUp }}">
@@ -1325,7 +1325,7 @@ input,textarea,button{font-family:inherit}
       <div style="font-size:30px;font-weight:700;margin-top:22px;font-family:'Manrope',-apple-system,BlinkMacSystemFont,'Inter',sans-serif;letter-spacing:-0.5px">DocuWunder</div>
       <div style="font-size:16.5px;color:var(--lab2);margin-top:10px;line-height:1.45;max-width:280px">Deine Dokumente. Ohne Technikstress.</div>
       <div style="flex:1"></div>
-      <div onClick="{{ obStart }}" style="width:100%;height:50px;border-radius:14px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,122,255,0.35)">Los geht’s</div>
+      <div onClick="{{ obStart }}" style="width:100%;height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(13,27,42,0.18)">Los geht’s</div>
       <div style="font-size:12.5px;color:var(--lab3);margin-top:14px;line-height:1.55;max-width:300px">DocuWunder verbindet sich mit deinem bestehenden Paperless-ngx-Archiv. Deine Dokumente bleiben bei dir. Ein unabhängiger Client – nicht vom Paperless-ngx-Projekt betrieben.</div>
     </div>
   </sc-if>
@@ -1352,7 +1352,7 @@ input,textarea,button{font-family:inherit}
           <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0"><div><div style="font-size:15px">Selbstsigniertes Zertifikat erlauben</div><div style="font-size:12px;color:var(--lab2);margin-top:1px">Nur wenn du dem Server vertraust</div></div><div onClick="{{ obToggleCert }}" style="{{ tCertBg }}"><div style="{{ tCertKnob }}"></div></div></div>
         </div>
       </sc-if>
-      <div onClick="{{ obConnect }}" style="margin-top:26px;height:50px;border-radius:14px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer">
+      <div onClick="{{ obConnect }}" style="margin-top:26px;height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer">
         <sc-if value="{{ onbChecking }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" style="animation:spin 0.9s linear infinite"><path d="M12 3a9 9 0 109 9"></path></svg></sc-if>
         <span>{{ obConnectLabel }}</span>
       </div>
@@ -1382,7 +1382,7 @@ input,textarea,button{font-family:inherit}
           <div style="font-size:13.5px;color:var(--red);font-weight:500;line-height:1.45">{{ onbErr }}</div>
         </div>
       </sc-if>
-      <div onClick="{{ obLoginTap }}" style="margin-top:24px;height:50px;border-radius:14px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer">
+      <div onClick="{{ obLoginTap }}" style="margin-top:24px;height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer">
         <sc-if value="{{ onbChecking }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" style="animation:spin 0.9s linear infinite"><path d="M12 3a9 9 0 109 9"></path></svg></sc-if>
         <span>Anmelden</span>
       </div>
@@ -1396,7 +1396,7 @@ input,textarea,button{font-family:inherit}
       <div style="font-size:24px;font-weight:700;margin-top:20px;letter-spacing:-0.3px">Mit Face ID schützen</div>
       <div style="font-size:15px;color:var(--lab2);margin-top:8px;line-height:1.5;max-width:280px">Deine Dokumente werden beim Öffnen der App geschützt. Das kannst du jederzeit in den Einstellungen ändern.</div>
       <div style="flex:1"></div>
-      <div onClick="{{ obFaceOn }}" style="width:100%;height:50px;border-radius:14px;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,122,255,0.35)">Face ID aktivieren</div>
+      <div onClick="{{ obFaceOn }}" style="width:100%;height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(13,27,42,0.18)">Face ID aktivieren</div>
       <div onClick="{{ obFaceSkip }}" style="margin-top:12px;font-size:15.5px;font-weight:600;color:var(--acc);cursor:pointer;padding:8px">Später</div>
     </div>
   </sc-if>
@@ -3145,7 +3145,7 @@ class Component extends DCLogic {
   renderVals() {
     const s = this.state, dark = this.isDark(), top = this.top() || {}, inbox = this.inboxEff();
     const wide = this.isWide(), nav = this.navStack();
-    const chip = (on) => 'height:32px;padding:0 13px;border-radius:999px;display:flex;align-items:center;flex-shrink:0;cursor:pointer;font-size:13.5px;font-weight:600;' + (on ? 'background:var(--acc);color:#fff' : 'background:var(--fill);color:var(--lab)');
+    const chip = (on) => 'height:32px;padding:0 13px;border-radius:999px;display:flex;align-items:center;flex-shrink:0;cursor:pointer;font-size:13.5px;font-weight:600;' + (on ? 'background:var(--acc);color:var(--onAcc)' : 'background:var(--fill);color:var(--lab)');
     const iconSq = (bg) => 'width:30px;height:30px;border-radius:7px;background:' + bg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff';
     const sv = (p) => ({ __html: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>' });
     // Ein geoeffnetes Dokument muss nicht mehr in der gefilterten Liste
@@ -3173,7 +3173,7 @@ class Component extends DCLogic {
     const pickOpts = s.pickField === 'Absender' ? s.absM : s.pickField === 'Dokumentart' ? s.artenM : s.pickField === 'Schlagwörter' ? s.tagsM : s.pickField === 'Ablageort' ? s.orteM : datumOpts;
     return {
       isDark: dark,
-      themeVars: dark ? { ...SICHER, background: 'var(--bg)', color: 'var(--lab)', '--bg': '#0D1B2A', '--card': '#152436', '--fill': 'rgba(120,120,128,0.24)', '--fill2': 'rgba(120,120,128,0.36)', '--lab': '#FFFFFF', '--lab2': 'rgba(226,239,237,0.62)', '--lab3': 'rgba(235,235,245,0.30)', '--sep': 'rgba(142,229,218,0.16)', '--acc': '#8EE5DA', '--mint': '#8EE5DA', '--accT': 'rgba(142,229,218,0.16)', '--grn': '#8EE5DA', '--org': '#F0B454', '--red': '#FF6B60', '--glass': 'rgba(21,36,54,0.86)', '--gbor': 'rgba(255,255,255,0.10)', '--mark': 'rgba(142,229,218,0.32)', '--pg': '#1B2B3E', '--pgl': 'rgba(235,235,245,0.16)' } : { ...SICHER, color: 'var(--lab)' },
+      themeVars: dark ? { ...SICHER, background: 'var(--bg)', color: 'var(--lab)', '--bg': '#0D1B2A', '--card': '#152436', '--fill': 'rgba(120,120,128,0.24)', '--fill2': 'rgba(120,120,128,0.36)', '--lab': '#FFFFFF', '--lab2': 'rgba(226,239,237,0.62)', '--lab3': 'rgba(235,235,245,0.30)', '--sep': 'rgba(142,229,218,0.16)', '--acc': '#8EE5DA', '--onAcc': '#0D1B2A', '--mint': '#8EE5DA', '--accT': 'rgba(142,229,218,0.16)', '--grn': '#8EE5DA', '--org': '#F0B454', '--red': '#FF6B60', '--glass': 'rgba(21,36,54,0.86)', '--gbor': 'rgba(255,255,255,0.10)', '--mark': 'rgba(142,229,218,0.32)', '--pg': '#1B2B3E', '--pgl': 'rgba(235,235,245,0.16)' } : { ...SICHER, color: 'var(--lab)' },
       showApp: this.screenEff() === 'app', showOnb: this.screenEff() === 'onb',
       tabHome: s.tab === 'home' && !nav.length, tabDocs: s.tab === 'docs' && !nav.length, tabInbox: s.tab === 'inbox' && !nav.length, tabMore: s.tab === 'more' && !nav.length,
       goHome: () => this.setState({ tab: 'home', stack: [], selMode: false, sel: [] }), goDocs: () => this.setState({ tab: 'docs', stack: [], selMode: false, sel: [] }), goInbox: () => this.setState({ tab: 'inbox', stack: [], selMode: false, sel: [] }), goMore: () => this.setState({ tab: 'more', stack: [], selMode: false, sel: [] }),
