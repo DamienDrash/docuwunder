@@ -1,0 +1,39 @@
+:root {
+  --dw-mint: #8EE5DA;
+  --dw-teal: #147E73;
+  --dw-teal-dark: #116C64;
+  --dw-navy: #0D1B2A;
+  --dw-slate: #5E6B78;
+  --dw-fog: #F7FAFA;
+  --dw-cloud: #E2EFED;
+  --dw-white: #FFFFFF;
+
+  --dw-bg: var(--dw-fog);
+  --dw-surface: var(--dw-white);
+  --dw-text: var(--dw-navy);
+  --dw-text-muted: var(--dw-slate);
+  --dw-action: var(--dw-teal);
+  --dw-action-hover: var(--dw-teal-dark);
+  --dw-focus-ring: var(--dw-mint);
+
+  --dw-radius-sm: 10px;
+  --dw-radius-md: 14px;
+  --dw-radius-lg: 20px;
+  --dw-radius-sheet: 28px;
+  --dw-radius-pill: 999px;
+
+  --dw-font-brand: Manrope, Inter, system-ui, sans-serif;
+  --dw-font-ui: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* #8EE5DA is a surface/accent color, not a white-text button color. */
+.dw-button-primary {
+  color: var(--dw-white);
+  background: var(--dw-action);
+  border-radius: var(--dw-radius-md);
+}
+
+.dw-focusable:focus-visible {
+  outline: 3px solid var(--dw-focus-ring);
+  outline-offset: 3px;
+}

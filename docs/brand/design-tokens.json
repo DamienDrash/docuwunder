@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json.schemastore.org/design-tokens.json",
+  "brand": {
+    "name": "DocuWunder",
+    "claim": "Deine Dokumente. Ohne Technikstress."
+  },
+  "color": {
+    "brand": {
+      "mint": "#8EE5DA",
+      "teal": "#147E73",
+      "tealDark": "#116C64",
+      "navy": "#0D1B2A"
+    },
+    "surface": {
+      "default": "#FFFFFF",
+      "subtle": "#F7FAFA",
+      "border": "#E2EFED"
+    },
+    "text": {
+      "primary": "#0D1B2A",
+      "secondary": "#5E6B78",
+      "onAction": "#FFFFFF"
+    },
+    "status": {
+      "success": "#198754",
+      "warning": "#A86100",
+      "danger": "#B42318"
+    }
+  },
+  "radius": {
+    "small": "10px",
+    "medium": "14px",
+    "large": "20px",
+    "sheet": "28px",
+    "pill": "999px"
+  },
+  "space": {
+    "1": "4px",
+    "2": "8px",
+    "3": "12px",
+    "4": "16px",
+    "6": "24px",
+    "8": "32px",
+    "12": "48px"
+  },
+  "typography": {
+    "brandFamily": "Manrope, Inter, system-ui, sans-serif",
+    "uiFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif"
+  }
+}

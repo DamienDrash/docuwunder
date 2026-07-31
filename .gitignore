@@ -1,0 +1,23 @@
+# Zugangsschluessel fuer die Tests. Gehoert nicht in die Versionsverwaltung -
+# siehe tests/run_e2e.py. Die Tests lesen ihn alternativ aus PAPERLESS_TOKEN.
+tests/.token
+tests/.env.local
+
+# Byte-Code, den Python neben den Pruefskripten ablegt.
+__pycache__/
+*.py[cod]
+
+# Ergebnisse der Testlaeufe: Screenshots, Kontaktboegen, Traces.
+tests/shots-*/
+tests/artefakte/
+*.trace.zip
+
+# Betriebssystem und Editoren
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Nichts aus Paketmanagern - dieses Projekt kommt ohne Build-Schritt aus.
+node_modules/

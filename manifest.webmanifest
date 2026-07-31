@@ -1,0 +1,76 @@
+{
+  "id": "./",
+  "name": "DocuWunder – Oberfläche für Paperless-ngx",
+  "short_name": "DocuWunder",
+  "description": "Deine Dokumente. Ohne Technikstress. Die freundliche, unabhängige Oberfläche für Paperless-ngx.",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
+  "background_color": "#F7FAFA",
+  "theme_color": "#F7FAFA",
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Posteingang",
+      "short_name": "Posteingang",
+      "description": "Neu eingegangene Dokumente prüfen",
+      "url": "./?tab=inbox",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Suchen",
+      "short_name": "Suchen",
+      "description": "Volltextsuche über alle Dokumente",
+      "url": "./?tab=suche",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

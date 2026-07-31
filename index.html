@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DocuWunder</title>
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="DocuWunder – die freundliche, unabhängige Oberfläche für Paperless-ngx.">
+
+<!--
+  Installierbare App.
+
+  viewport-fit=cover oben laesst die Seite bis in die Ecken des Bildschirms
+  laufen; was dort vom Geraet verdeckt wird, meldet das System als
+  env(safe-area-inset-*). Ausgewertet wird das in mobile.dc.html, weil dort die
+  Leisten sitzen, die davon betroffen sind.
+
+  apple-mobile-web-app-status-bar-style bleibt bewusst auf "default":
+  black-translucent wuerde die Seite unter die Statusleiste schieben, deren
+  Schrift dann aber immer hell ist - im Hellmodus waere die Uhrzeit unlesbar.
+  Mit "default" beginnt die Seite unter der Statusleiste, und diese uebernimmt
+  die theme-color darunter.
+-->
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#F7FAFA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1B2A" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="DocuWunder">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon-180.png">
+<link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="icon" href="./icons/icon-512.png" sizes="512x512" type="image/png">
+
+<script src="./vendor/resources.js"></script>
+<script src="./api.js"></script>
+<script src="./support.js"></script>
+<script>
+// Der Service Worker haelt die Huelle der App vor, damit sie ohne Netz
+// startet (siehe sw.js). Er ist Zubehoer: schlaegt die Anmeldung fehl - kein
+// sicherer Kontext, abgeschaltet, Privatfenster -, laeuft die App wie bisher.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .catch((e) => console.warn('Service Worker nicht angemeldet:', e));
+  });
+}
+</script>
+</head>
+<body>
+<!--
+  Einstiegspunkt der App.
+
+  Es gibt nur noch EINE Oberflaeche: die iOS-optimierte Oberflaeche aus
+  mobile.dc.html. Sie bedient Telefon und Desktop gleichermassen und schaltet
+  ab WIDE_MIN (900px) selbst zweispaltig um - Liste links, Dokument-Detail
+  rechts. Die frueher hier eingebettete separate Desktop-Shell ist entfallen:
+  sie war ein zweiter, vollstaendig eigener Nachbau derselben Funktionen mit
+  eigenem Datenbestand und liess sich nicht gemeinsam pflegen.
+
+  Damit entfaellt auch die Geraeteweiche (detectDevice): es gibt nichts mehr
+  zu entscheiden, das Layout richtet sich allein nach der Viewport-Breite.
+
+  Das Farbschema folgt der Systemeinstellung; in der App laesst es sich unter
+  Einstellungen uebersteuern.
+
+  iphone.html ist kein Einstiegspunkt, sondern nur noch eine Design-Vorschau,
+  die dieselbe Komponente in einer simulierten iOS-Huelle zeigt.
+-->
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="./vendor/inter.css">
+<link rel="stylesheet" href="./vendor/manrope.css">
+<style>
+/* overscroll-behavior:none nimmt dem Fenster das Nachfedern am Rand und das
+   Herunterziehen zum Neuladen. Beides ist im Browser richtig und in einer
+   installierten App falsch: die Listen scrollen selbst, ein Zug daran wuerde
+   sonst die ganze Seite bewegen.
+   touch-action:manipulation streicht die Wartezeit auf einen moeglichen
+   Doppeltipp - Tippen wird dadurch spuerbar direkter. Aufziehen zum
+   Vergroessern bleibt erhalten; die Viewport-Angabe verbietet es bewusst nicht. */
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:#F7FAFA;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+@media (prefers-color-scheme: dark){html,body{background:#0D1B2A}}
+*{box-sizing:border-box}
+input,textarea,button{font-family:inherit}
+</style>
+</helmet>
+<div style="position:fixed;inset:0;overflow:hidden">
+  <dc-import name="mobile" farbschema="{{ farbschema }}"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;farbschema&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;System&quot;, &quot;Hell&quot;, &quot;Dunkel&quot;], &quot;default&quot;: &quot;System&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Darstellung&quot;}}">
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = { systemDark: false };
+  }
+  componentDidMount() {
+    if (!window.matchMedia) return;
+    this._mq = window.matchMedia('(prefers-color-scheme: dark)');
+    this.setState({ systemDark: this._mq.matches });
+    this._onScheme = (e) => this.setState({ systemDark: e.matches });
+    this._mq.addEventListener('change', this._onScheme);
+  }
+  componentWillUnmount() {
+    if (this._mq && this._onScheme) this._mq.removeEventListener('change', this._onScheme);
+  }
+  renderVals() {
+    // Die Oberflaeche kennt nur 'Hell' und 'Dunkel'. 'System' wird hier
+    // aufgeloest, damit sie der Systemeinstellung folgt, solange in den
+    // App-Einstellungen nichts anderes gewaehlt ist.
+    const wahl = this.props.farbschema ?? 'System';
+    const dunkel = wahl === 'System' ? this.state.systemDark : wahl === 'Dunkel';
+    return { farbschema: dunkel ? 'Dunkel' : 'Hell' };
+  }
+}
+</script>
+</body>
+</html>
