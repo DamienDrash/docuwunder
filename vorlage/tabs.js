@@ -73,7 +73,7 @@
             <span style=${stil('font-size:12.5px;color:var(--lab2)')}>${d.dShort}</span>
             <div style=${stil('display:flex;gap:5px;align-items:center')}>
               ${d.geteilt ? html`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--lab3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.2 13.8a4 4 0 005.6 0l3.1-3.1a4 4 0 00-5.7-5.6l-1.5 1.5"></path><path d="M13.8 10.2a4 4 0 00-5.6 0l-3.1 3.1a4 4 0 005.7 5.6l1.5-1.5"></path></svg>` : null}
-              ${d.fav ? html`<svg width="14" height="14" viewBox="0 0 24 24" fill="#F7B500" stroke="none"><path d="M12 3.6l2.5 5.2 5.7.7-4.2 3.9 1.1 5.6-5.1-2.8-5.1 2.8 1.1-5.6-4.2-3.9 5.7-.7z"></path></svg>` : null}
+              ${d.favorit ? html`<svg width="14" height="14" viewBox="0 0 24 24" fill="#F7B500" stroke="none"><path d="M12 3.6l2.5 5.2 5.7.7-4.2 3.9 1.1 5.6-5.1-2.8-5.1 2.8 1.1-5.6-4.2-3.9 5.7-.7z"></path></svg>` : null}
               <svg width="7" height="12" viewBox="0 0 8 14" fill="none" stroke="var(--lab3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"></path></svg>
             </div>
           </div>
@@ -166,7 +166,7 @@
     ${(v.recentDocs || []).map((r, rIdx) => html`<div key=${r && r.id != null ? r.id : rIdx} onClick=${r.open} style=${stil('width:122px;flex-shrink:0;background:var(--card);border-radius:14px;padding:10px;cursor:pointer')}>
         <div style=${stil('height:88px;border-radius:8px;background:var(--pg);border:0.5px solid var(--sep);padding:12px 10px;display:flex;flex-direction:column;gap:5px')}><div style=${stil('height:4px;width:55%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:4px;width:85%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:4px;width:75%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:4px;width:80%;background:var(--pgl);border-radius:2px;margin-top:10px')}></div><div style=${stil('height:4px;width:60%;background:var(--pgl);border-radius:2px')}></div></div>
         <div style=${stil('font-size:13px;font-weight:600;margin-top:8px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden')}>${r.titel}</div>
-        <div style=${stil('font-size:11.5px;color:var(--lab2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')}>${r.abs}</div>
+        <div style=${stil('font-size:11.5px;color:var(--lab2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')}>${r.absender}</div>
       </div>`)}
   </div>
   <div style=${stil('font-size:13px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding:20px 20px 8px')}>Zuletzt geöffnet</div>
@@ -210,7 +210,7 @@
         <div style=${stil('width:44px;height:56px;border-radius:7px;background:var(--pg);border:0.5px solid var(--sep);padding:8px 6px;display:flex;flex-direction:column;gap:4px;flex-shrink:0')}><div style=${stil('height:3px;width:65%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3px;width:90%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3px;width:70%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3px;width:80%;background:var(--pgl);border-radius:2px')}></div></div>
         <div style=${stil('flex:1;min-width:0')}>
           <div style=${stil('font-size:15.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')}>${it.titel}</div>
-          <div style=${stil('font-size:13px;color:var(--lab2);margin-top:1px')}>${it.quelle} · ${it.hinzu}</div>
+          <div style=${stil('font-size:13px;color:var(--lab2);margin-top:1px')}>${it.quelle} · ${it.hinzugefuegt}</div>
           <div style=${stil('display:flex;gap:6px;margin-top:6px;align-items:center')}>
             ${it.dup ? html`<span style=${stil('font-size:11px;font-weight:600;color:#B25000;background:rgba(255,149,0,0.15);padding:2.5px 8px;border-radius:6px')}>Mögliches Duplikat</span>` : null}
             <span style=${stil('font-size:11px;font-weight:600;color:var(--acc);background:var(--accT);padding:2.5px 8px;border-radius:6px')}>${it.nSug}</span>

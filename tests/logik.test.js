@@ -88,7 +88,7 @@ const LK = {
   tag: { 1: { name: 'Steuern' }, 2: { name: 'Favorit' } },
   corr: { 7: { name: 'Finanzamt Musterstadt' } },
   typ: { 3: { name: 'Bescheid' } },
-  ort: { 5: { name: 'Privat/Steuern' } },
+  ablageort: { 5: { name: 'Privat/Steuern' } },
 };
 
 test('mapDoc: uebersetzt Kennungen in Namen', () => {
@@ -97,23 +97,23 @@ test('mapDoc: uebersetzt Kennungen in Namen', () => {
     storage_path: 5, tags: [1], created_date: '2026-05-28', added: '2026-07-31T10:00:00Z',
     page_count: 5, content: 'Text', archive_serial_number: 244,
   }, LK, {}, 'Favorit');
-  assert.strictEqual(d.abs, 'Finanzamt Musterstadt');
-  assert.strictEqual(d.art, 'Bescheid');
-  assert.strictEqual(d.ort, 'Privat/Steuern');
+  assert.strictEqual(d.absender, 'Finanzamt Musterstadt');
+  assert.strictEqual(d.dokumentart, 'Bescheid');
+  assert.strictEqual(d.ablageort, 'Privat/Steuern');
   assert.deepStrictEqual(d.tags, ['Steuern']);
   assert.strictEqual(d.datum, '28. Mai 2026');
-  assert.strictEqual(d.asn, 'ASN-244');
-  assert.strictEqual(d.seiten, 5);
+  assert.strictEqual(d.archivnummer, 'ASN-244');
+  assert.strictEqual(d.seitenzahl, 5);
 });
 
 test('mapDoc: unbekannte Kennung ergibt Leerstring statt undefined', () => {
   const d = L.mapDoc({ id: 1, title: 'X', correspondent: 999, tags: [] }, LK, {}, 'Favorit');
-  assert.strictEqual(d.abs, '');
+  assert.strictEqual(d.absender, '');
 });
 
 test('mapDoc: Favorit ist ein Schlagwort und taucht nicht in der Liste auf', () => {
   const d = L.mapDoc({ id: 1, title: 'X', tags: [1, 2] }, LK, {}, 'Favorit');
-  assert.strictEqual(d.fav, true);
+  assert.strictEqual(d.favorit, true);
   assert.deepStrictEqual(d.tags, ['Steuern'], 'Favorit gehoert nicht in die Schlagwoerter');
 });
 
@@ -126,8 +126,34 @@ test('mapDoc: leeres Dokument stuerzt nicht ab', () => {
   const d = L.mapDoc({ id: 1 }, {}, {}, 'Favorit');
   assert.strictEqual(d.titel, '(ohne Titel)');
   assert.deepStrictEqual(d.tags, []);
-  assert.strictEqual(d.seiten, 1);
+  assert.strictEqual(d.seitenzahl, 1);
   assert.strictEqual(d.datum, '');
+});
+
+test('mapDoc: geteilt gilt auch ohne lokale Freigabeliste', () => {
+  // Der Server meldet es selbst - frueher stand diese Regel nur in app.js,
+  // waehrend die Tests eine zweite, aeltere Kopie in logik.js prueften.
+  const d = L.mapDoc({ id: 5, tags: [], is_shared_by_requester: true }, LK, {}, 'Favorit');
+  assert.strictEqual(d.geteilt, true, 'is_shared_by_requester allein genuegt');
+});
+
+test('mapDoc: Notizen - angezeigt wird die neueste, die Liste bleibt erhalten', () => {
+  const d = L.mapDoc({ id: 5, tags: [], notes: [{ note: 'neu' }, { note: 'alt' }] }, LK, {}, 'Favorit');
+  assert.strictEqual(d.notiz, 'neu');
+  assert.strictEqual(d.notizen.length, 2);
+});
+
+test('mapDoc: ohne Notizen leeres Feld statt undefined', () => {
+  const d = L.mapDoc({ id: 5, tags: [] }, LK, {}, 'Favorit');
+  assert.strictEqual(d.notiz, '');
+  assert.deepStrictEqual(d.notizen, []);
+});
+
+test('mapDoc: Sortierschluessel kommen aus ISO, nicht aus der Anzeige', () => {
+  const d = L.mapDoc({ id: 5, tags: [], created_date: '2026-05-28', added: '2026-07-31T10:00:00Z' },
+                     LK, {}, 'Favorit');
+  assert.strictEqual(d.tsDatum, Date.parse('2026-05-28'));
+  assert.ok(d.tsHinzu > d.tsDatum, 'hinzugefuegt liegt nach dem Ausstellungsdatum');
 });
 
 test('istNeu: sieben Tage sind die Grenze', () => {
@@ -203,19 +229,19 @@ test('sichtQuery: mehrere Regeln lassen sich nicht als Suchbegriff darstellen', 
 // --- Posteingang ------------------------------------------------------------
 
 test('felderAus: vorhandene Werte gelten als uebernommen', () => {
-  const f = L.felderAus({ abs: 'Musterbank eG', art: 'Kontoauszug', datum: '30. Juni 2026', tags: ['Bank'] }, null);
+  const f = L.felderAus({ absender: 'Musterbank eG', dokumentart: 'Kontoauszug', datum: '30. Juni 2026', tags: ['Bank'] }, null);
   assert.strictEqual(f.length, 4);
   assert.ok(f.every((x) => x.ok), 'alle vier sind belegt');
 });
 
 test('felderAus: ohne Wert und ohne Vorschlag heisst es "nicht erkannt"', () => {
-  const f = L.felderAus({ abs: '', art: '', datum: '', tags: [] }, null);
+  const f = L.felderAus({ absender: '', dokumentart: '', datum: '', tags: [] }, null);
   assert.strictEqual(f[0].conf, 'nicht erkannt');
   assert.ok(f.every((x) => !x.ok));
 });
 
 test('felderAus: Vorschlag des Servers wird als solcher gekennzeichnet', () => {
-  const f = L.felderAus({ abs: '', art: '', datum: '', tags: [] },
+  const f = L.felderAus({ absender: '', dokumentart: '', datum: '', tags: [] },
                         { correspondents: [7], document_types: [], dates: [], tags: [] });
   assert.strictEqual(f[0].conf, 'Vorschlag');
   assert.strictEqual(f[1].conf, 'nicht erkannt');

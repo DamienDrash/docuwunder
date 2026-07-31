@@ -71,7 +71,7 @@
       </div>` : null}
     ${(v.zuweisenZiele || []).map((z, zIdx) => html`<div key=${z && z.id != null ? z.id : zIdx} onClick=${z.tap} style=${stil('display:flex;align-items:center;gap:12px;padding:13px 20px;cursor:pointer;position:relative')}>
         <div style=${stil(z.iconStyle)}>${z.ini}</div>
-        <div style=${stil('flex:1;min-width:0')}><div style=${stil('font-size:16px;font-weight:500')}>${z.name}</div><div style=${stil('font-size:13px;color:var(--lab2);margin-top:1px')}>${z.art}</div></div>
+        <div style=${stil('flex:1;min-width:0')}><div style=${stil('font-size:16px;font-weight:500')}>${z.name}</div><div style=${stil('font-size:13px;color:var(--lab2);margin-top:1px')}>${z.dokumentart}</div></div>
         <div style=${stil('position:absolute;left:20px;right:0;bottom:0;height:0.5px;background:var(--sep)')}></div>
       </div>`)}` : null}
 

@@ -70,7 +70,7 @@ const HOME_N = 8;
 // Wartezeit, bevor eine Eingabe in der Suche zum Server geht.
 const SUCH_MS = 300;
 // Sortierung der Oberflaeche -> ordering-Parameter der API.
-const SORT_API = { neu: '-created', alt: 'created', titel: 'title', abs: 'correspondent__name' };
+const SORT_API = { neu: '-created', alt: 'created', titel: 'title', absender: 'correspondent__name' };
 // Suchverlauf im Browser, damit er einen Neustart ueberlebt.
 const SUCH_KEY = 'paperless.suchverlauf';
 // Ein Dokument steht je nach Bildschirm in mehreren Listen zugleich. Eine
@@ -245,7 +245,7 @@ class Oberflaeche extends React.Component {
   // Nachschlagetabellen id -> Objekt, aus den geladenen Stammdaten.
   lkFrom(tags, corr, typ, ort) {
     const byId = (arr) => { const m = {}; (arr || []).forEach(x => { m[x.id] = x; }); return m; };
-    return { tag: byId(tags), corr: byId(corr), typ: byId(typ), ort: byId(ort) };
+    return { tag: byId(tags), corr: byId(corr), typ: byId(typ), ablageort: byId(ort) };
   }
   lookups() {
     const s = this.state;
@@ -285,35 +285,11 @@ class Oberflaeche extends React.Component {
   //   fav     - Paperless kennt keine Favoriten; abgebildet auf das Schlagwort
   //             FAV_TAG, das in der Schlagwortliste ausgeblendet wird.
   //   geteilt - ergibt sich aus vorhandenen Freigabelinks (/api/share_links/).
-  mapDoc(d, lk, shares) {
-    const A = this.api();
-    const namen = (d.tags || []).map(id => (lk.tag[id] || {}).name).filter(Boolean);
-    return {
-      id: d.id,
-      titel: d.title || '(ohne Titel)',
-      abs: d.correspondent ? ((lk.corr[d.correspondent] || {}).name || '') : '',
-      art: d.document_type ? ((lk.typ[d.document_type] || {}).name || '') : '',
-      ort: d.storage_path ? ((lk.ort[d.storage_path] || {}).name || '') : '',
-      datum: A.util.dateDE(d.created_date || d.created),
-      hinzu: A.util.dateDE(d.added),
-      tags: namen.filter(n => n !== FAV_TAG),
-      fav: namen.indexOf(FAV_TAG) >= 0,
-      // Der Server meldet selbst, ob es eine Freigabe gibt; die lokal
-      // geladene Linkliste ist nur die Ergaenzung fuer frisch erstellte.
-      geteilt: !!(d.is_shared_by_requester || (shares && shares[d.id])),
-      asn: d.archive_serial_number ? ('ASN-' + d.archive_serial_number) : '',
-      seiten: d.page_count || 1,
-      ocr: d.content || '',
-      // Paperless fuehrt beliebig viele Notizen je Dokument, die Oberflaeche
-      // hat ein Feld. Angezeigt wird die neueste; siehe notizSichern.
-      notiz: (d.notes && d.notes.length) ? (d.notes[0].note || '') : '',
-      notizen: d.notes || [],
-      // Sortierschluessel direkt aus ISO, unabhaengig vom Anzeigeformat.
-      tsDatum: Date.parse(d.created_date || d.created || '') || 0,
-      tsHinzu: Date.parse(d.added || '') || 0,
-      raw: d
-    };
-  }
+  // Eine Fassung fuer alle: die Uebersetzung steht in logik.js und wird dort
+  // ohne Browser geprueft. Vorher lag hier eine zweite Kopie - die Tests
+  // pruefte die eine, laufen tat die andere.
+  mapDoc(d, lk, shares) { return DWLogik.mapDoc(d, lk, shares, FAV_TAG); }
+
 
   // Posteingang-Eintrag: dieselbe Grundform, plus die Felder fuer den
   // Pruef-Screen. Die Vorschlaege kommen erst beim Oeffnen dazu (ladeVorschlag).
@@ -321,7 +297,7 @@ class Oberflaeche extends React.Component {
     const A = this.api(), doc = this.mapDoc(d, lk, shares);
     return Object.assign(doc, {
       quelle: d.original_file_name || 'Import',
-      hinzu: A.util.relDE(d.added),
+      hinzugefuegt: A.util.relDE(d.added),
       dup: (d.duplicate_documents || []).length > 0,
       dupRef: (d.duplicate_documents || []).length ? 'Aehnelt einem bereits vorhandenen Dokument' : '',
       felder: this.felderAus(doc, null)
@@ -377,6 +353,10 @@ class Oberflaeche extends React.Component {
           // id wird zum Zuweisen gebraucht (owner) - ohne sie liesse sich der
           // Besitz nicht uebertragen.
           id: u.id,
+          // Der Anmeldename wird zur Kollisionspruefung beim Anlegen gebraucht:
+          // ohne ihn schlug benutzernameAus() jeden Namen als frei vor, und der
+          // Server lehnte danach mit 400 ab.
+          username: u.username,
           // Gruppenzugehoerigkeit wird im Bildschirm "Benutzer & Gruppen" angezeigt
           // und dort auch geaendert.
           groups: u.groups || [],
@@ -573,13 +553,9 @@ class Oberflaeche extends React.Component {
 
   // Benutzername aus der E-Mail ableiten, Kollisionen durchnummerieren.
   benutzernameAus(mail, name) {
-    const basis = String(mail || '').split('@')[0] || String(name || '').toLowerCase().replace(/\s+/g, '.');
-    const sauber = basis.toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 24) || 'mitglied';
-    const belegt = (this.state.users || []).map(u => (u.username || '').toLowerCase());
-    if (belegt.indexOf(sauber) < 0) return sauber;
-    for (let i = 2; i < 99; i++) if (belegt.indexOf(sauber + i) < 0) return sauber + i;
-    return sauber + Date.now();
+    return DWLogik.benutzernameAus(mail, name, (this.state.users || []).map(u => u.username));
   }
+
 
   mitgliedAnlegen() {
     const A = this.api(), d = this.state.neuMitglied;
@@ -1011,41 +987,22 @@ class Oberflaeche extends React.Component {
   enrich(d) {
     const s = this.state, sel = s.sel.includes(d.id);
     const sw = s.swipe && s.swipe.id === d.id ? s.swipe : null, dx = sw ? sw.dx : 0;
-    return { ...d, sub: [d.abs, d.art].filter(Boolean).join(' · ') || 'Keine Angaben', dShort: this.kurzDatum(d.datum), neu: this.istNeu(d), tags2: d.tags.slice(0, 2).map(n => ({ n })), selMode: s.selMode, selected: sel, unselected: !sel, open: () => this.openDoc(d.id),
+    return { ...d, sub: [d.absender, d.dokumentart].filter(Boolean).join(' · ') || 'Keine Angaben', dShort: this.kurzDatum(d.datum), neu: this.istNeu(d), tags2: d.tags.slice(0, 2).map(n => ({ n })), selMode: s.selMode, selected: sel, unselected: !sel, open: () => this.openDoc(d.id),
       rowStyle: 'display:flex;align-items:center;gap:11px;padding:10px 16px;cursor:pointer;position:relative;background:var(--card);touch-action:pan-y;transform:translateX(' + dx + 'px);transition:' + (sw && sw.drag ? 'none' : 'transform .28s cubic-bezier(.3,.7,.4,1)'),
       pd: (e) => { if (this.state.selMode) return; this.setState({ swipe: { id: d.id, x0: e.clientX, base: dx, dx, drag: true, mv: false } }); },
-      pm: (e) => { const w = this.state.swipe; if (w && w.drag && w.id === d.id) { const nx = Math.max(-136, Math.min(0, w.base + e.clientX - w.x0)); this.setState({ swipe: { ...w, dx: nx, mv: w.mv || Math.abs(e.clientX - w.x0) > 6 } }); } },
+      pm: (e) => { const w = this.state.swipe; if (w && w.drag && w.id === d.id) { const nx = Math.max(-136, Math.min(0, w.base + e.clientX - w.x0)); this.setState({ swipe: { ...w, dx: nx, mv: w.mv || Math.absender(e.clientX - w.x0) > 6 } }); } },
       pu: () => { const w = this.state.swipe; if (w && w.id === d.id && w.drag) this.setState({ swipe: { ...w, dx: w.dx < -60 ? -136 : 0, drag: false } }); },
-      swFav: () => { this.updDoc(d.id, { fav: !d.fav }); this.setState({ swipe: null }); },
-      swFavLabel: d.fav ? 'Entfernen' : 'Favorit',
+      swFav: () => { this.updDoc(d.id, { favorit: !d.favorit }); this.setState({ swipe: null }); },
+      swFavLabel: d.favorit ? 'Entfernen' : 'Favorit',
       swDel: () => { this.setState({ swipe: null }); this.deleteDoc(d.id); },
       tap: () => { const w = this.state.swipe; if (w && w.id === d.id && (w.mv || w.dx !== 0)) { this.setState({ swipe: null }); return; } if (w) this.setState({ swipe: null }); if (this.state.selMode) { this.toggleSel(d.id); } else { this.openDoc(d.id); } } };
   }
   toggleSel(id) { this.setState(s => ({ sel: s.sel.includes(id) ? s.sel.filter(x => x !== id) : [...s.sel, id] })); }
   // In der Liste steht wenig Platz: das laufende Jahr bleibt weg.
-  kurzDatum(d) { return String(d || '').replace(' ' + new Date().getFullYear(), ''); }
-  // "Neu" heisst: in den letzten sieben Tagen in Paperless aufgenommen.
+  kurzDatum(d) { return DWLogik.kurzDatum(d); }
+  // "Neu" heisst: in den letzten sieben Tagen aufgenommen.
   istNeu(d) { return DWLogik.istNeu(d); }
 
-  // Oeffnet den Dateidialog des Systems und laedt die Auswahl hoch.
-  // accept steuert, ob die Kamera-/Fotoauswahl oder Dateien angeboten werden.
-  dateiWaehlen(accept, capture, meta) {
-    const el = document.createElement('input');
-    el.type = 'file';
-    el.accept = accept || 'application/pdf,image/*';
-    el.multiple = true;
-    if (capture) el.capture = 'environment';
-    el.style.display = 'none';
-    el.addEventListener('change', () => {
-      const dateien = Array.from(el.files || []);
-      // Ein gesetzter Titel gilt nur, wenn genau eine Datei gewaehlt wurde -
-      // sonst truege er fuer alle anderen.
-      dateien.forEach(f => this.uploadDatei(f, dateien.length === 1 ? meta : null));
-      el.remove();
-    });
-    document.body.appendChild(el);
-    el.click();
-  }
   parts(text, q) { return DWLogik.parts(text, q); }
 
   // --- Suche --------------------------------------------------------------
@@ -1138,10 +1095,10 @@ class Oberflaeche extends React.Component {
     return s.qRes.map(d => {
       // Ohne Volltextindex (Rueckfall auf die einfache Suche) gibt es keine
       // Hervorhebung vom Server - dann wird sie lokal aus dem Text gebildet.
-      const a = this.ausschnitt(d.hit && d.hit.highlights) || this.parts(d.ocr, q);
+      const a = this.ausschnitt(d.hit && d.hit.highlights) || this.parts(d.inhalt, q);
       return {
         id: d.id, titel: d.titel,
-        sub: [d.abs, d.art, this.kurzDatum(d.datum)].filter(Boolean).join(' · ') || 'Keine Angaben',
+        sub: [d.absender, d.dokumentart, this.kurzDatum(d.datum)].filter(Boolean).join(' · ') || 'Keine Angaben',
         hasSnip: !!(a && a.hit),
         snipPre: a ? a.pre : '', snipHit: a ? a.hit : '', snipPost: a ? a.post : '',
         open: () => { this.merkeSuche(q); this.setState({ lastQ: q }); this.openDoc(d.id, !!(a && a.hit)); }
@@ -1177,8 +1134,8 @@ class Oberflaeche extends React.Component {
   idFuer(art, name) {
     const A = this.api();
     if (!name) return Promise.resolve(null);
-    const topf = { abs: 'absRaw', art: 'artenRaw', tag: 'tagsRaw', ort: 'orteRaw' }[art];
-    const dienst = { abs: A.correspondents, art: A.documentTypes, tag: A.tags, ort: A.storagePaths }[art];
+    const topf = { absender: 'absRaw', dokumentart: 'artenRaw', tag: 'tagsRaw', ablageort: 'orteRaw' }[art];
+    const dienst = { absender: A.correspondents, dokumentart: A.documentTypes, tag: A.tags, ablageort: A.storagePaths }[art];
     const da = (this.state[topf] || []).find(x => x.name === name);
     if (da) return Promise.resolve(da.id);
     return dienst.create(name).then(neu => {
@@ -1196,9 +1153,9 @@ class Oberflaeche extends React.Component {
     const auf = [];
     const out = {};
     if ('titel' in patch) out.title = patch.titel;
-    if ('abs' in patch) auf.push(this.idFuer('abs', patch.abs).then(id => { out.correspondent = id; }));
-    if ('art' in patch) auf.push(this.idFuer('art', patch.art).then(id => { out.document_type = id; }));
-    if ('ort' in patch) auf.push(this.idFuer('ort', patch.ort).then(id => { out.storage_path = id; }));
+    if ('abs' in patch) auf.push(this.idFuer('abs', patch.absender).then(id => { out.correspondent = id; }));
+    if ('art' in patch) auf.push(this.idFuer('art', patch.dokumentart).then(id => { out.document_type = id; }));
+    if ('ort' in patch) auf.push(this.idFuer('ort', patch.ablageort).then(id => { out.storage_path = id; }));
     // Das Datum wird als Text bearbeitet ('21. Juli 2026'). Laesst es sich
     // nicht lesen, bleibt das Feld unangetastet - lieber nichts aendern als
     // ein falsches Datum schreiben.
@@ -1212,7 +1169,7 @@ class Oberflaeche extends React.Component {
     const setztTags = ('tags' in patch), setztFav = ('fav' in patch);
     if (setztTags || setztFav) {
       const namen = setztTags ? patch.tags : doc.tags;
-      const fav = setztFav ? patch.fav : doc.fav;
+      const fav = setztFav ? patch.favorit : doc.favorit;
       auf.push(
         Promise.all(namen.map(n => this.idFuer('tag', n)))
           .then(ids => fav ? this.favTagId().then(f => ids.concat([f])) : ids)
@@ -1563,7 +1520,7 @@ class Oberflaeche extends React.Component {
     const A = this.api(), it = this.revItem();
     if (!it) return;
     const f = (k) => { const x = it.felder.find(y => y.k === k); return x && x.ok && x.v ? x.v : ''; };
-    const patch = { abs: f('Absender'), art: f('Dokumentart') };
+    const patch = { absender: f('Absender'), dokumentart: f('Dokumentart') };
     const tagName = f('Schlagwörter');
     const behalten = tagName ? [tagName] : [];
 
@@ -1594,7 +1551,7 @@ class Oberflaeche extends React.Component {
     if (!art) { this.setState({ pickNew: '' }); this.choosePick(v); return; }
     this.setState({ pickBusy: true });
     this.idFuer(art, v).then(() => {
-      const topf = { abs: 'absM', art: 'artenM', tag: 'tagsM', ort: 'orteM' }[art];
+      const topf = { absender: 'absM', dokumentart: 'artenM', tag: 'tagsM', ablageort: 'orteM' }[art];
       this.setState(st => ({
         pickBusy: false, pickNew: '',
         [topf]: st[topf].includes(v) ? st[topf] : [...st[topf], v].sort((x, y) => x.localeCompare(y, 'de'))
@@ -1617,8 +1574,8 @@ class Oberflaeche extends React.Component {
     }
     if (!name) { this.setState(s => ({ orgDraft: Object.assign({}, s.orgDraft, { err: 'Bitte gib einen Namen ein.' }) })); return; }
 
-    const dienst = { abs: A.correspondents, art: A.documentTypes, tag: A.tags, ort: A.storagePaths }[d.kind];
-    const topfRaw = { abs: 'absRaw', art: 'artenRaw', tag: 'tagsRaw', ort: 'orteRaw' }[d.kind];
+    const dienst = { absender: A.correspondents, dokumentart: A.documentTypes, tag: A.tags, ablageort: A.storagePaths }[d.kind];
+    const topfRaw = { absender: 'absRaw', dokumentart: 'artenRaw', tag: 'tagsRaw', ablageort: 'orteRaw' }[d.kind];
     if (!dienst) {
       // Eigene Felder und gespeicherte Suchen werden hier (noch) nicht verwaltet.
       this.setState({ sheet: null, orgDraft: null });
@@ -1643,8 +1600,8 @@ class Oberflaeche extends React.Component {
     if (!d || !d.alt) { this.setState({ sheet: null, orgDraft: null }); return; }
     if (d.count > 0 && !force) { this.setState(s => ({ orgDraft: Object.assign({}, s.orgDraft, { warn: true }) })); return; }
 
-    const dienst = { abs: A.correspondents, art: A.documentTypes, tag: A.tags, ort: A.storagePaths }[d.kind];
-    const topfRaw = { abs: 'absRaw', art: 'artenRaw', tag: 'tagsRaw', ort: 'orteRaw' }[d.kind];
+    const dienst = { absender: A.correspondents, dokumentart: A.documentTypes, tag: A.tags, ablageort: A.storagePaths }[d.kind];
+    const topfRaw = { absender: 'absRaw', dokumentart: 'artenRaw', tag: 'tagsRaw', ablageort: 'orteRaw' }[d.kind];
     const eintrag = (this.state[topfRaw] || []).find(x => x.name === d.alt);
     if (!dienst || !eintrag) { this.setState({ sheet: null, orgDraft: null }); return; }
 
@@ -1738,7 +1695,7 @@ class Oberflaeche extends React.Component {
     const org = top.t === 'org' ? this.orgData(top.kind) : null;
     const res = this.results();
     const share = dDoc ? s.shares[dDoc.id] : null;
-    const fundParts = dDoc && s.lastQ ? this.parts(dDoc.ocr, s.lastQ) : null;
+    const fundParts = dDoc && s.lastQ ? this.parts(dDoc.inhalt, s.lastQ) : null;
     const ed = s.editDraft, orgD = s.orgDraft;
     const revF = rev ? rev.felder : [];
     const selN = s.sel.length;
@@ -1804,7 +1761,7 @@ class Oberflaeche extends React.Component {
         ? 'Keine Dokumente passen zu den gewählten Filtern.'
         : 'Noch keine Dokumente. Lade eines hoch, um zu beginnen.',
       viewIsList: s.view === 'liste', viewIsGrid: s.view === 'raster', toggleView: () => this.setState({ view: s.view === 'liste' ? 'raster' : 'liste' }),
-      sortLabel: { neu: 'Neueste', alt: 'Älteste', titel: 'Titel', abs: 'Absender' }[s.sort], openSort: () => this.setState({ sheet: 'sort' }), openFilter: () => this.setState({ sheet: 'filter' }),
+      sortLabel: { neu: 'Neueste', alt: 'Älteste', titel: 'Titel', absender: 'Absender' }[s.sort], openSort: () => this.setState({ sheet: 'sort' }), openFilter: () => this.setState({ sheet: 'filter' }),
       // Die Schnellfilter zeigen die tatsaechlich vorhandenen Dokumentarten,
       // die haeufigsten zuerst - eine feste Liste ginge auf einem fremden
       // Server ins Leere.
@@ -1824,8 +1781,8 @@ class Oberflaeche extends React.Component {
       adminRows: [ { label: 'Automatisierungen', detail: s.autos.filter(a => a.on).length + ' aktiv', svg: sv('<path d="M13 3L5 13.5h5.5L11 21l8-10.5h-5.5z"></path>'), bg: '#FF9500', tap: () => this.pushV({ t: 'auto' }) }, { label: 'E-Mail-Import', detail: s.mailRules.length ? s.mailRules.filter(r => r.on).length + ' aktiv' : 'Keine Regeln', svg: sv('<rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect><path d="M4.5 7.5l7.5 5.5 7.5-5.5"></path>'), bg: '#007AFF', tap: () => this.pushV({ t: 'mail' }) }, { label: 'Benutzer & Gruppen', detail: String(s.users.length), svg: sv('<circle cx="9" cy="8.5" r="3"></circle><path d="M3.5 19c.8-3.4 3-4.7 5.5-4.7s4.7 1.3 5.5 4.7"></path><path d="M15.5 6.2a3 3 0 010 5.6M17.5 14.6c1.7.7 2.7 2 3 4.4"></path>'), bg: '#34C759', tap: () => this.pushV({ t: 'users' }) }, { label: 'Verarbeitung', detail: s.uploads.length ? s.uploads.length + ' aktiv' : '', svg: sv('<circle cx="12" cy="12" r="3.2"></circle><path d="M12 4v2.5M12 17.5V20M4 12h2.5M17.5 12H20M6.4 6.4l1.8 1.8M15.8 15.8l1.8 1.8M17.6 6.4l-1.8 1.8M8.2 15.8l-1.8 1.8"></path>'), bg: '#8E8E93', tap: () => { this.ladeAufgaben(); this.pushV({ t: 'tasks' }); } }, { label: 'Systemstatus', detail: s.loadErr ? 'Getrennt' : 'Verbunden', svg: sv('<rect x="4" y="4" width="16" height="6.5" rx="1.8"></rect><rect x="4" y="13.5" width="16" height="6.5" rx="1.8"></rect><path d="M7.5 7.2h0.1M7.5 16.7h0.1"></path>'), bg: '#30B0C7', tap: () => { this.ladeAufgaben(); this.pushV({ t: 'status' }); } } ].map((m, i, a) => ({ ...m, iconStyle: iconSq(m.bg), sep: i < a.length - 1 })),
       popPush: () => this.pop(),
       showDoc: top.t === 'doc' && !!dDoc,
-      dTitel: dDoc ? dDoc.titel : '', dAbs: dDoc ? (dDoc.abs || '—') : '', dArt: dDoc ? dDoc.art : '', dDatum: dDoc ? dDoc.datum : '', dHinzu: dDoc ? dDoc.hinzu : '', dOrt: dDoc ? dDoc.ort : '', dAsn: dDoc ? dDoc.asn : '', dSeitenLabel: dDoc ? 'Seite 1 von ' + dDoc.seiten : '', dTags: dDoc ? dDoc.tags.map(n => ({ n })) : [], dFav: !!(dDoc && dDoc.fav), dNoFav: !(dDoc && dDoc.fav), dAbsHead: dDoc ? (dDoc.abs || 'Unbekannter Absender') : '', dBetreff: dDoc ? dDoc.titel : '', dOcr: dDoc ? dDoc.ocr : '',
-      dToggleFav: () => { if (dDoc) { this.updDoc(dDoc.id, { fav: !dDoc.fav }); this.note(dDoc.fav ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzugefügt'); } },
+      dTitel: dDoc ? dDoc.titel : '', dAbs: dDoc ? (dDoc.absender || '—') : '', dArt: dDoc ? dDoc.dokumentart : '', dDatum: dDoc ? dDoc.datum : '', dHinzu: dDoc ? dDoc.hinzugefuegt : '', dOrt: dDoc ? dDoc.ablageort : '', dAsn: dDoc ? dDoc.archivnummer : '', dSeitenLabel: dDoc ? 'Seite 1 von ' + dDoc.seitenzahl : '', dTags: dDoc ? dDoc.tags.map(n => ({ n })) : [], dFav: !!(dDoc && dDoc.favorit), dNoFav: !(dDoc && dDoc.favorit), dAbsHead: dDoc ? (dDoc.absender || 'Unbekannter Absender') : '', dBetreff: dDoc ? dDoc.titel : '', dOcr: dDoc ? dDoc.inhalt : '',
+      dToggleFav: () => { if (dDoc) { this.updDoc(dDoc.id, { favorit: !dDoc.favorit }); this.note(dDoc.favorit ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzugefügt'); } },
       // Echtes Vorschaubild vom Server. Solange es laedt oder fehlt, bleibt
       // die schematische Seitendarstellung stehen.
       dPrevOn: !!(s.prev && s.prev.url && dDoc && s.prev.id === dDoc.id),
@@ -1842,14 +1799,14 @@ class Oberflaeche extends React.Component {
       dOcrPre: fundParts ? fundParts.pre : '', dOcrHit: fundParts ? fundParts.hit : '', dOcrPost: fundParts ? fundParts.post : '',
       openShare: () => this.setState({ sheet: 'share' }), openDocMenu: () => this.setState({ sheet: 'docmenu' }),
       openEdit: () => { if (dDoc) this.setState({ editDraft: { ...dDoc, err: '' }, sheet: 'edit' }); },
-      dmFav: () => { if (dDoc) { this.updDoc(dDoc.id, { fav: !dDoc.fav }); this.setState({ sheet: null }); } },
-      dmFavLabel: dDoc && dDoc.fav ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen',
+      dmFav: () => { if (dDoc) { this.updDoc(dDoc.id, { favorit: !dDoc.favorit }); this.setState({ sheet: null }); } },
+      dmFavLabel: dDoc && dDoc.favorit ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen',
       dmText: () => this.setState({ docTab: 'text', sheet: null }),
       dmDownload: () => { if (dDoc) this.dateiLaden(dDoc.id, true); },
       dmPrint: () => { if (dDoc) this.drucken(dDoc.id); },
       dmTrash: () => { if (dDoc) this.deleteDoc(dDoc.id); },
       showRev: top.t === 'rev' && !!rev,
-      revTitel: rev ? rev.titel : '', revQuelle: rev ? rev.quelle + ' · ' + rev.hinzu : '', revDup: !!(rev && rev.dup), revDupRef: rev ? (rev.dupRef || '') : '',
+      revTitel: rev ? rev.titel : '', revQuelle: rev ? rev.quelle + ' · ' + rev.hinzugefuegt : '', revDup: !!(rev && rev.dup), revDupRef: rev ? (rev.dupRef || '') : '',
       revPos: rev ? (inbox.indexOf(rev) + 1) + ' von ' + inbox.length : '',
       revFields: revF.map((f, i) => ({ k: f.k, conf: f.conf, vShow: f.v, hasVal: !!f.v, empty: !f.v, ok: !!(f.ok && f.v), notOk: !(f.ok && f.v), toggle: () => this.patchRev(it => ({ ...it, felder: it.felder.map((x, j) => j === i ? { ...x, ok: !x.ok } : x) })), edit: () => this.setState({ pickTarget: 'rev', pickField: f.k, pickNew: '', sheet: 'pick' }) })),
       acceptAll: () => this.patchRev(it => ({ ...it, felder: it.felder.map(x => x.v ? { ...x, ok: true } : x) })),
@@ -1920,7 +1877,7 @@ class Oberflaeche extends React.Component {
       listeEmptyText: listeKind === 'fav' ? 'Markiere Dokumente mit dem Stern, um sie hier zu sehen.' : listeKind === 'geteilt' ? 'Dokumente mit aktivem Freigabelink erscheinen hier.' : 'Dokumente, die du öffnest, erscheinen hier.',
       showTrash: top.t === 'trash', trashEmpty: s.trash.length === 0,
       trashRows: s.trash.map(d => ({
-        titel: d.titel, sub: [d.abs, d.art].filter(Boolean).join(' · '), gel: d.gel, rest: d.rest,
+        titel: d.titel, sub: [d.absender, d.dokumentart].filter(Boolean).join(' · '), gel: d.gel, rest: d.rest,
         restore: () => this.restoreDoc(d.id),
         delF: () => this.setState({ pendingDel: d.id, sheet: 'delfinal' })
       })),
@@ -2083,11 +2040,11 @@ class Oberflaeche extends React.Component {
         const personen = (s.users || [])
           .filter(u => u.id !== ich)
           .map(u => ({
-            name: u.name, art: 'Person · wird Besitzerin', ini: ini(u.name), iconStyle: stil('var(--acc)'),
+            name: u.name, dokumentart: 'Person · wird Besitzerin', ini: ini(u.name), iconStyle: stil('var(--acc)'),
             tap: () => dDoc && this.zuweisen(dDoc.id, { typ: 'user', id: u.id, name: u.name })
           }));
         const gruppen = (s.gruppen || []).map(g => ({
-          name: g.name, art: 'Gruppe · bekommt Zugriff', ini: ini(g.name), iconStyle: stil('var(--org)'),
+          name: g.name, dokumentart: 'Gruppe · bekommt Zugriff', ini: ini(g.name), iconStyle: stil('var(--org)'),
           tap: () => dDoc && this.zuweisen(dDoc.id, { typ: 'group', id: g.id, name: g.name })
         }));
         return personen.concat(gruppen);
@@ -2110,7 +2067,7 @@ class Oberflaeche extends React.Component {
       eTitel: ed ? ed.titel : '', setETitel: (e) => this.setState(st => ({ editDraft: { ...st.editDraft, titel: e.target.value, err: '' } })),
       eDatum: ed ? ed.datum : '', setEDatum: (e) => this.setState(st => ({ editDraft: { ...st.editDraft, datum: e.target.value } })),
       eNotiz: ed ? (ed.notiz || '') : '', setENotiz: (e) => this.setState(st => ({ editDraft: { ...st.editDraft, notiz: e.target.value } })),
-      eAbs: ed ? (ed.abs || 'Wählen') : '', eArt: ed ? ed.art : '', eOrt: ed ? ed.ort : '',
+      eAbs: ed ? (ed.absender || 'Wählen') : '', eArt: ed ? ed.dokumentart : '', eOrt: ed ? ed.ablageort : '',
       eErrOn: !!(ed && ed.err), eErr: ed ? ed.err : '',
       ePickAbs: () => this.setState({ pickTarget: 'edit', pickField: 'Absender', pickNew: '', sheet: 'pick' }),
       ePickArt: () => this.setState({ pickTarget: 'edit', pickField: 'Dokumentart', pickNew: '', sheet: 'pick' }),
@@ -2119,7 +2076,7 @@ class Oberflaeche extends React.Component {
       eCancel: () => this.setState({ sheet: null, editDraft: null }),
       // Die Notiz liegt in Paperless nicht am Dokument, sondern in einer
       // eigenen Liste - sie wird deshalb getrennt gesichert.
-      eSave: () => { if (!ed) return; if (!ed.titel.trim()) { this.setState(st => ({ editDraft: { ...st.editDraft, err: 'Der Titel darf nicht leer sein.' } })); return; } const notiz = (ed.notiz || '').trim(); this.updDoc(ed.id, { titel: ed.titel.trim(), datum: ed.datum, abs: ed.abs, art: ed.art, ort: ed.ort, tags: ed.tags }).then(() => this.notizSichern(ed.id, notiz)); this.setState({ sheet: null, editDraft: null }); this.note('Änderungen gesichert'); },
+      eSave: () => { if (!ed) return; if (!ed.titel.trim()) { this.setState(st => ({ editDraft: { ...st.editDraft, err: 'Der Titel darf nicht leer sein.' } })); return; } const notiz = (ed.notiz || '').trim(); this.updDoc(ed.id, { titel: ed.titel.trim(), datum: ed.datum, absender: ed.absender, dokumentart: ed.dokumentart, ablageort: ed.ablageort, tags: ed.tags }).then(() => this.notizSichern(ed.id, notiz)); this.setState({ sheet: null, editDraft: null }); this.note('Änderungen gesichert'); },
       pickTitle: s.pickField || '',
       pickRows: pickOpts.map(v => { const map = { 'Absender': 'abs', 'Dokumentart': 'art', 'Ablageort': 'ort', 'Datum': 'datum' }; const cur = s.pickTarget === 'rev' ? (rev ? ((rev.felder.find(f => f.k === s.pickField) || {}).v || '') : '') : (ed ? ed[map[s.pickField]] : ''); return { label: v, on: cur === v, pick: () => this.choosePick(v) }; }),
       pickCanCreate: ['Absender', 'Dokumentart', 'Schlagwörter', 'Ablageort'].indexOf(s.pickField) >= 0,
@@ -2181,7 +2138,7 @@ class Oberflaeche extends React.Component {
       orgDelOn: !!(orgD && orgD.alt && !orgD.warn), orgDelTap: () => this.orgDeleteGo(false), orgDelForce: () => this.orgDeleteGo(true),
       orgSaveTap: () => this.orgSaveGo(),
       scanOn: !!s.scan, scanKam: !!(s.scan && s.scan.step === 'kam'), scanSeiten: !!(s.scan && s.scan.step === 'seiten'), scanMeta: !!(s.scan && s.scan.step === 'meta'), scanUp: !!(s.scan && s.scan.step === 'up'),
-      scanStepTitle: s.scan ? ({ kam: 'Scannen', seiten: 'Seiten prüfen', meta: 'Details', up: 'Hochladen' })[s.scan.step] : '',
+      scanStepTitle: s.scan ? ({ kam: 'Scannen', seitenzahl: 'Seiten prüfen', meta: 'Details', up: 'Hochladen' })[s.scan.step] : '',
       scanCancel: () => this.setState({ scan: null }),
       shutter: () => this.setState(st => ({ scan: { ...st.scan, pages: st.scan.pages + 1 } })),
       scanCount: s.scan ? String(s.scan.pages) : '0', scanHasPages: !!(s.scan && s.scan.pages > 0),

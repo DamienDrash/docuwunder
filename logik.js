@@ -109,29 +109,36 @@
   //   geteilt - ergibt sich aus vorhandenen Freigabelinks
   function mapDoc(d, lk, shares, favTag) {
     lk = lk || {}; shares = shares || {};
-    var tag = lk.tag || {}, corr = lk.corr || {}, typ = lk.typ || {}, ort = lk.ort || {};
+    var tag = lk.tag || {}, corr = lk.corr || {}, typ = lk.typ || {}, ort = lk.ablageort || {};
     var namen = (d.tags || []).map(function (id) { return (tag[id] || {}).name; })
                               .filter(Boolean);
     return {
       id: d.id,
       titel: d.title || '(ohne Titel)',
-      abs: d.correspondent ? ((corr[d.correspondent] || {}).name || '') : '',
-      art: d.document_type ? ((typ[d.document_type] || {}).name || '') : '',
-      ort: d.storage_path ? ((ort[d.storage_path] || {}).name || '') : '',
+      absender: d.correspondent ? ((corr[d.correspondent] || {}).name || '') : '',
+      dokumentart: d.document_type ? ((typ[d.document_type] || {}).name || '') : '',
+      ablageort: d.storage_path ? ((ort[d.storage_path] || {}).name || '') : '',
       datum: dateDE(d.created_date || d.created),
-      hinzu: dateDE(d.added),
+      hinzugefuegt: dateDE(d.added),
       tags: namen.filter(function (n) { return n !== favTag; }),
-      fav: namen.indexOf(favTag) >= 0,
-      geteilt: !!shares[d.id],
-      asn: d.archive_serial_number ? ('ASN-' + d.archive_serial_number) : '',
-      seiten: d.page_count || 1,
-      ocr: d.content || '',
+      favorit: namen.indexOf(favTag) >= 0,
+      // Der Server meldet selbst, ob es eine Freigabe gibt; die lokal geladene
+      // Linkliste ist nur die Ergaenzung fuer frisch erstellte.
+      geteilt: !!(d.is_shared_by_requester || shares[d.id]),
+      archivnummer: d.archive_serial_number ? ('ASN-' + d.archive_serial_number) : '',
+      seitenzahl: d.page_count || 1,
+      inhalt: d.content || '',
+      // Paperless fuehrt beliebig viele Notizen je Dokument, die Oberflaeche
+      // hat ein Feld. Angezeigt wird die neueste.
+      notiz: (d.notes && d.notes.length) ? (d.notes[0].note || '') : '',
+      notizen: d.notes || [],
       // Sortierschluessel direkt aus ISO, unabhaengig vom Anzeigeformat.
       tsDatum: Date.parse(d.created_date || d.created || '') || 0,
       tsHinzu: Date.parse(d.added || '') || 0,
       raw: d
     };
   }
+
 
   // Feldliste des Posteingang-Pruefschirms aus vorhandenen Werten und - sofern
   // geladen - den Vorschlaegen des Servers.
@@ -146,8 +153,8 @@
     };
     var vTag = (doc.tags && doc.tags.length) ? doc.tags[0] : '';
     return [
-      f('Absender', doc.abs, vor && (vor.correspondents || []).length),
-      f('Dokumentart', doc.art, vor && (vor.document_types || []).length),
+      f('Absender', doc.absender, vor && (vor.correspondents || []).length),
+      f('Dokumentart', doc.dokumentart, vor && (vor.document_types || []).length),
       f('Datum', doc.datum, vor && (vor.dates || []).length),
       f('Schlagwörter', vTag, vor && (vor.tags || []).length)
     ];
