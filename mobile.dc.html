@@ -735,16 +735,6 @@ input,textarea,button{font-family:inherit}
       <div onClick="{{ toggleDefView }}" style="display:flex;justify-content:space-between;align-items:center;padding:13px 0 6px;cursor:pointer"><span style="font-size:15.5px">Standardansicht</span><span style="font-size:15px;color:var(--lab2)">{{ defViewLabel }}</span></div>
       <div onClick="{{ doDynType }}" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px;cursor:pointer"><span style="font-size:15.5px">Textgröße</span><span style="font-size:15px;color:var(--lab2)">Systemeinstellung</span></div>
     </div>
-    <div style="font-size:13px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding:18px 20px 8px">Scannen</div>
-    <div style="background:var(--card);border-radius:16px;margin:0 16px;overflow:hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;position:relative"><span style="font-size:15.5px">Automatisch zuschneiden</span><div onClick="{{ toggleAutocrop }}" style="{{ tAutoBg }}"><div style="{{ tAutoKnob }}"></div></div><div style="position:absolute;left:16px;right:0;bottom:0;height:0.5px;background:var(--sep)"></div></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px"><span style="font-size:15.5px">Farbmodus</span><span style="font-size:15px;color:var(--lab2)">Automatisch</span></div>
-    </div>
-    <div style="font-size:13px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding:18px 20px 8px">Mitteilungen &amp; Sicherheit</div>
-    <div style="background:var(--card);border-radius:16px;margin:0 16px;overflow:hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;position:relative"><div><div style="font-size:15.5px">Neue Dokumente</div><div style="font-size:12.5px;color:var(--lab2)">Mitteilung bei neuem Posteingang</div></div><div onClick="{{ toggleBenach }}" style="{{ tBenBg }}"><div style="{{ tBenKnob }}"></div></div><div style="position:absolute;left:16px;right:0;bottom:0;height:0.5px;background:var(--sep)"></div></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px"><div><div style="font-size:15.5px">Mit Face ID schützen</div><div style="font-size:12.5px;color:var(--lab2)">Beim Öffnen der App</div></div><div onClick="{{ toggleFace }}" style="{{ tFaceBg }}"><div style="{{ tFaceKnob }}"></div></div></div>
-    </div>
     <div style="font-size:13px;font-weight:600;color:var(--lab2);text-transform:uppercase;letter-spacing:0.3px;padding:18px 20px 8px">Verbindung</div>
     <div style="background:var(--card);border-radius:16px;margin:0 16px;overflow:hidden">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;position:relative"><span style="font-size:15.5px">Server</span><span style="font-size:14px;color:var(--lab2)">{{ serverAddr }}</span><div style="position:absolute;left:16px;right:0;bottom:0;height:0.5px;background:var(--sep)"></div></div>
@@ -1349,7 +1339,6 @@ input,textarea,button{font-family:inherit}
       </div>
       <sc-if value="{{ onbShowAdv }}">
         <div style="margin-top:10px;background:var(--card);border-radius:14px;padding:4px 16px">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0"><div><div style="font-size:15px">Selbstsigniertes Zertifikat erlauben</div><div style="font-size:12px;color:var(--lab2);margin-top:1px">Nur wenn du dem Server vertraust</div></div><div onClick="{{ obToggleCert }}" style="{{ tCertBg }}"><div style="{{ tCertKnob }}"></div></div></div>
         </div>
       </sc-if>
       <div onClick="{{ obConnect }}" style="margin-top:26px;height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer">
@@ -1392,12 +1381,11 @@ input,textarea,button{font-family:inherit}
   </sc-if>
   <sc-if value="{{ ob3 }}">
     <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;text-align:center;padding:150px 32px 40px">
-      <div style="width:76px;height:76px;border-radius:19px;background:var(--accT);display:flex;align-items:center;justify-content:center"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H5.5A1.5 1.5 0 004 5.5V8"></path><path d="M16 4h2.5A1.5 1.5 0 0120 5.5V8"></path><path d="M4 16v2.5A1.5 1.5 0 005.5 20H8"></path><path d="M20 16v2.5a1.5 1.5 0 01-1.5 1.5H16"></path><path d="M9 9.3v1.4M15 9.3v1.4"></path><path d="M12 9.5v3.2h-0.9"></path><path d="M9 15.2c.8.9 1.9 1.4 3 1.4s2.2-.5 3-1.4"></path></svg></div>
-      <div style="font-size:24px;font-weight:700;margin-top:20px;letter-spacing:-0.3px">Mit Face ID schützen</div>
-      <div style="font-size:15px;color:var(--lab2);margin-top:8px;line-height:1.5;max-width:280px">Deine Dokumente werden beim Öffnen der App geschützt. Das kannst du jederzeit in den Einstellungen ändern.</div>
+      <div style="width:76px;height:76px;border-radius:19px;background:var(--accT);display:flex;align-items:center;justify-content:center"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"></path></svg></div>
+      <div style="font-size:24px;font-weight:700;margin-top:20px;letter-spacing:-0.3px">Verbunden</div>
+      <div style="font-size:15px;color:var(--lab2);margin-top:8px;line-height:1.5;max-width:280px">{{ obFertigText }}</div>
       <div style="flex:1"></div>
-      <div onClick="{{ obFaceOn }}" style="width:100%;height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(13,27,42,0.18)">Face ID aktivieren</div>
-      <div onClick="{{ obFaceSkip }}" style="margin-top:12px;font-size:15.5px;font-weight:600;color:var(--acc);cursor:pointer;padding:8px">Später</div>
+      <div onClick="{{ obFertig }}" style="width:100%;height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer">Los geht’s</div>
     </div>
   </sc-if>
 </div>
@@ -1442,6 +1430,16 @@ const PANE_W = 380;
 // Paperless kennt keine Favoriten. Die App bildet sie auf dieses Schlagwort ab;
 // es wird in der Schlagwortliste ausgeblendet und bei Bedarf angelegt.
 const FAV_TAG = 'Favorit';
+// Standardansicht der Dokumentliste. Sie ueberlebt jetzt den Neustart - vorher
+// stand beim Start immer wieder 'liste', die Einstellung war also folgenlos.
+const DEFVIEW_KEY = 'docuwunder.defaultAnsicht';
+const DEFVIEW_START = (() => {
+  try { return localStorage.getItem(DEFVIEW_KEY) === 'raster' ? 'raster' : 'liste'; }
+  catch (e) { return 'liste'; }
+})();
+function defViewSichern(wert) {
+  try { localStorage.setItem(DEFVIEW_KEY, wert); } catch (e) { /* Privatmodus: dann eben nur fuer diese Sitzung */ }
+}
 // Wie viele Dokumente eine Serverseite umfasst. Bewusst klein: gefiltert und
 // sortiert wird auf dem Server, weitere Seiten holt die Liste beim Blaettern
 // nach. Ein grosser Wert wuerde nur den ersten Aufbau verzoegern.
@@ -1470,9 +1468,9 @@ class Component extends DCLogic {
       // nichts geaendert werden.
       screenSet: null, onbStep: 0,
       onbServer: window.PaperlessAPI ? window.PaperlessAPI.getBase().replace(/\/api$/, '') : '',
-      onbUser: '', onbPass: '', onbToken: '', onbErr: '', onbChecking: false, onbAdv: false, onbTok: false, onbCert: false, pickNew: '', shAblauf: '7 Tage', shRecht: 'Kann ansehen', userSel: null,
+      onbUser: '', onbPass: '', onbToken: '', onbErr: '', onbChecking: false, onbAdv: false, onbTok: false, pickNew: '', shAblauf: '7 Tage', shRecht: 'Kann ansehen', userSel: null,
       mode: 'system', ...this.startZiel(), sheet: null, pickTarget: null, pickField: null, pendingDel: null,
-      view: 'liste', sort: 'neu', selMode: false, sel: [],
+      view: DEFVIEW_START, sort: 'neu', selMode: false, sel: [],
       fArt: null, fFav: false, fAbs: [], fTags: [], fZeit: 'alle',
       q: '', lastQ: '', recents: this.suchverlauf(),
       // Treffer der Serversuche, ihr Ladezustand und - falls der Volltext-
@@ -1480,7 +1478,7 @@ class Component extends DCLogic {
       qRes: [], qBusy: false, qErr: '', qEinfach: false,
       opened: [], docTab: 'vorschau', fund: false, revIdx: 0,
       scan: null, scanTitle: '', uploads: [], toast: null, undoFn: null, undoLabel: 'Widerrufen', swipe: null,
-      editDraft: null, orgDraft: null, faceId: true, benach: true, autocrop: true, defView: 'liste',
+      editDraft: null, orgDraft: null,
       // --- Daten aus der API -------------------------------------------
       // Alles hier wird beim Start aus Paperless geladen (siehe loadAll).
       // Die Oberflaeche arbeitet weiterhin mit der bisherigen internen
@@ -3117,8 +3115,8 @@ class Component extends DCLogic {
     });
   }
 
-  obDone(face) {
-    this.setState({ screenSet: 'app', onbStep: 0, onbErr: '', faceId: face, tab: 'home', stack: [], loading: true });
+  obDone() {
+    this.setState({ screenSet: 'app', onbStep: 0, onbErr: '', tab: 'home', stack: [], loading: true });
     this.loadAll().then(() => this.note('Mit deinem Server verbunden'));
   }
 
@@ -3158,7 +3156,6 @@ class Component extends DCLogic {
     const share = dDoc ? s.shares[dDoc.id] : null;
     const fundParts = dDoc && s.lastQ ? this.parts(dDoc.ocr, s.lastQ) : null;
     const ed = s.editDraft, orgD = s.orgDraft;
-    const tgA = this.tg(s.autocrop), tgB = this.tg(s.benach), tgF = this.tg(s.faceId), tgC = this.tg(s.onbCert);
     const revF = rev ? rev.felder : [];
     const selN = s.sel.length;
     const userS = s.userSel != null ? (s.users || []).find(u => u.id === s.userSel) : null;
@@ -3348,12 +3345,9 @@ class Component extends DCLogic {
       showSet: top.t === 'set',
       setModeHell: () => this.setState({ mode: 'hell' }), setModeDunkel: () => this.setState({ mode: 'dunkel' }), setModeSystem: () => this.setState({ mode: 'system' }),
       msHell: this.seg(s.mode === 'hell'), msDunkel: this.seg(s.mode === 'dunkel'), msSystem: this.seg(s.mode === 'system'),
-      defViewLabel: s.defView === 'liste' ? 'Liste' : 'Raster',
-      toggleDefView: () => this.setState({ defView: s.defView === 'liste' ? 'raster' : 'liste', view: s.defView === 'liste' ? 'raster' : 'liste' }),
+      defViewLabel: s.view === 'liste' ? 'Liste' : 'Raster',
+      toggleDefView: () => { const neu = s.view === 'liste' ? 'raster' : 'liste'; this.setState({ view: neu }); defViewSichern(neu); },
       doDynType: () => this.note('Folgt der Textgröße deines Geräts'),
-      toggleAutocrop: () => this.setState({ autocrop: !s.autocrop }), tAutoBg: tgA.bg, tAutoKnob: tgA.knob,
-      toggleBenach: () => this.setState({ benach: !s.benach }), tBenBg: tgB.bg, tBenKnob: tgB.knob,
-      toggleFace: () => this.setState({ faceId: !s.faceId }), tFaceBg: tgF.bg, tFaceKnob: tgF.knob,
       serverAddr: (s.serverUrl || '').replace(/^https?:\/\//, '').replace(/\/api$/, ''),
       kontoName: s.me ? ([s.me.first_name, s.me.last_name].filter(Boolean).join(' ') || s.me.username) : '—',
       kontoInitialen: s.me ? this.initialen(s.me.first_name, s.me.last_name, s.me.username) : '–',
@@ -3603,7 +3597,6 @@ class Component extends DCLogic {
       obBack: () => this.setState(st => ({ onbStep: Math.max(0, st.onbStep - 1), onbErr: '' })),
       onbServerVal: s.onbServer, setOnbServer: (e) => this.setState({ onbServer: e.target.value, onbErr: '' }),
       onbShowAdv: s.onbAdv, obToggleAdv: () => this.setState({ onbAdv: !s.onbAdv }),
-      obToggleCert: () => this.setState({ onbCert: !s.onbCert }), tCertBg: tgC.bg, tCertKnob: tgC.knob,
       onbErrOn: !!s.onbErr, onbErr: s.onbErr, onbChecking: s.onbChecking,
       obConnect: () => this.obConnectGo(), obConnectLabel: s.onbChecking ? 'Verbinde …' : 'Verbinden',
       onbServerShown: (s.onbServer || s.serverUrl || '').replace(/^https?:\/\//, '').replace(/\/api$/, ''),
@@ -3613,7 +3606,8 @@ class Component extends DCLogic {
       onbPassVal: s.onbPass, setOnbPass: (e) => this.setState({ onbPass: e.target.value, onbErr: '' }),
       onbTokenVal: s.onbToken, setOnbToken: (e) => this.setState({ onbToken: e.target.value, onbErr: '' }),
       obLoginTap: () => this.obLoginGo(false), obSSO: () => this.obLoginGo(true),
-      obFaceOn: () => this.obDone(true), obFaceSkip: () => this.obDone(false),
+      obFertig: () => this.obDone(),
+      obFertigText: 'Dein Archiv ist bereit. Du kannst jetzt Dokumente hinzufügen, suchen und ordnen.',
       toastOn: !!s.toast, toastMsg: s.toast, undoOn: !!s.undoFn, undoLabel: s.undoLabel || 'Widerrufen',
       doUndo: () => { if (s.undoFn) s.undoFn(); this.setState({ toast: null, undoFn: null }); }
     };
