@@ -1,6 +1,6 @@
 # DocuWunder — Roadmap
 
-Stand: 31. Juli 2026 · 4 Commits · Instanz Paperless-ngx 3.0.4
+Stand: 1. August 2026 · 17 Commits · Instanz Paperless-ngx 3.0.4
 
 Diese Roadmap sammelt, was beim Aufbau und beim vollständigen visuellen Durchlauf
 tatsächlich gefunden wurde — keine Wunschliste, sondern belegte Befunde mit Fundstelle.
@@ -15,12 +15,12 @@ Sortiert nach dem, was zuerst weh tut.
 | | |
 |---|---|
 | Oberfläche | Eine für Telefon und Desktop, ab 900 px zweispaltig |
-| Verdrahtet | Anmeldung, Lesen, Suchen, Filtern, Bearbeiten, Upload, Löschen, Papierkorb, Ordner, Zuweisen, Mitglieder, Freigaben |
+| Verdrahtet | Anmeldung, Lesen, Suchen, Filtern, Bearbeiten, Upload, Löschen, Papierkorb, Ordner, Zuweisen, Mitglieder, Freigaben, Scannen, Automatisierungen |
 | Offline | Läuft ohne Internet, keine externen Requests |
-| Tests | 5 Stufen, 1.463 Zeilen: Syntax, Template-Bindungen, API-Vertrag, Browser, PWA |
+| Tests | 6 Stufen, 2039 Zeilen: Syntax, Logik (46 Unit-Tests), Template-Bindungen, API-Vertrag (24), Browser (18), PWA |
 | Visuell geprüft | 38 Stationen × 3 Varianten (schmal, Split-View, dunkel) |
 | Aufbau | React direkt, htm statt JSX, kein Build-Schritt. Bildschirme einzeln in `vorlage/` |
-| Offene Schuld | `renderVals()` mit 385 gelesenen Werten, wiederholte Stilfragmente |
+| Offene Schuld | `renderVals()` mit 414 gelesenen Werten — der letzte grosse Block in einer Hand |
 
 ---
 

@@ -70,9 +70,9 @@
       </div>
     </div>
     <div style=${stil('display:flex;gap:10px;padding:0 20px 46px;flex-shrink:0;width:100%;max-width:840px;margin:0 auto')}>
-      <div onClick=${v.zAbbrechen} style=${stil('flex:1;height:50px;border-radius:14px;background:rgba(120,120,128,0.28);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;cursor:pointer')}>Abbrechen</div>
-      <div onClick=${v.zZuruecksetzen} style=${stil('flex:1;height:50px;border-radius:14px;background:rgba(120,120,128,0.28);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;cursor:pointer')}>Ganz</div>
-      <div onClick=${v.zSichern} style=${stil('flex:1;' + KNOPF)}>Übernehmen</div>
+      <div onClick=${v.zAbbrechen} style=${stil('flex:1 1 0;min-width:0;height:50px;border-radius:14px;background:rgba(120,120,128,0.28);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;cursor:pointer')}>Abbrechen</div>
+      <div onClick=${v.zZuruecksetzen} style=${stil('flex:0 0 auto;padding:0 18px;height:50px;border-radius:14px;background:rgba(120,120,128,0.28);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;cursor:pointer')}>Ganz</div>
+      <div onClick=${v.zSichern} style=${stil('flex:1.3 1 0;min-width:0;white-space:nowrap;' + KNOPF)}>Übernehmen</div>
     </div>` : null}
 
   ${v.scanMeta ? html`<div style=${stil('flex:1;overflow-y:auto;padding:16px 20px;width:100%;max-width:840px;margin:0 auto')}>
