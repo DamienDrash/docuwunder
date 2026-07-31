@@ -50,6 +50,7 @@ const HUELLE = [
   './logik.js',
   './api.js',
   './sperre.js',
+  './scan.js',
   './stile.js',
   './ui.js',
   './app.js',

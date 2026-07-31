@@ -215,9 +215,37 @@ Start bis zur bedienbaren Oberfläche: **139 ms**.
 bei rund 85.000 Knoten. Dort wurde nicht gemessen. Falls das je zum Thema wird, ist
 Virtualisierung die Antwort — vorher nicht.
 
-### 🟡 3.4 Mehrseitiges Scannen
-„Scannen" öffnet die Systemkamera und lädt **ein** Foto hoch. Die frühere Mehrseiten-Erfassung
-war Attrappe. Echtes Scannen bräuchte Seitenverwaltung, Zuschnitt und PDF-Erzeugung im Browser.
+### ✅ 3.4 Mehrseitiges Scannen
+Aus mehreren Aufnahmen wird **ein** PDF. Vorher wurde ein einzelnes Foto hochgeladen; ein
+fünfseitiger Vertrag ergab fünf Dokumente im Posteingang, die niemand mehr zusammenbringt —
+Paperless kann sie nicht zusammenfügen, also musste es vor dem Hochladen passieren.
+
+Was der Bildschirm vorher war: gemaltes Papier, gelbe Ecken und die Meldung „Dokument
+erkannt – ruhig halten". Es gab keine Kamera. `shutter` erhöhte einen Zähler, das
+Löschkreuz verringerte ihn — Seite 2 zu entfernen löschte also Seite 3. Am Ende warf
+„Hochladen" alles weg und öffnete den Dateidialog.
+
+Jetzt: Seiten sammeln (mehrere auf einmal), drehen, umsortieren, zuschneiden, entfernen,
+Titel vergeben, hochladen. Drehung und Zuschnitt werden bei jeder Änderung neu auf die
+Originalaufnahme angewendet — dreimal Drehen verliert nichts.
+
+**PDF ohne Bibliothek** (`scan.js`, rund 120 Zeilen). Die verbreiteten Pakete wiegen 300 KB
+bis 1 MB und können Formulare, Schriften, Vektoren, Verschlüsselung; gebraucht wird davon
+eines: ein JPEG pro Seite. PDF kennt den Filter `DCTDecode` — das *ist* JPEG. Die Bytes der
+Kamera wandern unverändert in die Datei, es wird nichts neu komprimiert.
+
+Geprüft wird auf drei Ebenen, weil ein selbstgeschriebenes Byteformat nur zählt, wenn
+fremde Software es liest:
+
+| Ebene | Womit |
+|---|---|
+| Struktur | 6 Unit-Tests, u. a. ob die Querverweistabelle wirklich auf die Objekte zeigt — genau dort geht ein selbstgebautes PDF kaputt, weil ein eingebettetes Bild jede folgende Byte-Position verschiebt |
+| Fremde Leser | poppler (`pdfinfo`, `pdftoppm`) und pypdf öffnen die Datei, Seitengrößen und eingebettete Bilder stimmen |
+| Der eigentliche Zweck | Paperless nimmt den Upload an, meldet 2 Seiten und erkennt den Text **beider** Seiten |
+
+Der Browser-Test misst die Wirkung am Bild (`naturalWidth`/`naturalHeight` der Kachel),
+nicht das Vorhandensein der Knöpfe. Der alte Kamerabildschirm hätte jede Prüfung bestanden,
+die nur nach Knöpfen sucht.
 
 ### ✅ 3.5 Automatisierungen bearbeiten
 Anlegen, umbenennen, Auslöser wechseln, schalten und löschen gehen jetzt in der App.

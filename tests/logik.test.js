@@ -283,3 +283,76 @@ test('regelText: ohne Einschraenkung sagt es das auch', () => {
   assert.strictEqual(L.regelText({}), 'Ohne Einschränkung');
   assert.ok(L.regelText({ folder: 'INBOX', filter_subject: 'Rechnung' }).includes('·'));
 });
+
+// --- PDF aus Seiten (scan.js) -----------------------------------------------
+//
+// Ein selbstgeschriebenes Byteformat glaubt man erst, wenn fremde Software es
+// liest. Die Struktur wird hier geprueft, das tatsaechliche Oeffnen durch
+// poppler und pypdf im Zusammenspiel - siehe docs/ROADMAP.md 3.4.
+
+require('../scan.js');
+const S = globalThis.DWScan;
+
+// Ein winziges, gueltiges JPEG (1x1 weiss) reicht: geprueft wird der Rahmen
+// um die Bilddaten, nicht das Bild.
+const JPEG = Buffer.from(
+  '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a' +
+  'HBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAA' +
+  'AAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==', 'base64');
+const seite = (b, h) => ({ jpeg: new Uint8Array(JPEG), breite: b, hoehe: h });
+const alsText = (u8) => Buffer.from(u8).toString('latin1');
+
+test('pdf: ohne Seiten gibt es kein Dokument', () => {
+  assert.throws(() => S.pdf([]), /Keine Seiten/);
+});
+
+test('pdf: Kopf, Ende und Seitenzahl stimmen', () => {
+  const t = alsText(S.pdf([seite(1600, 2200), seite(800, 600)]));
+  assert.ok(t.startsWith('%PDF-1.4'), 'PDF-Kopf fehlt');
+  assert.ok(t.trimEnd().endsWith('%%EOF'), 'Dateiende fehlt');
+  assert.strictEqual((t.match(/\/Type \/Page\b/g) || []).length, 2);
+  assert.ok(t.includes('/Count 2'));
+  assert.ok(t.includes('/Filter /DCTDecode'), 'JPEG nicht als DCTDecode eingebettet');
+});
+
+test('pdf: die Querverweise zeigen wirklich auf die Objekte', () => {
+  // Genau hier geht ein selbstgebautes PDF kaputt: die Tabelle nennt
+  // Byte-Positionen, und ein Bild dazwischen verschiebt jede folgende.
+  const roh = S.pdf([seite(1600, 2200), seite(800, 600)]);
+  const t = alsText(roh);
+  const tabelle = t.slice(t.lastIndexOf('\nxref\n') + 6);
+  const zeilen = tabelle.split('\n').slice(1).filter(z => / \d{5} [nf] $/.test(z));
+  assert.strictEqual(zeilen.length, 9, '2 feste + 3 je Seite + freier Eintrag');
+  zeilen.slice(1).forEach((z, i) => {
+    const pos = parseInt(z.slice(0, 10), 10);
+    assert.strictEqual(t.slice(pos, pos + 8).trim().split(' ')[0], String(i + 1),
+      `Objekt ${i + 1} liegt nicht bei Byte ${pos}`);
+  });
+});
+
+test('pdf: startxref trifft die Tabelle', () => {
+  const t = alsText(S.pdf([seite(1000, 1000)]));
+  const pos = parseInt(t.slice(t.lastIndexOf('startxref\n') + 10), 10);
+  assert.strictEqual(t.slice(pos, pos + 4), 'xref');
+});
+
+test('pdf: Seiten passen in A4, hochkant wie quer', () => {
+  const kasten = (b, h) => {
+    const m = alsText(S.pdf([seite(b, h)])).match(/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/);
+    return [parseFloat(m[1]), parseFloat(m[2])];
+  };
+  const hoch = kasten(1600, 2200);
+  assert.ok(hoch[0] <= 595.28 + 0.01 && hoch[1] <= 841.89 + 0.01, 'ragt ueber A4 hinaus');
+  assert.ok(Math.abs(hoch[0] / hoch[1] - 1600 / 2200) < 0.001, 'Seitenverhaeltnis verzerrt');
+  const quer = kasten(2200, 1600);
+  assert.ok(quer[0] > quer[1], 'quer aufgenommene Seite ist nicht quer');
+});
+
+test('pdf: die Bildbytes landen unveraendert in der Datei', () => {
+  // Das ist der Grund, warum diese 120 Zeilen eine Bibliothek ersetzen: es
+  // wird nichts neu komprimiert.
+  const roh = S.pdf([seite(100, 100)]);
+  const t = alsText(roh);
+  assert.ok(t.includes(JPEG.toString('latin1')), 'JPEG wurde veraendert');
+  assert.ok(t.includes('/Length ' + JPEG.length), 'Laengenangabe passt nicht');
+});

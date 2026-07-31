@@ -20,6 +20,7 @@ import json
 import os
 import pathlib
 import socket
+import time
 import socketserver
 import sys
 import threading
@@ -345,6 +346,111 @@ def main():
                 assert bild.count() > 0, "kein Vorschaubild im Dokument"
                 return "Vorschau geladen und angezeigt"
 
+            # --- Scannen -----------------------------------------------------
+            # Geprueft wird die Wirkung auf das Bild, nicht das Vorhandensein
+            # der Knoepfe: naturalWidth/-Height der Kachel zeigen, ob wirklich
+            # gedreht, beschnitten und umsortiert wurde. Der frueher hier
+            # gezeichnete Kamerabildschirm haette jede Pruefung bestanden, die
+            # nur nach Knoepfen sucht - er hat nie ein Foto gemacht.
+
+            BILDER = pathlib.Path(__file__).parent / "bilder"
+
+            def masse(nr):
+                return seite.evaluate(
+                    "(nr) => { const i = document.querySelector(`[data-seite=\"${nr}\"] img`);"
+                    " return i ? [i.naturalWidth, i.naturalHeight] : null; }", str(nr))
+
+            def t_scannen_mehrseitig():
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                with seite.expect_file_chooser() as wahl:
+                    seite.locator('text="Scannen"').last.click()
+                assert wahl.value.is_multiple(), "Dialog nimmt nur eine Datei"
+                wahl.value.set_files([str(BILDER / "hoch.jpg"), str(BILDER / "quer.jpg")])
+                seite.wait_for_timeout(4000)
+                assert seite.locator("[data-seite]").count() == 2, "nicht beide Seiten uebernommen"
+                assert masse(1) == [600, 800] and masse(2) == [800, 600], \
+                    f"Seiten vertauscht oder verzerrt: {masse(1)}, {masse(2)}"
+
+                seite.locator('[data-seite="1"] [title="Drehen"]').click()
+                seite.wait_for_timeout(2500)
+                assert masse(1) == [800, 600], f"Drehen tauscht die Kanten nicht: {masse(1)}"
+
+                zweite = masse(2)
+                seite.locator('[data-seite="2"] [title="Nach vorn"]').click()
+                seite.wait_for_timeout(900)
+                assert masse(1) == zweite, "Reihenfolge nicht getauscht"
+
+                seite.locator('[data-seite="2"] [title="Entfernen"]').click()
+                seite.wait_for_timeout(900)
+                assert seite.locator("[data-seite]").count() == 1, "Seite nicht entfernt"
+                assert masse(1) == zweite, "die falsche Seite entfernt"
+                return "aufnehmen, drehen, ordnen, entfernen"
+
+            def t_zuschnitt_wirkt():
+                vorher = masse(1)
+                seite.locator('[data-seite="1"] [title="Zuschneiden"]').click()
+                seite.wait_for_timeout(1200)
+                assert seite.locator("[data-griff]").count() == 4, "keine Griffe"
+                griff = seite.locator('[data-griff="lo"]').bounding_box()
+                bild = seite.locator("img[alt='Seite zuschneiden']").bounding_box()
+                seite.mouse.move(griff["x"] + 15, griff["y"] + 15)
+                seite.mouse.down()
+                seite.mouse.move(bild["x"] + bild["width"] * 0.35,
+                                 bild["y"] + bild["height"] * 0.30, steps=12)
+                seite.mouse.up()
+                seite.wait_for_timeout(600)
+                seite.locator('text="Übernehmen"').click()
+                seite.wait_for_timeout(3000)
+                nachher = masse(1)
+                assert nachher[0] < vorher[0] and nachher[1] < vorher[1], \
+                    f"Zuschnitt ohne Wirkung: {vorher} -> {nachher}"
+                return f"{vorher[0]}x{vorher[1]} auf {nachher[0]}x{nachher[1]}"
+
+            def t_scan_wird_ein_pdf():
+                # Der eigentliche Zweck: aus mehreren Aufnahmen wird EIN
+                # Dokument. Frueher waeren es mehrere Bilder im Posteingang
+                # gewesen, die niemand mehr zusammenbringt.
+                with seite.expect_file_chooser() as wahl:
+                    seite.locator("[data-neue-seite]").click()
+                wahl.value.set_files([str(BILDER / "quer.jpg")])
+                seite.wait_for_timeout(3000)
+                assert seite.locator("[data-seite]").count() == 2
+
+                seite.locator('text="Weiter"').click()
+                seite.wait_for_timeout(900)
+                assert seite.locator('text="2 Seiten"').count() > 0, "Seitenzahl fehlt"
+                titel = "zz-Pruefung-Scan"
+                seite.locator("input").last.fill(titel)
+                antworten = []
+                seite.on("response", lambda r: antworten.append((r.status, r.url))
+                         if r.request.method == "POST" else None)
+                seite.locator('text="Hochladen"').click()
+                seite.wait_for_timeout(4000)
+                assert any(s == 200 and "post_document" in u for s, u in antworten), \
+                    f"kein Upload: {antworten}"
+                assert seite.locator("[data-screen-label='Scannen']").count() == 0, \
+                    "Scan-Bildschirm bleibt offen"
+
+                # Aufraeumen: das erzeugte Dokument wieder entfernen, sobald
+                # der Server es verarbeitet hat.
+                for _ in range(40):
+                    time.sleep(3)
+                    r = urllib.request.Request(
+                        BACKEND + "/documents/?title__icontains=" + titel)
+                    r.add_header("Authorization", "Token " + TOKEN)
+                    d = json.loads(urllib.request.urlopen(r).read())
+                    if d["count"]:
+                        doc = d["results"][0]
+                        assert doc.get("page_count") == 2, \
+                            f"PDF hat {doc.get('page_count')} statt 2 Seiten"
+                        weg = urllib.request.Request(
+                            BACKEND + "/documents/" + str(doc["id"]) + "/", method="DELETE")
+                        weg.add_header("Authorization", "Token " + TOKEN)
+                        urllib.request.urlopen(weg)
+                        return "zwei Aufnahmen wurden ein PDF mit zwei Seiten"
+                raise AssertionError("Server hat den Scan nicht verarbeitet")
+
             # --- Automatisierungen ------------------------------------------
             # Der Bildschirm legt an, benennt um, wechselt den Ausloeser,
             # schaltet und loescht. Geprueft wird die Wirkung am Server, nicht
@@ -481,6 +587,9 @@ def main():
                 ("Filter laedt neu", t_filter_laedt_neu),
                 ("Suche geht an den Server", t_suche_serverseitig),
                 ("Treffer oeffnet mit Vorschau", t_treffer_oeffnet_mit_vorschau),
+                ("Mehrseitig scannen", t_scannen_mehrseitig),
+                ("Zuschnitt wirkt auf das Bild", t_zuschnitt_wirkt),
+                ("Scan wird ein mehrseitiges PDF", t_scan_wird_ein_pdf),
                 ("Automatisierung bearbeiten", t_automatisierung_bearbeiten),
                 ("Keine Fehler in der Konsole", t_keine_ausnahmen),
                 ("Service Worker steuert die Seite", t_worker_uebernimmt),

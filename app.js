@@ -1416,6 +1416,177 @@ class Oberflaeche extends React.Component {
 
   // Echter Upload. Der Server nimmt die Datei entgegen, verarbeitet sie
   // asynchron und liefert dafuer eine Aufgaben-Kennung zurueck.
+  // --- Scannen ------------------------------------------------------------
+  //
+  // Ein Scan ist eine Liste von Seiten, die am Ende zu einem PDF wird. Jede
+  // Seite haelt ihre Aufnahme unveraendert fest; Drehung und Zuschnitt sind
+  // Angaben, die bei jeder Aenderung neu auf das Original angewendet werden.
+  // Dadurch verliert dreimal Drehen nichts an Qualitaet, und ein Zuschnitt
+  // laesst sich zurueckziehen, ohne dass etwas fehlt.
+
+  scanOeffnen() {
+    this.setState({ sheet: null, scan: { schritt: 'seiten', seiten: [], zId: null, zRect: null, busy: false } });
+    this.scanAufnehmen();
+  }
+
+  // capture="environment" bittet ein Telefon um die rueckwaertige Kamera.
+  // Auf dem Rechner kennt der Browser das Attribut nicht und oeffnet den
+  // gewohnten Dateidialog - beides ist richtig, es braucht keine Weiche.
+  scanAufnehmen() {
+    const feld = document.createElement('input');
+    feld.type = 'file';
+    feld.accept = 'image/*';
+    feld.multiple = true;
+    feld.setAttribute('capture', 'environment');
+    feld.style.display = 'none';
+    document.body.appendChild(feld);
+    feld.onchange = () => {
+      const dateien = Array.from(feld.files || []);
+      document.body.removeChild(feld);
+      if (dateien.length) this.scanAufnahmen(dateien);
+      else if (!(this.state.scan && this.state.scan.seiten.length)) this.setState({ scan: null });
+    };
+    feld.click();
+  }
+
+  scanAufnahmen(dateien) {
+    this.setState(st => ({ scan: { ...(st.scan || { schritt: 'seiten', seiten: [] }), busy: true } }));
+    const neue = dateien.map(d => ({ id: 's' + (this.scanZaehler = (this.scanZaehler || 0) + 1), datei: d, dreh: 0, zuschnitt: null }));
+    return Promise.all(neue.map(sei => this.scanRendern(sei)))
+      .then(fertig => {
+        this.setState(st => (st.scan ? { scan: { ...st.scan, seiten: [...st.scan.seiten, ...fertig], busy: false } } : {}));
+      })
+      .catch(e => {
+        this.setState(st => (st.scan ? { scan: { ...st.scan, busy: false } } : {}));
+        this.note('Aufnahme nicht verwendbar: ' + e.message);
+      });
+  }
+
+  // Drehung und Zuschnitt auf das Original anwenden und daraus das Bild
+  // machen, das spaeter im PDF landet.
+  scanRendern(sei) {
+    return DWScan.seiteAus(sei.datei, { dreh: sei.dreh, zuschnitt: sei.zuschnitt })
+      .then(erg => {
+        if (sei.url) URL.revokeObjectURL(sei.url);
+        return { ...sei, jpeg: erg.jpeg, breite: erg.breite, hoehe: erg.hoehe, url: URL.createObjectURL(erg.blob) };
+      });
+  }
+
+  scanErsetzen(id, aendern) {
+    const sei = (this.state.scan.seiten || []).find(x => x.id === id);
+    if (!sei) return;
+    const naechste = aendern(sei);
+    this.setState(st => ({ scan: { ...st.scan, seiten: st.scan.seiten.map(x => x.id === id ? { ...x, busy: true } : x) } }));
+    this.scanRendern(naechste)
+      .then(fertig => this.setState(st => (st.scan
+        ? { scan: { ...st.scan, seiten: st.scan.seiten.map(x => x.id === id ? { ...fertig, busy: false } : x) } }
+        : {})))
+      .catch(e => {
+        this.setState(st => (st.scan ? { scan: { ...st.scan, seiten: st.scan.seiten.map(x => x.id === id ? { ...x, busy: false } : x) } } : {}));
+        this.note('Nicht geändert: ' + e.message);
+      });
+  }
+
+  scanDrehen(id) { this.scanErsetzen(id, sei => ({ ...sei, dreh: (sei.dreh + 90) % 360 })); }
+
+  scanEntfernen(id) {
+    this.setState(st => {
+      if (!st.scan) return {};
+      const weg = st.scan.seiten.find(x => x.id === id);
+      if (weg && weg.url) URL.revokeObjectURL(weg.url);
+      return { scan: { ...st.scan, seiten: st.scan.seiten.filter(x => x.id !== id) } };
+    });
+  }
+
+  scanSchieben(id, um) {
+    this.setState(st => {
+      if (!st.scan) return {};
+      const liste = st.scan.seiten.slice();
+      const i = liste.findIndex(x => x.id === id);
+      const j = i + um;
+      if (i < 0 || j < 0 || j >= liste.length) return {};
+      liste[i] = liste[j];
+      liste[j] = st.scan.seiten[i];
+      return { scan: { ...st.scan, seiten: liste } };
+    });
+  }
+
+  // Die Seite, die gerade zugeschnitten wird.
+  zSeite() {
+    const sc = this.state.scan;
+    return sc && sc.zId ? (sc.seiten.find(x => x.id === sc.zId) || null) : null;
+  }
+
+  scanZuschnittOeffnen(id) {
+    const sei = (this.state.scan.seiten || []).find(x => x.id === id);
+    if (!sei) return;
+    // Der Rahmen bezieht sich auf das *angezeigte* Bild, das schon gedreht und
+    // zugeschnitten ist. Er startet deshalb immer bei ganz, nicht beim
+    // vorherigen Zuschnitt - der steckt bereits im Bild.
+    this.setState(st => ({ scan: { ...st.scan, schritt: 'zuschnitt', zId: id, zRect: { x0: 0, y0: 0, x1: 1, y1: 1 } } }));
+  }
+
+  // Ein Griff wurde gefasst und bewegt. Gerechnet wird in Anteilen der
+  // Bildkante, damit die Angabe von der Anzeigegroesse unabhaengig bleibt.
+  zZiehen(e) {
+    if (!this.zGriff) return;
+    const kasten = e.currentTarget.getBoundingClientRect();
+    if (!kasten.width || !kasten.height) return;
+    const x = Math.min(1, Math.max(0, (e.clientX - kasten.left) / kasten.width));
+    const y = Math.min(1, Math.max(0, (e.clientY - kasten.top) / kasten.height));
+    // Ein Mindestabstand verhindert einen Rahmen ohne Flaeche, aus dem sich
+    // kein Bild mehr schneiden liesse.
+    const MIN = 0.08;
+    this.setState(st => {
+      if (!st.scan || !st.scan.zRect) return {};
+      const r = { ...st.scan.zRect };
+      if (this.zGriff[0] === 'l') r.x0 = Math.min(x, r.x1 - MIN);
+      else r.x1 = Math.max(x, r.x0 + MIN);
+      if (this.zGriff[1] === 'o') r.y0 = Math.min(y, r.y1 - MIN);
+      else r.y1 = Math.max(y, r.y0 + MIN);
+      return { scan: { ...st.scan, zRect: r } };
+    });
+  }
+
+  scanZuschnittSichern() {
+    const sc = this.state.scan;
+    const r = sc && sc.zRect;
+    const id = sc && sc.zId;
+    if (!id || !r) return;
+    this.setState(st => ({ scan: { ...st.scan, schritt: 'seiten', zId: null, zRect: null } }));
+    if (r.x0 <= 0.001 && r.y0 <= 0.001 && r.x1 >= 0.999 && r.y1 >= 0.999) return;
+    // Der Rahmen gilt fuer das angezeigte Bild. Dieses wird deshalb zur neuen
+    // Aufnahme der Seite - sonst muesste der Anteil durch Drehung und
+    // frueheren Zuschnitt zurueckgerechnet werden, was bei jedem Schritt
+    // ungenauer wird.
+    const sei = sc.seiten.find(x => x.id === id);
+    if (!sei) return;
+    fetch(sei.url).then(a => a.blob()).then(blob => {
+      this.scanErsetzen(id, alt => ({ ...alt, datei: blob, dreh: 0, zuschnitt: r }));
+    }).catch(e => this.note('Zuschnitt fehlgeschlagen: ' + e.message));
+  }
+
+  scanAbbrechen() {
+    const sc = this.state.scan;
+    if (sc) sc.seiten.forEach(x => { if (x.url) URL.revokeObjectURL(x.url); });
+    this.setState({ scan: null, scanTitle: '' });
+  }
+
+  scanHochladen() {
+    const sc = this.state.scan;
+    if (!sc || !sc.seiten.length) return;
+    const titel = (this.state.scanTitle || '').trim();
+    let datei;
+    try {
+      datei = DWScan.datei(sc.seiten, (titel || 'Scan') + '.pdf');
+    } catch (e) {
+      this.note('PDF nicht erzeugt: ' + e.message);
+      return;
+    }
+    sc.seiten.forEach(x => { if (x.url) URL.revokeObjectURL(x.url); });
+    this.uploadDatei(datei, titel ? { title: titel } : {});
+  }
+
   uploadDatei(file, meta) {
     const A = this.api();
     const uid = 'u' + Date.now() + Math.random().toString(36).slice(2, 6);
@@ -1869,7 +2040,7 @@ class Oberflaeche extends React.Component {
       // Rechte Spalte ohne Auswahl: Platzhalter statt leerer Flaeche.
       docPaneEmpty: wide && this.screenEff() === 'app' && !(top.t === 'doc' && !!dDoc),
       openSettings: () => this.pushV({ t: 'set' }), openSearch: () => this.setState(st => ({ stack: [...st.stack, { t: 'search' }], q: '', qRes: [], qErr: '', qBusy: false, qEinfach: false })), openAdd: () => this.setState({ sheet: 'add' }),
-      startScan: () => { this.setState({ sheet: null }); this.dateiWaehlen('image/*', true); },
+      startScan: () => this.scanOeffnen(),
       pickPhoto: () => this.dateiWaehlen('image/*', false),
       pickFile: () => this.dateiWaehlen('application/pdf,image/*', false),
       uploadsOn: s.uploads.length > 0, uploadRows: s.uploads,
@@ -2303,20 +2474,41 @@ class Oberflaeche extends React.Component {
       orgWarnOn: !!(orgD && orgD.warn), orgWarnText: orgD ? '„' + orgD.alt + '“ wird von ' + orgD.count + ' Dokumenten entfernt. Die Dokumente selbst bleiben erhalten.' : '',
       orgDelOn: !!(orgD && orgD.alt && !orgD.warn), orgDelTap: () => this.orgDeleteGo(false), orgDelForce: () => this.orgDeleteGo(true),
       orgSaveTap: () => this.orgSaveGo(),
-      scanOn: !!s.scan, scanKam: !!(s.scan && s.scan.step === 'kam'), scanSeiten: !!(s.scan && s.scan.step === 'seiten'), scanMeta: !!(s.scan && s.scan.step === 'meta'), scanUp: !!(s.scan && s.scan.step === 'up'),
-      scanStepTitle: s.scan ? ({ kam: 'Scannen', seitenzahl: 'Seiten prüfen', meta: 'Details', up: 'Hochladen' })[s.scan.step] : '',
-      scanCancel: () => this.setState({ scan: null }),
-      shutter: () => this.setState(st => ({ scan: { ...st.scan, pages: st.scan.pages + 1 } })),
-      scanCount: s.scan ? String(s.scan.pages) : '0', scanHasPages: !!(s.scan && s.scan.pages > 0),
-      toSeiten: () => { if (s.scan && s.scan.pages > 0) this.setState(st => ({ scan: { ...st.scan, step: 'seiten' } })); },
-      backToSeiten: () => this.setState(st => ({ scan: { ...st.scan, step: 'seiten' } })),
-      addPage: () => this.setState(st => ({ scan: { ...st.scan, step: 'kam' } })),
-      scanPagesArr: s.scan ? Array.from({ length: s.scan.pages }, (x, i) => ({ nr: String(i + 1), del: () => this.setState(st => ({ scan: { ...st.scan, pages: Math.max(0, st.scan.pages - 1) } })) })) : [],
-      toMeta: () => this.setState(st => ({ scan: { ...st.scan, step: 'meta' } })),
+      scanOn: !!s.scan,
+      scanSeiten: !!(s.scan && s.scan.schritt === 'seiten'),
+      scanZuschnitt: !!(s.scan && s.scan.schritt === 'zuschnitt'),
+      scanMeta: !!(s.scan && s.scan.schritt === 'meta'),
+      scanUp: !!(s.scan && s.scan.schritt === 'up'),
+      scanStepTitle: s.scan ? ({ seiten: 'Seiten', zuschnitt: 'Zuschneiden', meta: 'Details', up: 'Hochladen' })[s.scan.schritt] : '',
+      scanCancel: () => this.scanAbbrechen(),
+      scanBusy: !!(s.scan && s.scan.busy),
+      scanLeer: !!(s.scan && !s.scan.seiten.length && !s.scan.busy),
+      scanHasPages: !!(s.scan && s.scan.seiten.length),
+      addPage: () => this.scanAufnehmen(),
+      scanPagesArr: (s.scan ? s.scan.seiten : []).map((sei, i, alle) => ({
+        id: sei.id, nr: String(i + 1), url: sei.url, busy: !!sei.busy,
+        del: () => this.scanEntfernen(sei.id),
+        dreh: () => this.scanDrehen(sei.id),
+        crop: () => this.scanZuschnittOeffnen(sei.id),
+        hoch: i > 0 ? () => this.scanSchieben(sei.id, -1) : null,
+        runter: i < alle.length - 1 ? () => this.scanSchieben(sei.id, 1) : null,
+      })),
+      // --- Zuschneiden ---
+      zUrl: this.zSeite() ? this.zSeite().url : '',
+      zRect: s.scan && s.scan.zRect ? s.scan.zRect : { x0: 0, y0: 0, x1: 1, y1: 1 },
+      zGriffFassen: (ecke) => (e) => { this.zGriff = ecke; if (e.currentTarget.setPointerCapture) { try { e.currentTarget.setPointerCapture(e.pointerId); } catch (f) { /* aeltere Browser */ } } },
+      zZiehen: (e) => this.zZiehen(e),
+      zLoslassen: () => { this.zGriff = null; },
+      zAbbrechen: () => this.setState(st => ({ scan: { ...st.scan, schritt: 'seiten', zId: null, zRect: null } })),
+      zZuruecksetzen: () => this.setState(st => ({ scan: { ...st.scan, zRect: { x0: 0, y0: 0, x1: 1, y1: 1 } } })),
+      zSichern: () => this.scanZuschnittSichern(),
+      // --- Details ---
+      toMeta: () => this.setState(st => ({ scan: { ...st.scan, schritt: 'meta' } })),
+      backToSeiten: () => this.setState(st => ({ scan: { ...st.scan, schritt: 'seiten' } })),
       scanTitleVal: s.scanTitle, setScanTitle: (e) => this.setState({ scanTitle: e.target.value }),
-      scanPagesLabel: s.scan ? (s.scan.pages === 1 ? '1 Seite' : s.scan.pages + ' Seiten') + ' gescannt' : '',
-      // Der im Scan-Schritt eingegebene Titel wird beim Hochladen mitgeschickt.
-      doUpload: () => { const t = s.scanTitle.trim(); this.setState({ scan: null, scanTitle: '' }); this.dateiWaehlen('application/pdf,image/*', false, t ? { title: t } : null); },
+      scanTitlePlatz: 'Scan vom ' + new Date().toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' }),
+      scanPagesLabel: s.scan ? (s.scan.seiten.length === 1 ? '1 Seite' : s.scan.seiten.length + ' Seiten') : '',
+      doUpload: () => this.scanHochladen(),
       ob0: s.onbStep === 0, ob1: s.onbStep === 1, ob2: s.onbStep === 2, ob3: s.onbStep === 3,
       obStart: () => this.setState({ onbStep: 1, onbErr: '' }),
       obBack: () => this.setState(st => ({ onbStep: Math.max(0, st.onbStep - 1), onbErr: '' })),
