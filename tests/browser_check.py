@@ -408,12 +408,12 @@ def main():
                 )
                 try:
                     p2 = telefon.new_page()
-                    p2.goto(basis + "iphone.html", wait_until="domcontentloaded", timeout=30000)
+                    p2.goto(basis + "design/iphone.html", wait_until="domcontentloaded", timeout=30000)
                     p2.wait_for_url("**/index.html", timeout=10000)
                     # Mit ?rahmen bleibt der Entwurf absichtlich erreichbar.
-                    p2.goto(basis + "iphone.html?rahmen", wait_until="domcontentloaded", timeout=30000)
+                    p2.goto(basis + "design/iphone.html?rahmen", wait_until="domcontentloaded", timeout=30000)
                     p2.wait_for_timeout(800)
-                    assert p2.url.endswith("iphone.html?rahmen"), \
+                    assert p2.url.endswith("design/iphone.html?rahmen"), \
                         f"?rahmen haelt den Entwurf nicht offen: {p2.url}"
                 finally:
                     telefon.close()

@@ -17,8 +17,11 @@
 window.__resources = {
   'https://unpkg.com/react@18.3.1/umd/react.production.min.js': './vendor/react.production.min.js',
   'https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js': './vendor/react-dom.production.min.js',
-  // Babel wird nur fuer externe .jsx-Module gebraucht (x-import from="*.jsx").
-  // Der Produktivpfad kommt ohne aus; die Zuordnung steht hier fuer die
-  // Design-Vorschau iphone.html, die ios-frame.jsx laedt.
-  'https://unpkg.com/@babel/standalone@7.29.0/babel.min.js': './vendor/babel.min.js'
 };
+
+// Babel steht hier bewusst NICHT mehr.
+//
+// Es wird nur von der Design-Vorschau unter design/ gebraucht, die ein
+// .jsx-Modul laedt - drei Megabyte fuer ein Entwicklerwerkzeug, das die App
+// selbst nie anfasst. Ohne Zuordnung faellt support.js dort auf unpkg.com
+// zurueck; die Vorschau braucht dann Internet, die App weiterhin nicht.

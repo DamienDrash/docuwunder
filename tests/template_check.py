@@ -20,7 +20,7 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-DATEIEN = ["mobile.dc.html", "index.html", "iphone.html"]
+DATEIEN = ["mobile.dc.html", "index.html", "design/iphone.html"]
 
 BINDUNG = re.compile(r"\{\{\s*([A-Za-z_$][\w$]*)((?:\.[\w$]+)*)\s*\}\}")
 SC_FOR_AS = re.compile(r'<sc-for\b[^>]*\bas="([^"]+)"', re.I)

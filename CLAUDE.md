@@ -10,12 +10,12 @@ Dieses Projekt dient dem Aufbau und der Wartung einer modernen, performanten, be
 ## Build- & Laufzeit-Konzept
 - Kein schwerer Build-Prozess (Vite/Webpack). Statische, dynamisch durch `support.js` im Browser evaluierte React-Komponenten.
 - **Eine** Oberfläche für alle Geräte: `mobile.dc.html`. Sie schaltet ab 900px Viewport-Breite selbst auf zwei Spalten um (Liste links, Detail rechts). Eine Geräteweiche gibt es nicht.
-- `index.html` ist der Einstiegspunkt und lädt `api.js` + `support.js`. `iphone.html` ist nur eine Design-Vorschau derselben Komponente in einer simulierten iOS-Hülle.
+- `index.html` ist der Einstiegspunkt und lädt `api.js` + `support.js`. `design/iphone.html` ist nur eine Design-Vorschau derselben Komponente in einer simulierten iOS-Hülle.
 
 ## Dateien
 - `api.js` — Zugriffsschicht auf die REST-API (`window.PaperlessAPI`). Token im `localStorage`, Zeitlimits, Abbruch überholter Anfragen.
 - `mobile.dc.html` — Vorlage (`{{ Bindungen }}`, `sc-if`, `sc-for`) plus Komponentenlogik im `<script type="text/x-dc">`. **`sc-else` gibt es im Runtime nicht** — stattdessen zwei `sc-if` mit gegenläufigen Flags.
-- `support.js` / `vendor/` — generiertes DC-Runtime und lokale Kopien von React/Babel. Nicht von Hand ändern.
+- `support.js` / `vendor/` — generiertes DC-Runtime und lokale Kopien von React. Nicht von Hand ändern.
   `support.js` hat die CDN-URLs für React, ReactDOM und Babel fest eingebaut (unpkg.com) und lässt sich
   nicht neu bauen: das Quellprojekt `dc-runtime` liegt nirgends vor. Der vorgesehene Ausweg ist
   `window.__resources` — `vendor/resources.js` biegt die URLs dort auf die lokalen Kopien um und **muss

@@ -28,6 +28,9 @@ HIER = pathlib.Path(__file__).resolve().parent
 
 STATISCH = [
     ("Syntax", "syntax_check.py"),
+    # Direkt nach der Syntax: die Logik-Tests brauchen weder Browser noch
+    # Server und sagen am genauesten, wo ein Fehler sitzt.
+    ("Logik", "logik_check.py"),
     ("Template-Bindungen", "template_check.py"),
     ("PWA", "pwa_check.py"),
 ]

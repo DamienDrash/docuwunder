@@ -41,13 +41,13 @@ const FRIST_MS = 3000;
 
 // Die Huelle. Ohne diese Dateien baut sich die Oberflaeche nicht auf.
 //
-// vendor/babel.min.js fehlt bewusst: drei Megabyte, gebraucht nur von der
-// Design-Vorschau iphone.html fuer ios-frame.jsx. Der Produktivpfad kommt ohne
-// aus. Wer die Vorschau offline oeffnet, holt sie sich ueber die
-// Laufzeitregeln unten beim ersten Mal.
+// Babel steht hier nicht und liegt auch nicht mehr im Projekt: drei Megabyte,
+// gebraucht nur von der Design-Vorschau unter design/. Die App selbst fasst es
+// nie an, die Vorschau holt es sich bei Bedarf aus dem Netz.
 const HUELLE = [
   './',
   './index.html',
+  './logik.js',
   './api.js',
   './support.js',
   './mobile.dc.html',

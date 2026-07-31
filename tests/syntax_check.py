@@ -15,8 +15,8 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-HTML = ["index.html", "mobile.dc.html", "iphone.html"]
-JS = ["api.js", "vendor/resources.js", "sw.js"]
+HTML = ["index.html", "mobile.dc.html", "design/iphone.html"]
+JS = ["logik.js", "api.js", "vendor/resources.js", "sw.js"]
 
 BLOCK = re.compile(
     r'<script[^>]*\bdata-dc-script\b[^>]*>(.*?)</script>', re.S | re.I
