@@ -153,10 +153,50 @@ Paperless kennt beides nicht: Django-Gruppen haben keinen Besitzer, Rechte häng
 Gruppe statt am Mitglied. Die App bildet deshalb nur ab, was existiert. Ein echtes
 Rollenmodell wäre eine eigene Ebene — dieselbe Grundsatzfrage wie bei 3.1.
 
-### 🟡 3.3 Paginierung sichtbar machen
-`DOC_PAGE = 60`. Bei mehr Treffern lädt die App nach, aber ein großes Archiv ist damit
-nicht wirklich erprobt. Verhalten bei 5.000 Dokumenten prüfen: Scrollleistung, Speicher,
-Suchdauer.
+### ✅ 3.3 Verhalten bei grossem Bestand — gemessen
+
+Gemessen an **5.001 Dokumenten** (5.000 erzeugte plus der echte Bestand), Median aus je
+fünf Läufen. Ergebnis: die App trägt das, ohne Umbau.
+
+**Serverseitig**
+
+| | Dauer |
+|---|---:|
+| Liste, 60 Zeilen | 273 ms |
+| Liste, Seite 20 (tiefes Blättern) | 278 ms |
+| Liste, 250 Zeilen | 486 ms |
+| Sortiert nach Titel | 233 ms |
+| Sortiert nach Absender | 299 ms |
+| Einfache Suche, 630 Treffer | 689 ms |
+| Volltextsuche über den Index | 144 ms |
+| Nur zählen | 165 ms |
+
+**In der App**
+
+| Geladen | DOM-Knoten | Speicher | Scrollschritt |
+|---:|---:|---:|---:|
+| 60 | 1.044 | 10 MB | 60 ms |
+| 300 | 5.124 | 10 MB | 61 ms |
+| 660 | 11.244 | 10 MB | 64 ms |
+
+Start bis zur bedienbaren Oberfläche: **139 ms**.
+
+**Was die Zahlen sagen**
+
+- `DOC_PAGE = 60` ist gut gewählt. 250 Zeilen kosten fast doppelt so lange, ohne dass mehr
+  auf den Schirm passt.
+- **Tiefes Blättern kostet nichts extra** — Seite 20 ist so schnell wie Seite 1. Die
+  Befürchtung, dass Paginierung bei grossen Beständen einbricht, bestätigt sich nicht.
+- Der Baum wächst linear mit rund 17 Knoten je Dokument, aber **Speicher und Scrollzeit
+  bleiben flach** bis mindestens 11.000 Knoten. Eine Virtualisierung der Liste ist damit
+  vorerst nicht nötig — sie wäre Aufwand ohne messbaren Gewinn.
+- Der langsamste Weg ist die **einfache Suche** (689 ms), weil sie ohne Index über den Text
+  läuft. Sie greift nur, wenn die Volltextsuche die Eingabe als Syntaxfehler abweist — also
+  selten. Der Volltextindex ist mit 144 ms der schnellste Weg überhaupt.
+
+**Bekannte Grenze:** Wer alle 5.000 Dokumente lädt, klickt 83-mal „Weitere laden" und landet
+bei rund 85.000 Knoten. Dort wurde nicht gemessen. Falls das je zum Thema wird, ist
+Virtualisierung die Antwort — vorher nicht.
 
 ### 🟡 3.4 Mehrseitiges Scannen
 „Scannen" öffnet die Systemkamera und lädt **ein** Foto hoch. Die frühere Mehrseiten-Erfassung
