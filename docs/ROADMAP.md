@@ -220,18 +220,27 @@ Design-Vorschau mit simulierter iPhone-Hülle. 88 % des Vendor-Gewichts für ein
 Entwicklerspielzeug im öffentlichen Repository. Vorschlag: `iphone.html`, `ios-frame.jsx`
 und Babel in einen Zweig oder ein eigenes Verzeichnis, das nicht mit ausgeliefert wird.
 
-### 🟡 4.2 Zwei Vokabulare für dieselben Daten (offen)
-`titel`/`abs`/`art`/`ort` gegen `title`/`correspondent`/`document_type`/`storage_path`.
-Aus dem Mockup geerbt, `mapDoc()` ist die Zollstation. Jedes neue Feld muss durch beide.
-Nebenbei liest sich `abs` wie `Math.abs`.
+### ✅ 4.2 Zwei Vokabulare für dieselben Daten
+Die Übersetzungsschicht bleibt — sie ist die richtige Grenze zwischen API-Form und
+Oberfläche. Was weg musste, waren die kryptischen Kürzel: `abs` las sich wie `Math.abs`,
+`ocr` benannte den Dokumentinhalt falsch. Jetzt heissen sie `absender`, `dokumentart`,
+`ablageort`, `archivnummer`, `seitenzahl`, `inhalt`, `favorit`, `hinzugefuegt`.
+
+**Dabei kam eine zweite `mapDoc` ans Licht** — eine in `logik.js`, die die Tests prüften,
+und eine in `app.js`, die tatsächlich lief. Die laufende war die reichere (Notizen,
+`is_shared_by_requester`). Jetzt gibt es eine Fassung, und vier neue Testfälle decken ab,
+was die Doppelung verdeckt hatte. Ebenso lag `benutzernameAus` doppelt vor — und die
+Kollisionsprüfung beim Anlegen lief ins Leere, weil `username` gar nicht im Zustand stand.
 
 ### ✅ 4.3 Zurück-Pfeil vereinheitlichen
 Das Dokument-Detail nutzt ein anderes Glyph (`M10 2L2 10l8 8`) als alle übrigen Bildschirme
 (`M8.5 1.5L1.5 8.5l7 7`). Rein kosmetisch, aber uneinheitlich.
 
-### 🟡 4.4 Wiederholte Stilfragmente (offen)
-`display:flex;align-items:center;justify-content:center` steht 76-mal wörtlich da,
-`border-radius:999px` 19-mal. Gehört in benannte Konstanten — fällt mit 1.1 zusammen.
+### ✅ 4.4 Wiederholte Stilfragmente
+159 Stellen in 15 benannte Konstanten überführt (`stile.js`) — die Karte stand 24-mal
+wörtlich da, der Trenner 20-mal, der runde Kopfknopf 17-mal. Aufgenommen ist nur, was
+mindestens fünfmal wortgleich vorkam: eine Konstante für einen einzigen Ort verschiebt
+die Suche nur.
 
 ---
 
