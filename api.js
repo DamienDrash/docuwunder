@@ -17,6 +17,66 @@ window.PaperlessAPI = (function () {
   var TOKEN_KEY = 'paperless.token';
   var BASE_KEY = 'paperless.base';
 
+  // Der Zugangsschluessel liegt im localStorage. Das ist keine Kryptografie,
+  // sondern eine Ablage: jedes Skript auf dieser Origin kann ihn lesen.
+  //
+  // Ihn zu verschluesseln brächte hier nichts - der Schluessel dafuer laege
+  // daneben. Echten Schutz gaebe nur ein Geheimnis, das der Nutzer beisteuert
+  // (PIN) oder das Geraet verwahrt (WebAuthn-PRF). Solange das nicht da ist,
+  // wird der Schaden wenigstens zeitlich begrenzt:
+  //
+  //   - Der Schluessel laeuft nach GUELTIG_TAGE ohne Nutzung ab.
+  //   - Jede erfolgreiche Anfrage verlaengert ihn (gleitendes Fenster).
+  //   - Beim Abmelden wird er geloescht.
+  //
+  // Was das bedeutet, steht auch in den Einstellungen - Nutzer sollen nicht
+  // raten muessen, wie sicher ihr Zugang ist.
+  var GUELTIG_TAGE = 30;
+  var TAG_MS = 24 * 3600 * 1000;
+
+  function schluesselLesen() {
+    var roh = localStorage.getItem(TOKEN_KEY);
+    if (!roh) return '';
+    // Aeltere Fassungen legten den Schluessel blank ab, ohne Ablauf.
+    if (roh.charAt(0) !== '{') {
+      schluesselSchreiben(roh);
+      return roh;
+    }
+    try {
+      var o = JSON.parse(roh);
+      if (!o || !o.t) return '';
+      if (o.bis && Date.now() > o.bis) {
+        localStorage.removeItem(TOKEN_KEY);
+        return '';
+      }
+      return o.t;
+    } catch (e) {
+      localStorage.removeItem(TOKEN_KEY);
+      return '';
+    }
+  }
+
+  function schluesselSchreiben(t) {
+    if (!t) { localStorage.removeItem(TOKEN_KEY); return; }
+    try {
+      localStorage.setItem(TOKEN_KEY, JSON.stringify({
+        t: t, bis: Date.now() + GUELTIG_TAGE * TAG_MS
+      }));
+    } catch (e) { /* Privatmodus: dann eben nur fuer diese Sitzung */ }
+  }
+
+  // Gleitendes Fenster: wer die App nutzt, soll nicht mitten im Arbeiten
+  // hinausfliegen. Hoechstens einmal taeglich schreiben, nicht bei jeder
+  // Anfrage.
+  var zuletztVerlaengert = 0;
+  function verlaengern() {
+    if (!token) return;
+    var jetzt = Date.now();
+    if (jetzt - zuletztVerlaengert < TAG_MS) return;
+    zuletztVerlaengert = jetzt;
+    schluesselSchreiben(token);
+  }
+
   function defaultBase() {
     try {
       // /paperless-app/index.html -> /paperless/api
@@ -27,7 +87,7 @@ window.PaperlessAPI = (function () {
   }
 
   var base = localStorage.getItem(BASE_KEY) || defaultBase();
-  var token = localStorage.getItem(TOKEN_KEY) || '';
+  var token = schluesselLesen();
 
   // Wird gesetzt, wenn ein Aufruf 401 liefert - die App kann sich daran
   // haengen und zurueck ins Onboarding schicken.
@@ -143,6 +203,7 @@ window.PaperlessAPI = (function () {
     return fetch(url, init).then(function (res) {
       a.fertig();
       if (res.status === 401 && onUnauthorized) onUnauthorized();
+      else if (res.ok) verlaengern();
       if (res.status === 204) return null;
 
       var ct = res.headers.get('content-type') || '';
@@ -303,9 +364,17 @@ window.PaperlessAPI = (function () {
     hasToken: function () { return !!token; },
     setToken: function (t) {
       token = t || '';
-      if (token) localStorage.setItem(TOKEN_KEY, token);
-      else localStorage.removeItem(TOKEN_KEY);
+      zuletztVerlaengert = token ? Date.now() : 0;
+      schluesselSchreiben(token);
     },
+    // Wann der Zugang ablaeuft, damit die Einstellungen es benennen koennen.
+    gueltigBis: function () {
+      try {
+        var o = JSON.parse(localStorage.getItem(TOKEN_KEY) || '{}');
+        return o.bis || null;
+      } catch (e) { return null; }
+    },
+    gueltigTage: GUELTIG_TAGE,
     logout: function () { this.setToken(''); },
     set onUnauthorized(fn) { onUnauthorized = fn; },
 

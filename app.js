@@ -1939,6 +1939,21 @@ class Oberflaeche extends React.Component {
       switchServer: () => this.setState({ screenSet: 'onb', onbStep: 1, onbServer: s.serverUrl || '', onbErr: '', stack: [], sheet: null }),
       // Lokal liegen nur Suchverlauf und Dokument-Cache; alles andere holt die
       // App ohnehin vom Server.
+      // Ehrlich benennen, wo der Schluessel liegt und was das heisst - statt
+      // Sicherheit zu behaupten, die die Ablage nicht hergibt.
+      schluesselHinweis: (() => {
+        const A = this.api();
+        if (!A || !A.hasToken()) return 'Nicht angemeldet.';
+        const bis = A.gueltigBis && A.gueltigBis();
+        const rest = bis ? Math.max(0, Math.ceil((bis - Date.now()) / 86400000)) : null;
+        return 'Liegt in diesem Browser, nicht verschlüsselt — wer Zugriff auf das '
+          + 'entsperrte Gerät hat, kann ihn auslesen. '
+          + (rest != null
+              ? 'Er läuft in ' + rest + (rest === 1 ? ' Tag' : ' Tagen') + ' ohne Nutzung ab und verlängert sich, solange du die App benutzt. '
+              : '')
+          + 'Beim Abmelden wird er gelöscht.';
+      })(),
+
       clearLocal: () => {
         try { localStorage.removeItem(SUCH_KEY); } catch (e) { /* gesperrt */ }
         this.vorschauFrei();

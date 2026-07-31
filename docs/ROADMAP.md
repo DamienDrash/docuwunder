@@ -95,10 +95,15 @@ hätte ein dreizeiliger Test beim Schreiben gefunden.
 
 ## Phase 2 — Ehrlichkeit und Sicherheit
 
-### 🟠 2.1 Zugangsschlüssel nicht im Klartext halten
-Er liegt unbegrenzt gültig im `localStorage`. Jedes Skript auf dieser Origin liest ihn.
-Mindestens: Ablauf und ein sichtbarer Hinweis, was das bedeutet. Besser: Verschlüsselung
-mit einem Schlüssel, den erst eine Nutzerbestätigung freigibt.
+### ✅ 2.1 Zugangsschlüssel nicht im Klartext halten
+Erledigt, soweit es ohne Nutzergeheimnis geht. Verschlüsselung brächte hier nichts — der
+Schlüssel dafür läge daneben. Stattdessen ist der Schaden zeitlich begrenzt und ehrlich
+benannt: Ablauf nach 30 Tagen ohne Nutzung, gleitend verlängert durch jede erfolgreiche
+Anfrage, gelöscht beim Abmelden. Ältere Ablagen ohne Ablauf werden beim Start migriert.
+Die Einstellungen sagen unter „Zugangsschlüssel" klar, wo er liegt und wer ihn lesen kann.
+
+**Offen bleibt echter Schutz**: dafür braucht es ein Geheimnis, das der Nutzer beisteuert
+(PIN) oder das Gerät verwahrt (WebAuthn-PRF) — siehe 2.2.
 
 ### 🟠 2.2 Biometrie — falls überhaupt, dann ehrlich
 Face ID ist entfernt, weil es nur ein Boolean war. Ein Wiederaufbau per WebAuthn sperrt die
