@@ -38,6 +38,100 @@ LOGIK = ROOT / "app.js"
 ZUGRIFF = re.compile(r"\bv\.([A-Za-z_$][\w$]*)")
 
 
+def ohne_kommentare(quelle: str) -> str:
+    """Kommentare durch Leerzeichen ersetzen, Laenge und Zeilen erhalten.
+
+    Der Zaehler unten laeuft zeichenweise und kannte Zeichenketten, aber keine
+    Kommentare. Ein `zusagt:` in einem erklaerenden Satz galt ihm damit als
+    gelieferter Wert, ein einzelnes Anfuehrungszeichen im Fliesstext als Beginn
+    einer Zeichenkette - und alles bis zum naechsten verschwand.
+
+    Ersetzt statt entfernt, damit jede Position dieselbe bleibt: die Aufrufer
+    suchen mit regulaeren Ausdruecken und rechnen mit den urspruenglichen
+    Stellen.
+
+    Regulaere Ausdruecke muessen dabei mitgelesen werden, auch wenn sie hier
+    niemanden interessieren: in `/^https?:\\/\\//` steht die Folge `\\/\\/`, und
+    wer nur nach zwei Schraegstrichen sucht, haelt sie fuer einen Kommentar und
+    frisst den Rest der Datei. Genau das ist passiert - 19 Werte eines
+    Abschnitts galten danach als nicht geliefert.
+    """
+    # Ein Schraegstrich beginnt einen regulaeren Ausdruck nur dort, wo kein
+    # Wert davorsteht - sonst ist es eine Division.
+    DAVOR = set("(,=:[!&|?{};+-*%~^")
+    WOERTER = ("return", "typeof", "case", "in", "of", "delete", "void", "do", "else")
+
+    def regex_moeglich(bis: int) -> bool:
+        k = bis - 1
+        while k >= 0 and quelle[k] in " \t\n":
+            k -= 1
+        if k < 0:
+            return True
+        if quelle[k] in DAVOR:
+            return True
+        wort = ""
+        while k >= 0 and (quelle[k].isalnum() or quelle[k] == "_"):
+            wort = quelle[k] + wort
+            k -= 1
+        return wort in WOERTER
+
+    aus, i, in_str, escape = [], 0, None, False
+    while i < len(quelle):
+        c = quelle[i]
+        if in_str:
+            aus.append(c)
+            if escape:
+                escape = False
+            elif c == "\\":
+                escape = True
+            elif c == in_str:
+                in_str = None
+            i += 1
+            continue
+        if c in "\"'`":
+            in_str = c
+            aus.append(c)
+            i += 1
+            continue
+        if c == "/" and i + 1 < len(quelle) and quelle[i + 1] == "/":
+            while i < len(quelle) and quelle[i] != "\n":
+                aus.append(" ")
+                i += 1
+            continue
+        if c == "/" and i + 1 < len(quelle) and quelle[i + 1] == "*":
+            ende = quelle.find("*/", i + 2)
+            ende = len(quelle) if ende < 0 else ende + 2
+            aus.append("".join(" " if z != "\n" else "\n" for z in quelle[i:ende]))
+            i = ende
+            continue
+        if c == "/" and regex_moeglich(i):
+            # Bis zum unmaskierten Schraegstrich. In einer Zeichenklasse
+            # [...] braucht ein Schraegstrich keine Maskierung.
+            aus.append(c)
+            i += 1
+            klasse, esc = False, False
+            while i < len(quelle):
+                z = quelle[i]
+                aus.append(z)
+                i += 1
+                if esc:
+                    esc = False
+                elif z == "\\":
+                    esc = True
+                elif z == "[":
+                    klasse = True
+                elif z == "]":
+                    klasse = False
+                elif z == "/" and not klasse:
+                    break
+                elif z == "\n":
+                    break
+            continue
+        aus.append(c)
+        i += 1
+    return "".join(aus)
+
+
 def objekt_schluessel(quelle: str, start: int) -> set:
     """Die Schluessel auf oberster Ebene des Objektliterals ab `start`."""
     # Zeichenweise bis zur schliessenden Klammer der Rueckgabe, damit
@@ -139,7 +233,10 @@ if not LOGIK.exists():
     print(f"  fehlt   {LOGIK.name}")
     sys.exit(1)
 
-geliefert = render_vals_schluessel(LOGIK.read_text(encoding="utf-8"))
+# Ohne Kommentare, sonst zaehlt ein erklaerender Satz mit Doppelpunkt als
+# geliefertes Feld - und ein einzelnes Anfuehrungszeichen darin verschluckt
+# alles bis zum naechsten.
+geliefert = render_vals_schluessel(ohne_kommentare(LOGIK.read_text(encoding="utf-8")))
 if not geliefert:
     print("  FEHLER  renderVals in app.js nicht auswertbar")
     sys.exit(1)

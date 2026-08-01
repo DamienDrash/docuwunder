@@ -373,6 +373,75 @@ def main():
                 assert bild.count() > 0, "kein Vorschaubild im Dokument"
                 return "Vorschau geladen und angezeigt"
 
+            # --- Die drei Wege, etwas hereinzubekommen -----------------------
+            # "Foto" und "Datei" riefen eine Methode auf, die es nicht gab.
+            # Jeder Klick warf still in die Konsole und tat nichts. Geprueft
+            # wird deshalb, dass ein Dialog aufgeht UND die gewaehlte Datei
+            # beim Server ankommt - nicht, dass der Knopf existiert.
+
+            def t_alle_drei_wege_oeffnen():
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                # Beide Einstiege: die Kacheln auf der Startseite und das
+                # Hinzufuegen-Sheet. Sie tragen verschiedene Beschriftungen und
+                # sind schon einmal auseinandergelaufen.
+                stumm = []
+                for knopf in ("Scannen", "Foto", "Datei"):
+                    try:
+                        with seite.expect_file_chooser(timeout=5000) as wahl:
+                            seite.locator(f'text="{knopf}"').last.click()
+                        wahl.value.set_files([])
+                    except Exception:
+                        stumm.append("Startseite/" + knopf)
+                    seite.keyboard.press("Escape")
+                    seite.wait_for_timeout(700)
+
+                PLUS = 'path[d="M12 5v14M5 12h14"]'
+                for knopf in ("Dokument scannen", "Foto auswählen", "Datei hochladen"):
+                    seite.locator('text="Dokumente"').last.click()
+                    seite.wait_for_timeout(800)
+                    seite.locator("svg").filter(has=seite.locator(PLUS)).last.click()
+                    seite.wait_for_timeout(1100)
+                    try:
+                        with seite.expect_file_chooser(timeout=5000) as wahl:
+                            seite.locator(f'text="{knopf}"').last.click()
+                        wahl.value.set_files([])
+                    except Exception:
+                        stumm.append("Sheet/" + knopf)
+                    seite.keyboard.press("Escape")
+                    seite.wait_for_timeout(700)
+
+                assert not stumm, f"kein Dialog bei: {stumm}"
+                assert not fehlerkonsole, "; ".join(fehlerkonsole[:3])
+                return "beide Einstiege, je drei Wege"
+
+            def t_datei_kommt_beim_server_an():
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                antworten = []
+                seite.on("response", lambda r: antworten.append((r.status, r.url))
+                         if r.request.method == "POST" else None)
+                with seite.expect_file_chooser() as wahl:
+                    seite.locator('text="Foto"').last.click()
+                wahl.value.set_files([str(pathlib.Path(__file__).parent / "bilder" / "hoch.jpg")])
+                seite.wait_for_timeout(4000)
+                assert any(s == 200 and "post_document" in u for s, u in antworten), \
+                    f"nichts hochgeladen: {antworten}"
+
+                for _ in range(40):
+                    time.sleep(3)
+                    r = urllib.request.Request(BACKEND + "/documents/?title__icontains=hoch")
+                    r.add_header("Authorization", "Token " + TOKEN)
+                    d = json.loads(urllib.request.urlopen(r).read())
+                    if d["count"]:
+                        weg = urllib.request.Request(
+                            BACKEND + "/documents/" + str(d["results"][0]["id"]) + "/",
+                            method="DELETE")
+                        weg.add_header("Authorization", "Token " + TOKEN)
+                        urllib.request.urlopen(weg)
+                        return "ueber „Foto“ gewaehlte Datei liegt im Server"
+                raise AssertionError("Server hat die Datei nicht verarbeitet")
+
             # --- Scannen -----------------------------------------------------
             # Geprueft wird die Wirkung auf das Bild, nicht das Vorhandensein
             # der Knoepfe: naturalWidth/-Height der Kachel zeigen, ob wirklich
@@ -615,6 +684,8 @@ def main():
                 ("Filter laedt neu", t_filter_laedt_neu),
                 ("Suche geht an den Server", t_suche_serverseitig),
                 ("Treffer oeffnet mit Vorschau", t_treffer_oeffnet_mit_vorschau),
+                ("Alle Wege zum Hochladen oeffnen", t_alle_drei_wege_oeffnen),
+                ("Gewaehlte Datei kommt an", t_datei_kommt_beim_server_an),
                 ("Mehrseitig scannen", t_scannen_mehrseitig),
                 ("Zuschnitt wirkt auf das Bild", t_zuschnitt_wirkt),
                 ("Scan wird ein mehrseitiges PDF", t_scan_wird_ein_pdf),

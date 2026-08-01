@@ -1263,24 +1263,54 @@ class Oberflaeche extends React.Component {
     this.scanAufnehmen();
   }
 
-  // capture="environment" bittet ein Telefon um die rueckwaertige Kamera.
-  // Auf dem Rechner kennt der Browser das Attribut nicht und oeffnet den
-  // gewohnten Dateidialog - beides ist richtig, es braucht keine Weiche.
+  // Der Dateidialog des Systems.
+  //
+  // Das Feld haengt kurz im Dokument, weil manche Browser an einem losgeloesten
+  // Element kein change melden, und verschwindet danach wieder. Abgebrochen
+  // wird mit einer leeren Liste beantwortet - dafuer gibt es seit kurzem das
+  // cancel-Ereignis; wo es fehlt, bleibt die Zusage offen, und das ist
+  // richtig: dann ist auch nichts passiert.
+  dateiDialog(opt) {
+    return new Promise(fertig => {
+      const feld = document.createElement('input');
+      feld.type = 'file';
+      feld.accept = opt.accept;
+      if (opt.mehrere) feld.multiple = true;
+      // capture="environment" bittet ein Telefon um die rueckwaertige Kamera.
+      // Auf dem Rechner kennt der Browser das Attribut nicht und oeffnet den
+      // gewohnten Dialog - beides ist richtig, es braucht keine Weiche.
+      if (opt.kamera) feld.setAttribute('capture', 'environment');
+      feld.style.display = 'none';
+      document.body.appendChild(feld);
+      const schliessen = (dateien) => {
+        if (feld.parentNode) document.body.removeChild(feld);
+        fertig(dateien);
+      };
+      feld.onchange = () => schliessen(Array.from(feld.files || []));
+      feld.oncancel = () => schliessen([]);
+      feld.click();
+    });
+  }
+
+  // Fertige Dateien abgeben - ein Foto aus der Mediathek, eine PDF vom Geraet.
+  //
+  // Bewusst ohne Nachbearbeitung: wer eine fertige Datei hat, will sie
+  // abgeben, nicht bearbeiten. Zuschneiden, Drehen und mehrere Seiten zu
+  // einem Dokument zusammenfassen macht "Scannen" (siehe scanOeffnen).
+  dateiWaehlen(accept, mehrere, meta) {
+    return this.dateiDialog({ accept: accept, mehrere: mehrere }).then(dateien => {
+      if (!dateien.length) { this.setState({ sheet: null }); return; }
+      dateien.forEach(d => this.uploadDatei(d, meta || {}));
+    });
+  }
+
   scanAufnehmen() {
-    const feld = document.createElement('input');
-    feld.type = 'file';
-    feld.accept = 'image/*';
-    feld.multiple = true;
-    feld.setAttribute('capture', 'environment');
-    feld.style.display = 'none';
-    document.body.appendChild(feld);
-    feld.onchange = () => {
-      const dateien = Array.from(feld.files || []);
-      document.body.removeChild(feld);
+    return this.dateiDialog({ accept: 'image/*', mehrere: true, kamera: true }).then(dateien => {
       if (dateien.length) this.scanAufnahmen(dateien);
+      // Nichts aufgenommen und noch keine Seite da: der Scan-Bildschirm haette
+      // nichts zu zeigen.
       else if (!(this.state.scan && this.state.scan.seiten.length)) this.setState({ scan: null });
-    };
-    feld.click();
+    });
   }
 
   scanAufnahmen(dateien) {
@@ -1859,7 +1889,6 @@ class Oberflaeche extends React.Component {
   valsRahmen(k) {
     const { s, dark, top, wide, dDoc } = k;
     return {
-      isDark: dark,
       themeVars: dark ? { ...SICHER, background: 'var(--bg)', color: 'var(--lab)', '--bg': '#0D1B2A', '--card': '#152436', '--fill': 'rgba(120,120,128,0.24)', '--fill2': 'rgba(120,120,128,0.36)', '--lab': '#FFFFFF', '--lab2': 'rgba(226,239,237,0.62)', '--lab3': 'rgba(235,235,245,0.30)', '--sep': 'rgba(142,229,218,0.16)', '--acc': '#8EE5DA', '--onAcc': '#0D1B2A', '--mint': '#8EE5DA', '--accT': 'rgba(142,229,218,0.16)', '--grn': '#8EE5DA', '--org': '#F0B454', '--red': '#FF6B60', '--glass': 'rgba(21,36,54,0.86)', '--gbor': 'rgba(255,255,255,0.10)', '--mark': 'rgba(142,229,218,0.32)', '--pg': '#1B2B3E', '--pgl': 'rgba(235,235,245,0.16)' } : { ...SICHER, color: 'var(--lab)' },
       showApp: this.screenEff() === 'app' && !s.sperreOffen,
       // Bei aktiver Sperre gibt es keinen abgelegten Schluessel, weshalb
@@ -1896,7 +1925,10 @@ class Oberflaeche extends React.Component {
       openSettings: () => this.pushV({ t: 'set' }), openSearch: () => this.setState(st => ({ stack: [...st.stack, { t: 'search' }], q: '', qRes: [], qErr: '', qBusy: false, qEinfach: false })), openAdd: () => this.setState({ sheet: 'add' }),
       startScan: () => this.scanOeffnen(),
       pickPhoto: () => this.dateiWaehlen('image/*', false),
-      pickFile: () => this.dateiWaehlen('application/pdf,image/*', false),
+      // Mehrere erlaubt, weil das Sheet genau das zusagt: PDF oder Bild,
+      // auch mehrere. Jede Datei wird ein eigenes Dokument - anders als
+      // beim Scannen, wo mehrere Aufnahmen zu einem PDF werden.
+      pickFile: () => this.dateiWaehlen('application/pdf,image/*', true),
     };
   }
 
