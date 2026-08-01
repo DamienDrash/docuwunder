@@ -77,6 +77,10 @@ const SUCH_MS = 300;
 const SORT_API = { neu: '-created', alt: 'created', titel: 'title', absender: 'correspondent__name' };
 // Suchverlauf im Browser, damit er einen Neustart ueberlebt.
 const SUCH_KEY = 'paperless.suchverlauf';
+
+// Der Quelltext. Steht hier, weil ihn zwei Stellen brauchen: die Hilfe und
+// der Datenschutzhinweis.
+const PROJEKT_URL = 'https://github.com/DamienDrash/docuwunder';
 // Ein Dokument steht je nach Bildschirm in mehreren Listen zugleich. Eine
 // Aenderung muss in allen ankommen, sonst zeigen zwei Bildschirme
 // gleichzeitig verschiedene Staende desselben Dokuments.
@@ -128,7 +132,7 @@ class Oberflaeche extends React.Component {
       users: [],
       // Automatisierungen (in Paperless: Workflows), eigene Felder,
       // gespeicherte Ansichten und E-Mail-Regeln.
-      autos: [], felderM: [], suchenM: [], mailRules: [],
+      autos: [], felderM: [], suchenM: [], mailRules: [], mailKonten: [],
       // Dokumente des gerade geoeffneten Ordners (eigene Serverabfrage).
       ordnerDocs: [], ordnerLaden: false,
       // Team fuer die Zuweisung und deren Laufzustand.
@@ -342,13 +346,16 @@ class Oberflaeche extends React.Component {
       A.tags.all(), A.correspondents.all(), A.documentTypes.all(), A.storagePaths.all(),
       A.uiSettings().catch(() => null), weich(A.shareLinks.all()), weich(A.users.all()),
       weich(A.workflows.all()), weich(A.customFields.all()), weich(A.savedViews.all()), weich(A.groups.all()),
-      weich(A.mailRules.all()), A.statistics().catch(() => null), A.remoteVersion().catch(() => null)
-    ]).then(([tags, corr, typ, ort, ui, links, users, flows, felder, sichten, gruppen, regeln, stats, ver]) => {
+      weich(A.mailRules.all()), weich(A.mailKonten.all()), A.statistics().catch(() => null), A.remoteVersion().catch(() => null)
+    ]).then(([tags, corr, typ, ort, ui, links, users, flows, felder, sichten, gruppen, regeln, mailKonten, stats, ver]) => {
       this.setState({
         autos: flows.map(w => this.mapWorkflow(w)),
         felderM: felder.map(f => ({ name: f.name, typ: this.feldTyp(f.data_type), n: f.document_count || 0 })),
         suchenM: sichten.map(v => ({ id: v.id, name: v.name, q: this.sichtQuery(v) })),
         mailRules: regeln.map(r => ({ id: r.id, name: r.name, desc: this.regelText(r), on: r.enabled !== false })),
+        // Die Konten braucht nur der Abruf: die Regeln sagen, was geholt
+        // wird, angestossen wird aber ein Konto.
+        mailKonten: mailKonten.map(k => ({ id: k.id, name: k.name })),
         sysStatus: this.statusZeilen(stats, ver, ui),
         gruppen: gruppen.map(g => ({ id: g.id, name: g.name }))
       });
@@ -1655,6 +1662,34 @@ class Oberflaeche extends React.Component {
       this.note('Nicht geändert: ' + e.message);
     });
   }
+  // Den Abruf sofort anstossen, statt auf den Zeitplan zu warten.
+  //
+  // Angestossen wird je Konto, nicht je Regel: Paperless holt die Post eines
+  // Kontos und laesst danach alle Regeln darauf los.
+  mailAbrufen() {
+    const A = this.api();
+    const konten = this.state.mailKonten || [];
+    if (!konten.length) {
+      this.note('Kein E-Mail-Konto eingerichtet – das legst du in Paperless an.');
+      return Promise.resolve();
+    }
+    return Promise.all(konten.map(k => A.mailKonten.abrufen(k.id)))
+      .then(() => {
+        this.note(konten.length === 1
+          ? 'Abruf gestartet – der Verlauf steht unter Verarbeitung.'
+          : konten.length + ' Konten werden abgerufen – Verlauf unter Verarbeitung.');
+        this.ladeAufgaben();
+      })
+      .catch(e => this.note('Abruf nicht gestartet: ' + e.message));
+  }
+
+  // Hilfe heisst hier: der Quelltext. Es gibt keine gehostete Hilfeseite, und
+  // eine zu behaupten waere schlimmer, als keine zu haben.
+  hilfeOeffnen() {
+    const fenster = window.open(PROJEKT_URL, '_blank', 'noopener');
+    if (!fenster) this.note('Der Browser hat das Fenster geblockt: ' + PROJEKT_URL);
+  }
+
   regelSchalten(id, on) {
     const A = this.api();
     this.setState(s => ({ mailRules: s.mailRules.map(x => x.id === id ? Object.assign({}, x, { on }) : x) }));
@@ -1845,7 +1880,7 @@ class Oberflaeche extends React.Component {
       q: '', qRes: [], qBusy: false, qErr: '', qEinfach: false, opened: [],
       tagsM: [], absM: [], artenM: [], orteM: [],
       tagsRaw: [], absRaw: [], artenRaw: [], orteRaw: [], shares: {}, me: null,
-      autos: [], felderM: [], suchenM: [], mailRules: [], users: [], tasksRaw: [], sysStatus: null, ordnerDocs: [], ordnerLaden: false,
+      autos: [], felderM: [], suchenM: [], mailRules: [], mailKonten: [], users: [], tasksRaw: [], sysStatus: null, ordnerDocs: [], ordnerLaden: false,
       loading: false, loadErr: null
     });
   }
@@ -2145,7 +2180,6 @@ class Oberflaeche extends React.Component {
       msHell: this.seg(s.mode === 'hell'), msDunkel: this.seg(s.mode === 'dunkel'), msSystem: this.seg(s.mode === 'system'),
       defViewLabel: s.view === 'liste' ? 'Liste' : 'Raster',
       toggleDefView: () => { const neu = s.view === 'liste' ? 'raster' : 'liste'; this.setState({ view: neu }); defViewSichern(neu); },
-      doDynType: () => this.note('Folgt der Textgröße deines Geräts'),
       serverAddr: (s.serverUrl || '').replace(/^https?:\/\//, '').replace(/\/api$/, ''),
       kontoName: s.me ? ([s.me.first_name, s.me.last_name].filter(Boolean).join(' ') || s.me.username) : '—',
       kontoInitialen: s.me ? this.initialen(s.me.first_name, s.me.last_name, s.me.username) : '–',
@@ -2189,7 +2223,11 @@ class Oberflaeche extends React.Component {
         this.setState({ recents: [], cache: {}, opened: [], prev: null });
         this.reloadDocs().then(() => this.note('Lokale Daten gelöscht'));
       },
-      doHelp: () => this.note('Hilfe öffnet sich im Browser'), doPrivacy: () => this.note('Datenschutzerklärung öffnet sich'),
+      doHelp: () => this.hilfeOeffnen(),
+      doPrivacy: () => this.setState({ sheet: 'datenschutz' }),
+      shDatenschutz: s.sheet === 'datenschutz',
+      dsQuelle: PROJEKT_URL,
+      dsOeffnen: () => this.hilfeOeffnen(),
       logout: () => this.logoutGo(),
     };
   }
@@ -2222,7 +2260,8 @@ class Oberflaeche extends React.Component {
         })),
       autoNeu: () => this.autoAnlegen(),
       showMail: top.t === 'mail',
-      mailFetch: () => this.note('Der Abruf läuft nach dem Zeitplan des Servers.'),
+      mailFetch: () => this.mailAbrufen(),
+      mailFetchLabel: (s.mailKonten || []).length ? 'Jetzt abrufen' : 'Kein Konto eingerichtet',
       mailRules: s.mailRules.map(r => { const t = this.tg(r.on); return { name: r.name, desc: r.desc, tgBg: t.bg, tgKnob: t.knob, toggle: () => this.regelSchalten(r.id, !r.on) }; }),
       showUsers: top.t === 'users',
       // Echte Benutzer und Gruppen aus Paperless. Frueher standen hier vier

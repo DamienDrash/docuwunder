@@ -13,6 +13,32 @@
   <div style=${stil('width:36px;height:5px;border-radius:3px;background:var(--fill2);margin:8px auto 0;flex-shrink:0')}></div>
   <div style=${stil('overflow-y:auto;padding:6px 0 44px')}>
 
+  ${v.shDatenschutz ? html`<div style=${stil(S.sheetTitel)}>Datenschutz</div>
+    <div style=${stil('font-size:14.5px;color:var(--lab2);padding:6px 20px 0;line-height:1.6')}>
+      DocuWunder ist eine Oberfläche für deinen eigenen Paperless-Server. Es gibt keinen
+      Dienst dahinter, den jemand anderes betreibt.
+    </div>
+    <div style=${stil(S.abschnitt)}>Was auf dem Gerät bleibt</div>
+    <div style=${stil('font-size:14.5px;color:var(--lab2);padding:0 20px;line-height:1.6')}>
+      Dein Zugangsschlüssel, der Suchverlauf und zuletzt geöffnete Dokumente. Ist die
+      Bildschirmsperre eingerichtet, liegt der Schlüssel verschlüsselt da – ohne bestandene
+      Biometrie ist er nicht lesbar. „Lokale Daten löschen“ in den Einstellungen entfernt alles davon.
+    </div>
+    <div style=${stil(S.abschnitt)}>Was den Server erreicht</div>
+    <div style=${stil('font-size:14.5px;color:var(--lab2);padding:0 20px;line-height:1.6')}>
+      Ausschließlich deinen Paperless-Server: Dokumente, Suchanfragen, Änderungen. Sonst
+      nichts – die App lädt weder Schriften noch Bibliotheken noch Statistiken aus dem Netz.
+      Es gibt keine Analyse, keine Absturzberichte, keine Werbekennungen.
+    </div>
+    <div style=${stil(S.abschnitt)}>Nachprüfbar</div>
+    <div style=${stil('font-size:14.5px;color:var(--lab2);padding:0 20px 4px;line-height:1.6')}>
+      Der Quelltext liegt offen. Was hier steht, lässt sich darin nachlesen – und im
+      Netzwerk-Reiter der Entwicklerwerkzeuge nachmessen.
+    </div>
+    <div style=${stil('padding:14px 16px 0')}>
+      <div onClick=${v.dsOeffnen} style=${stil(S.knopf)}>Quelltext ansehen</div>
+    </div>` : null}
+
   ${v.shAusloeser ? html`<div style=${stil(S.sheetTitel)}>Auslöser</div>
       <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 10px;line-height:1.5')}>Wann soll die Automatisierung laufen?</div>
       ${(v.ausloeserRows || []).map((r, rIdx) => html`<div key=${rIdx} onClick=${r.pick} style=${stil('display:flex;justify-content:space-between;align-items:center;padding:13px 20px;cursor:pointer;position:relative')}>

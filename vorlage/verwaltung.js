@@ -76,7 +76,7 @@
         <div style=${stil('flex:1;min-width:0')}><div style=${stil(S.zeileTitel)}>${v.kontoMail}</div><div style=${stil('display:flex;align-items:center;gap:5px;margin-top:2px')}><span style=${stil('width:7px;height:7px;border-radius:50%;background:var(--grn)')}></span><span style=${stil(S.neben)}>imap.gmx.net · Verbunden</span></div></div>
       </div>
       <div style=${stil('font-size:12.5px;color:var(--lab2);margin-top:10px')}>Letzter Abruf vor 12 Minuten · 1 Anhang importiert</div>
-      <div onClick=${v.mailFetch} style=${stil('margin-top:10px;height:38px;border-radius:10px;background:var(--fill);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:600;color:var(--acc);cursor:pointer')}>Jetzt abrufen</div>
+      <div onClick=${v.mailFetch} style=${stil('margin-top:10px;height:38px;border-radius:10px;background:var(--fill);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:600;color:var(--acc);cursor:pointer')}>${v.mailFetchLabel}</div>
     </div>
     <div style=${stil(S.abschnitt)}>Regeln</div>
     <div style=${stil(S.karte)}>
@@ -112,7 +112,11 @@
         <div onClick=${v.setModeSystem} style=${stil(v.msSystem)}>System</div>
       </div>
       <div onClick=${v.toggleDefView} style=${stil('display:flex;justify-content:space-between;align-items:center;padding:13px 0 6px;cursor:pointer')}><span style=${stil('font-size:15.5px')}>Standardansicht</span><span style=${stil(S.nebenGross)}>${v.defViewLabel}</span></div>
-      <div onClick=${v.doDynType} style=${stil('display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px;cursor:pointer')}><span style=${stil('font-size:15.5px')}>Textgröße</span><span style=${stil(S.nebenGross)}>Systemeinstellung</span></div>
+      ${''/* Anzeige, keine Bedienung: die Textgroesse kommt vom System,
+           die App kann daran nichts aendern. Vorher war die Zeile
+           antippbar und zeigte nur einen Hinweis - ein Schalter, der
+           nichts schaltet. */}
+      <div style=${stil('display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px')}><span style=${stil('font-size:15.5px')}>Textgröße</span><span style=${stil(S.nebenGross)}>Systemeinstellung</span></div>
     </div>
     <div style=${stil(S.abschnitt)}>Verbindung</div>
     <div style=${stil(S.karte)}>

@@ -272,6 +272,35 @@ serverseitige Auslöser — Paperless liefert das nicht mit.
 
 ---
 
+### ✅ 3.7 Bedienungen, die nur geredet haben
+
+Nach dem Hinweis, „Scannen, Foto und Datei" seien Attrappen, habe ich **alle 118 Bedienungen
+der Bildschirme** statisch auf ihre Wirkung abgebildet. Ergebnis: 114 unauffällig, 5 nicht.
+
+| Bedienung | Was sie tat | Jetzt |
+|---|---|---|
+| „Foto", „Datei" | riefen `this.dateiWaehlen(...)` — eine Methode, die es **nirgends gab**. Jeder Klick warf still in die Konsole. | echter Dateidialog, Upload nachgemessen |
+| „Hilfe & Support" | Hinweis „Hilfe öffnet sich im Browser" — es öffnete sich nichts | öffnet den Quelltext |
+| „Datenschutz" | Hinweis „Datenschutzerklärung öffnet sich" — dito | echter Text: was auf dem Gerät bleibt, was den Server erreicht, wie man es nachmisst |
+| „Textgröße" | sah aus wie ein Schalter, zeigte nur einen Hinweis | Anzeige ohne `cursor:pointer` — die App kann daran nichts ändern |
+| „Jetzt abrufen" | „Der Abruf läuft nach dem Zeitplan des Servers" | `POST /mail_accounts/{id}/process/`; im Server-Log als `trigger_source: manual` belegt. Ohne Konto heißt der Knopf „Kein Konto eingerichtet" |
+
+Zwei neue Netze, beide mit Gegenprobe:
+
+- **`tests/aufrufe_check.py`** — jedes `this.name()` muss eine Definition haben, in der Klasse
+  oder über `Object.assign` aus einem Sachgebiet. Entfernt man `dateiWaehlen`, meldet die Stufe
+  die Zeile.
+- Vier neue Browserprüfungen, die die **Wirkung** messen: ein geöffnetes Fenster mit der
+  richtigen Adresse, ein `POST … /process/` mit Antwort 200, ein `cursor` der nicht `pointer` ist.
+
+Nebenbei zwei Fehler in der Vorlagenprüfung selbst: sie las Kommentare mit. Ein `zusagt:` in
+einem Erklärsatz galt als geliefertes Feld, ein einzelnes Anführungszeichen im Fließtext
+verschluckte alles bis zum nächsten. Der Filter dagegen muss reguläre Ausdrücke mitlesen —
+in `/^https?:\/\//` steht die Folge `\/\/`, und wer nur nach zwei Schrägstrichen sucht,
+frisst den Rest der Datei.
+
+---
+
 ## Phase 4 — Aufräumen
 
 ### ✅ 4.1 Drei Megabyte Babel

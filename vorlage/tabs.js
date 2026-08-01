@@ -226,7 +226,7 @@
   V.tabMore = function (v, html, stil) {
     return v.tabMore ? html`<div data-screen-label="Mehr" style=${stil(`${v.paneL}overflow-y:auto;padding:64px 0 128px`)}>
   <div style=${stil('font-size:31px;font-weight:700;letter-spacing:-0.6px;padding:8px 20px 0')}>Mehr</div>
-  <div onClick=${v.openSettings} style=${stil('background:var(--card);border-radius:16px;margin:16px 16px 0;padding:14px 16px;display:flex;gap:13px;align-items:center;cursor:pointer')}>
+  <div onClick=${v.openSettings} data-konto="1" style=${stil('background:var(--card);border-radius:16px;margin:16px 16px 0;padding:14px 16px;display:flex;gap:13px;align-items:center;cursor:pointer')}>
     <div style=${stil('width:46px;height:46px;border-radius:50%;background:var(--fill2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:var(--lab2);flex-shrink:0')}>${v.kontoInitialen}</div>
     <div style=${stil('flex:1;min-width:0')}>
       <div style=${stil('font-size:16.5px;font-weight:600')}>${v.kontoName}</div>

@@ -373,6 +373,92 @@ def main():
                 assert bild.count() > 0, "kein Vorschaubild im Dokument"
                 return "Vorschau geladen und angezeigt"
 
+            # --- Bedienungen, die nur geredet haben --------------------------
+            # Vier Knoepfe hatten als ganze Wirkung einen Hinweistext:
+            # "Hilfe oeffnet sich im Browser" (es oeffnete sich nichts),
+            # "Datenschutzerklaerung oeffnet sich" (dito), "Folgt der
+            # Textgroesse deines Geraets" (an einer Zeile, die aussah wie ein
+            # Schalter) und "Der Abruf laeuft nach dem Zeitplan des Servers"
+            # (an einem Knopf namens "Jetzt abrufen").
+
+            def t_textgroesse_ist_anzeige():
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                seite.locator('text="Mehr"').last.click()
+                seite.wait_for_timeout(900)
+                seite.locator("[data-konto]").last.click()
+                seite.wait_for_timeout(1300)
+                assert seite.locator("[data-screen-label='Einstellungen']").count() > 0, \
+                    "Einstellungen nicht geoeffnet"
+                zeiger = seite.locator('text="Textgröße"').last.evaluate(
+                    "e => getComputedStyle(e.parentElement).cursor")
+                assert zeiger != "pointer", \
+                    "Die Zeile sieht antippbar aus, ist aber nur eine Anzeige"
+                return "Anzeige statt Schalter"
+
+            def t_datenschutz_hat_inhalt():
+                seite.locator('text="Datenschutz"').last.click()
+                seite.wait_for_timeout(1300)
+                for satz in ("Was auf dem Gerät bleibt", "Was den Server erreicht"):
+                    assert seite.locator(f'text="{satz}"').count() > 0, f"„{satz}“ fehlt"
+                assert seite.locator('text="Quelltext ansehen"').count() > 0, "kein Verweis"
+                seite.keyboard.press("Escape")
+                seite.wait_for_timeout(800)
+                return "echter Text statt Ankuendigung"
+
+            def t_hilfe_oeffnet_wirklich():
+                with seite.context.expect_page(timeout=8000) as neu:
+                    seite.locator('text="Hilfe & Support"').last.click()
+                ziel = neu.value.url
+                neu.value.close()
+                assert "DamienDrash/docuwunder" in ziel, f"falsches Ziel: {ziel}"
+                return ziel
+
+            def t_mailabruf_stoesst_wirklich_an():
+                # Ohne Konto sagt der Knopf das auch.
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                seite.locator('text="Mehr"').last.click()
+                seite.wait_for_timeout(900)
+                seite.locator('text="E-Mail-Import"').last.click()
+                seite.wait_for_timeout(1300)
+                assert seite.locator('text="Kein Konto eingerichtet"').count() > 0, \
+                    "Knopf verspricht einen Abruf ohne Konto"
+
+                # Mit Konto muss ein echter Abruf beim Server ankommen. Das
+                # Konto zeigt bewusst ins Leere - geprueft wird das Anstossen,
+                # nicht das Postfach.
+                anlegen = urllib.request.Request(
+                    BACKEND + "/mail_accounts/", method="POST",
+                    data=json.dumps({
+                        "name": "zz-Pruefkonto", "imap_server": "127.0.0.1",
+                        "imap_port": 993, "imap_security": 2,
+                        "username": "test", "password": "test",
+                        "character_set": "UTF-8"}).encode())
+                anlegen.add_header("Authorization", "Token " + TOKEN)
+                anlegen.add_header("Content-Type", "application/json")
+                konto = json.loads(urllib.request.urlopen(anlegen).read())
+                try:
+                    antworten = []
+                    seite.on("response", lambda r: antworten.append((r.status, r.url))
+                             if r.request.method == "POST" else None)
+                    seite.reload(wait_until="networkidle")
+                    seite.wait_for_timeout(2600)
+                    seite.locator('text="Mehr"').last.click()
+                    seite.wait_for_timeout(900)
+                    seite.locator('text="E-Mail-Import"').last.click()
+                    seite.wait_for_timeout(1300)
+                    seite.locator('text="Jetzt abrufen"').last.click()
+                    seite.wait_for_timeout(3000)
+                    assert any(s == 200 and "/process/" in u for s, u in antworten), \
+                        f"kein Abruf angestossen: {antworten}"
+                finally:
+                    weg = urllib.request.Request(
+                        BACKEND + "/mail_accounts/" + str(konto["id"]) + "/", method="DELETE")
+                    weg.add_header("Authorization", "Token " + TOKEN)
+                    urllib.request.urlopen(weg)
+                return "ohne Konto ehrlich, mit Konto ein echter Abruf"
+
             # --- Die drei Wege, etwas hereinzubekommen -----------------------
             # "Foto" und "Datei" riefen eine Methode auf, die es nicht gab.
             # Jeder Klick warf still in die Konsole und tat nichts. Geprueft
@@ -684,6 +770,10 @@ def main():
                 ("Filter laedt neu", t_filter_laedt_neu),
                 ("Suche geht an den Server", t_suche_serverseitig),
                 ("Treffer oeffnet mit Vorschau", t_treffer_oeffnet_mit_vorschau),
+                ("Textgroesse ist eine Anzeige", t_textgroesse_ist_anzeige),
+                ("Datenschutz hat Inhalt", t_datenschutz_hat_inhalt),
+                ("Hilfe oeffnet den Quelltext", t_hilfe_oeffnet_wirklich),
+                ("Mailabruf stoesst wirklich an", t_mailabruf_stoesst_wirklich_an),
                 ("Alle Wege zum Hochladen oeffnen", t_alle_drei_wege_oeffnen),
                 ("Gewaehlte Datei kommt an", t_datei_kommt_beim_server_an),
                 ("Mehrseitig scannen", t_scannen_mehrseitig),

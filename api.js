@@ -590,6 +590,14 @@ window.PaperlessAPI = (function () {
       create: function (daten) { return request('POST', '/workflows/', { json: daten }); },
       setEnabled: function (id, on) { return request('PATCH', '/workflows/' + id + '/', { json: { enabled: !!on } }); }
     },
+    mailKonten: {
+      all: function () { return listAll('/mail_accounts/'); },
+      // Stoesst den Abruf sofort an, statt auf den Zeitplan zu warten.
+      // Paperless legt dafuer eine Aufgabe mit trigger_source MANUAL an; die
+      // Antwort sagt nur, dass sie eingereiht wurde - was dabei herauskommt,
+      // steht danach unter Verarbeitung.
+      abrufen: function (id) { return request('POST', '/mail_accounts/' + id + '/process/'); }
+    },
     mailRules: {
       all: function () { return listAll('/mail_rules/'); },
       setEnabled: function (id, on) { return request('PATCH', '/mail_rules/' + id + '/', { json: { enabled: !!on } }); }
