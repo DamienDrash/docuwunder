@@ -502,6 +502,47 @@ def main():
                 assert not fehlerkonsole, "; ".join(fehlerkonsole[:3])
                 return "beide Einstiege, je drei Wege"
 
+            def t_die_drei_wege_sind_verschieden():
+                """Drei Eintraege muessen zu drei verschiedenen Dialogen fuehren.
+
+                Sie taten es nicht: "Datei" erlaubte 'application/pdf,image/*'.
+                Sobald auch nur ein Bildtyp erlaubt ist, bietet iOS die
+                Fotomediathek an - "Foto" und "Datei" zeigten dasselbe Menue.
+                Auf dem Rechner faellt das nicht auf, dort ist es in beiden
+                Faellen derselbe Dateidialog.
+                """
+                PLUS = 'path[d="M12 5v14M5 12h14"]'
+                wege = {}
+                for knopf in ("Dokument scannen", "Foto auswählen", "Datei hochladen"):
+                    seite.reload(wait_until="networkidle")
+                    seite.wait_for_timeout(2600)
+                    seite.locator('text="Dokumente"').last.click()
+                    seite.wait_for_timeout(800)
+                    seite.locator("svg").filter(has=seite.locator(PLUS)).last.click()
+                    seite.wait_for_timeout(1100)
+                    with seite.expect_file_chooser() as wahl:
+                        seite.locator(f'text="{knopf}"').last.click()
+                    feld = wahl.value.element
+                    wege[knopf] = {
+                        "accept": feld.get_attribute("accept") or "",
+                        "mehrere": wahl.value.is_multiple(),
+                        "kamera": feld.get_attribute("capture"),
+                    }
+                    wahl.value.set_files([])
+                    seite.keyboard.press("Escape")
+                    seite.wait_for_timeout(500)
+
+                assert wege["Dokument scannen"]["kamera"] == "environment", \
+                    "Scannen fragt nicht die Kamera an"
+                assert "image" in wege["Foto auswählen"]["accept"], \
+                    "Foto bietet keine Bilder an"
+                assert "image" not in wege["Datei hochladen"]["accept"], \
+                    "Datei bietet Bilder an – dann zeigt iOS dasselbe Menue wie bei Foto"
+                assert ".pdf" in wege["Datei hochladen"]["accept"], "Datei nimmt keine PDF"
+                unterschiede = {(w["accept"], w["mehrere"], w["kamera"]) for w in wege.values()}
+                assert len(unterschiede) == 3, f"zwei Wege sind gleich: {wege}"
+                return "Kamera, Mediathek und Dateien – drei verschiedene Dialoge"
+
             def t_datei_kommt_beim_server_an():
                 seite.reload(wait_until="networkidle")
                 seite.wait_for_timeout(2600)
@@ -818,6 +859,7 @@ def main():
                 ("Hilfe oeffnet den Quelltext", t_hilfe_oeffnet_wirklich),
                 ("Mailabruf stoesst wirklich an", t_mailabruf_stoesst_wirklich_an),
                 ("Alle Wege zum Hochladen oeffnen", t_alle_drei_wege_oeffnen),
+                ("Die drei Wege sind verschieden", t_die_drei_wege_sind_verschieden),
                 ("Gewaehlte Datei kommt an", t_datei_kommt_beim_server_an),
                 ("Mehrseitig scannen", t_scannen_mehrseitig),
                 ("Zuschnitt wirkt auf das Bild", t_zuschnitt_wirkt),

@@ -78,6 +78,20 @@ const SORT_API = { neu: '-created', alt: 'created', titel: 'title', absender: 'c
 // Suchverlauf im Browser, damit er einen Neustart ueberlebt.
 const SUCH_KEY = 'paperless.suchverlauf';
 
+// Was der Server annimmt - ohne Bilder, die haben ihren eigenen Weg.
+//
+// Genau daran lag es, dass "Foto" und "Datei" dasselbe Menue zeigten:
+// erlaubt die Auswahl auch nur einen Bildtyp, bietet iOS die Fotomediathek
+// an statt der Dateien. Erst eine Liste ganz ohne Bilder fuehrt dorthin,
+// wo Dateien liegen.
+//
+// Die Liste stammt aus dem, was diese Instanz tatsaechlich verarbeitet
+// (documents.parsers.get_supported_file_extensions) - Office-Formate sind
+// dabei, weil Tika und Gotenberg laufen. Ohne sie lehnt der Server sie ab,
+// was er auch verstaendlich meldet.
+const DOKUMENT_TYPEN = '.pdf,.txt,.csv,.rtf,.eml,.doc,.docx,.odt,.xls,.xlsx,.ods,'
+                     + '.ppt,.pptx,.odp,.odg,application/pdf,text/plain';
+
 // Der Quelltext. Steht hier, weil ihn zwei Stellen brauchen: die Hilfe und
 // der Datenschutzhinweis.
 const PROJEKT_URL = 'https://github.com/DamienDrash/docuwunder';
@@ -1976,11 +1990,13 @@ class Oberflaeche extends React.Component {
       tabbarOn: !nav.length && !s.selMode && !s.scan, selbarOn: s.selMode && s.tab === 'docs' && !nav.length,
       openSettings: () => this.pushV({ t: 'set' }), openSearch: () => this.setState(st => ({ stack: [...st.stack, { t: 'search' }], q: '', qRes: [], qErr: '', qBusy: false, qEinfach: false })), openAdd: () => this.setState({ sheet: 'add' }),
       startScan: () => this.scanOeffnen(),
+      // Ein Bild wird ein Dokument. Mehrere Aufnahmen zu einem Dokument
+      // zusammenzufassen ist die Aufgabe von "Scannen" - beides hier zu
+      // vermischen macht aus zwei klaren Wegen einen unklaren.
       pickPhoto: () => this.dateiWaehlen('image/*', false),
-      // Mehrere erlaubt, weil das Sheet genau das zusagt: PDF oder Bild,
-      // auch mehrere. Jede Datei wird ein eigenes Dokument - anders als
+      // Mehrere erlaubt: jede Datei wird ein eigenes Dokument - anders als
       // beim Scannen, wo mehrere Aufnahmen zu einem PDF werden.
-      pickFile: () => this.dateiWaehlen('application/pdf,image/*', true),
+      pickFile: () => this.dateiWaehlen(DOKUMENT_TYPEN, true),
     };
   }
 
