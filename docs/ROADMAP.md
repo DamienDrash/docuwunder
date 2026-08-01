@@ -350,6 +350,37 @@ Zwei Entscheidungen, die der Ehrlichkeit dienen:
   dieses Projekt schon zweimal antreten musste. Aus demselben Grund zählt die Zeile darunter
   im Ordnermodus „2 Ordner · 2 Dokumente" statt der Gesamtzahl.
 
+### ✅ 3.10 Der Umschalter war unsichtbar
+
+Die Ordneransicht aus 3.9 war nicht erreichbar — nicht wegen eines Fehlers in ihr, sondern
+weil der Umschalter **in der waagerecht scrollenden Filterzeile** lag. Bei vier aktiven
+Filtern stand er bei x = 700 in einem 390 px breiten Fenster: vorhanden, im Baum auffindbar,
+jeder Test hätte ihn geklickt — und für niemanden sichtbar. Man hätte die Filterzeile bis ans
+Ende schieben müssen, um ihn zu finden.
+
+Er sitzt jetzt fest neben der Zeile. Die Prüfung fragt nicht mehr, ob es ihn gibt, sondern ob
+er im Bild liegt (`getBoundingClientRect` gegen `innerWidth`) — eine dritte Art von Attrappe
+nach „Knopf ohne Funktion" und „Knopf, dessen Menü nichts unterscheidet".
+
+### ✅ 3.11 Ziehen zum Aktualisieren
+
+Am oberen Rand nach unten ziehen lädt neu — in allen vier Reitern. Was dabei geladen wird,
+hängt davon ab, worauf man sieht: im Ordnermodus der aktuelle Ordner, sonst Liste und
+Stammdaten.
+
+Selbst gebaut, weil es dafür nichts Eingebautes gibt: der Browser kennt nur sein eigenes
+Überziehen, und das ist in `index.html` abgeschaltet — in einer installierten App ist ein
+federnder Bildschirm falsch.
+
+Drei Details, die den Unterschied machen:
+
+- **Nur ganz oben.** Sonst wäre die Geste dieselbe wie Scrollen, und man würde mitten in der
+  Liste versehentlich neu laden.
+- **Gedämpft (Faktor 0,45) und mit Schwelle (62 px).** Der Finger legt mehr Weg zurück als der
+  Inhalt; das macht den Widerstand spürbar und verhindert ein Auslösen beim Wischen.
+- **Kein Markieren.** Mit der Maus gezogen markierte der Browser sonst den Text unter dem
+  Zeiger. Auf dem Telefon fällt das nicht an, am Rechner schon.
+
 ---
 
 ## Phase 4 — Aufräumen

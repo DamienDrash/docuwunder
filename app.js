@@ -92,6 +92,12 @@ const BILDER_MAX = 120;
 // Wie viele auf einmal geholt werden. Mehr macht die Liste nicht schneller,
 // belegt aber die Verbindungen, die gleichzeitig auch die Daten brauchen.
 const BILDER_GLEICHZEITIG = 6;
+
+// Wie weit sich der Inhalt hoechstens ziehen laesst und ab wann Loslassen neu
+// laedt. Die Schwelle liegt deutlich unter dem Maximum: wer zieht, soll den
+// Punkt erreichen, ohne zu zerren.
+const ZIEH_MAX = 96;
+const ZIEH_SCHWELLE = 62;
 // Ein Dokument steht je nach Bildschirm in mehreren Listen zugleich. Eine
 // Aenderung muss in allen ankommen, sonst zeigen zwei Bildschirme
 // gleichzeitig verschiedene Staende desselben Dokuments.
@@ -120,6 +126,7 @@ class Oberflaeche extends React.Component {
       // Scannen und Hochladen: der laufende Scan und was gerade zum Server
       // unterwegs ist. Was dazugehoert, steht in erfassen.js.
       ...DWErfassen.start(),
+      zieh: null,
       toast: null, undoFn: null, undoLabel: 'Widerrufen', swipe: null,
       editDraft: null, orgDraft: null,
       // --- Daten aus der API -------------------------------------------
@@ -1352,6 +1359,66 @@ class Oberflaeche extends React.Component {
     }).catch(e => this.note('Export fehlgeschlagen: ' + e.message));
   }
 
+  // --- Ziehen zum Aktualisieren -------------------------------------------
+  //
+  // Am oberen Rand nach unten ziehen laedt neu. Das kennt man von jeder
+  // Listen-App, und es ersetzt die Frage "ist das noch aktuell?" durch eine
+  // Geste.
+  //
+  // Selbst gebaut, weil es dafuer nichts Eingebautes gibt: der Browser kennt
+  // nur sein eigenes Ueberziehen, und das ist in index.html abgeschaltet - in
+  // einer installierten App ist ein federnder Bildschirm falsch.
+  //
+  // Gezogen wird nur, wenn die Liste schon ganz oben steht. Sonst waere die
+  // Geste dieselbe wie Scrollen, und man wuerde mitten in der Liste
+  // versehentlich neu laden.
+
+  ziehStart(e) {
+    const el = e.currentTarget;
+    if (!el || el.scrollTop > 0) return;
+    if (this.state.zieh && this.state.zieh.laeuft) return;
+    this._zieh = { y0: e.clientY, el: el };
+  }
+
+  ziehZug(e) {
+    const z = this._zieh;
+    if (!z) return;
+    // Wer waehrend des Ziehens doch scrollt, hat es nicht gemeint.
+    if (z.el.scrollTop > 0) { this._zieh = null; if (this.state.zieh) this.setState({ zieh: null }); return; }
+    const roh = e.clientY - z.y0;
+    if (roh <= 0) { if (this.state.zieh) this.setState({ zieh: null }); return; }
+    // Gedaempft: der Finger legt mehr Weg zurueck als der Inhalt. Das macht
+    // den Widerstand spuerbar und verhindert, dass ein Wischen sofort ausloest.
+    const dy = Math.min(ZIEH_MAX, roh * 0.45);
+    // Mit der Maus gezogen markiert der Browser sonst den Text, ueber den der
+    // Zeiger laeuft. Auf einem Telefon faellt das nicht an, am Rechner schon.
+    if (!this.state.zieh) {
+      const aus = window.getSelection && window.getSelection();
+      if (aus && aus.removeAllRanges) aus.removeAllRanges();
+    }
+    this.setState({ zieh: { dy: dy, reif: dy >= ZIEH_SCHWELLE, laeuft: false } });
+  }
+
+  ziehEnde() {
+    const z = this.state.zieh;
+    this._zieh = null;
+    if (!z || z.laeuft) return;
+    if (!z.reif) { this.setState({ zieh: null }); return; }
+    this.setState({ zieh: { dy: ZIEH_SCHWELLE, reif: true, laeuft: true } });
+    this.aktualisieren()
+      .catch(() => this.note('Aktualisieren fehlgeschlagen'))
+      .then(() => this.setState({ zieh: null }));
+  }
+
+  // Was "aktualisieren" heisst, haengt davon ab, worauf man gerade sieht.
+  aktualisieren() {
+    const s = this.state;
+    if (s.tab === 'docs' && s.view === 'ordner') {
+      return Promise.all([this.loadAll(), this.ordnerTabGehe(s.ordnerTabPfad || '')]);
+    }
+    return Promise.all([this.loadAll(), this.reloadDocs()]);
+  }
+
   // --- Vorschaubilder in den Listen ---------------------------------------
   //
   // Paperless legt zu jedem Dokument ein Vorschaubild ab. Die Listen zeigten
@@ -1866,6 +1933,16 @@ class Oberflaeche extends React.Component {
       docsEmptyText: this.filterAktiv()
         ? 'Keine Dokumente passen zu den gewählten Filtern.'
         : 'Noch keine Dokumente. Lade eines hoch, um zu beginnen.',
+      // Ziehen zum Aktualisieren. Dieselben Handler an allen vier Reitern.
+      ziehStart: (e) => this.ziehStart(e),
+      ziehZug: (e) => this.ziehZug(e),
+      ziehEnde: () => this.ziehEnde(),
+      ziehDy: s.zieh ? s.zieh.dy : 0,
+      ziehAn: !!s.zieh,
+      ziehLaeuft: !!(s.zieh && s.zieh.laeuft),
+      ziehText: s.zieh && s.zieh.laeuft ? 'Wird geladen …'
+              : s.zieh && s.zieh.reif ? 'Loslassen zum Aktualisieren'
+              : 'Zum Aktualisieren ziehen',
       viewIsList: s.view === 'liste', viewIsGrid: s.view === 'raster', viewIsOrdner: s.view === 'ordner',
       // --- Ordneransicht im Reiter Dokumente ---
       // Die Ordner entstehen aus den Ablageorten: ein Name wie

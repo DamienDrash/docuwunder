@@ -17,7 +17,11 @@
   };
 
   V.tabDocs = function (v, html, stil) {
-    return v.tabDocs ? html`<div data-screen-label="Dokumente" style=${stil(`${v.paneL}overflow-y:auto;padding:64px 0 128px`)}>
+    return v.tabDocs ? html`<div data-screen-label="Dokumente" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
+  ${v.ziehAn ? html`<div style=${stil(`position:absolute;left:0;right:0;top:${Math.round(v.ziehDy) - 34}px;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:none;z-index:3`)}>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" style=${stil(v.ziehLaeuft ? 'animation:spin 1s linear infinite' : 'transition:transform .15s')}><path d="M12 3a9 9 0 109 9"></path></svg>
+    <span style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
+  </div>` : null}
   <div style=${stil('display:flex;align-items:center;justify-content:space-between;padding:8px 16px 0 20px')}>
     <div style=${stil('font-size:31px;font-weight:700;letter-spacing:-0.6px')}>Dokumente</div>
     <div style=${stil('display:flex;gap:8px;align-items:center')}>
@@ -29,7 +33,13 @@
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M16.8 16.8L21 21"></path></svg>
     <span style=${stil('font-size:16px')}>Titel, Absender oder Inhalt</span>
   </div>
-  <div style=${stil('display:flex;gap:8px;overflow-x:auto;padding:12px 16px 4px;align-items:center')}>
+  ${''/* Die Filterzeile scrollt waagerecht - bei mehreren Filtern passt sie
+       nicht mehr ins Bild. Der Umschalter der Ansicht darf deshalb NICHT
+       darin liegen: er wanderte sonst mit hinaus, und niemand findet einen
+       Knopf, den er erst hervorscrollen muss. Er sitzt jetzt daneben und
+       bleibt stehen. */}
+  <div style=${stil('display:flex;gap:8px;align-items:center;padding:12px 16px 4px')}>
+    <div style=${stil('flex:1;min-width:0;display:flex;gap:8px;overflow-x:auto;align-items:center')}>
     ${''/* Filter und Sortierung wirken auf die Liste, nicht auf Ordner.
          Im Ordnermodus stehen zu lassen, was dort nichts tut, waere
          genau die Sorte Bedienung, die diese App schon zu oft hatte. */}
@@ -42,6 +52,7 @@
       <span style=${stil('font-size:13.5px;font-weight:500;color:var(--lab2)')}>${v.sortLabel}</span>
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--lab2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"></path></svg>
     </div>`}
+    </div>
     <div onClick=${v.toggleView} style=${stil('width:32px;height:32px;border-radius:999px;background:var(--fill);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer')}>
       ${v.viewIsList ? html`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--lab2)" stroke-width="1.8"><rect x="3.5" y="3.5" width="7.2" height="7.2" rx="1.5"></rect><rect x="13.3" y="3.5" width="7.2" height="7.2" rx="1.5"></rect><rect x="3.5" y="13.3" width="7.2" height="7.2" rx="1.5"></rect><rect x="13.3" y="13.3" width="7.2" height="7.2" rx="1.5"></rect></svg>` : null}
       ${v.viewIsGrid ? html`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--lab2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5a2 2 0 012-2h4l2 2.5h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>` : null}
@@ -143,7 +154,11 @@
   };
 
   V.tabHome = function (v, html, stil) {
-    return v.tabHome ? html`<div data-screen-label="Übersicht" style=${stil(`${v.paneL}overflow-y:auto;padding:64px 0 128px`)}>
+    return v.tabHome ? html`<div data-screen-label="Übersicht" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
+  ${v.ziehAn ? html`<div style=${stil(`position:absolute;left:0;right:0;top:${Math.round(v.ziehDy) - 34}px;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:none;z-index:3`)}>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" style=${stil(v.ziehLaeuft ? 'animation:spin 1s linear infinite' : 'transition:transform .15s')}><path d="M12 3a9 9 0 109 9"></path></svg>
+    <span style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
+  </div>` : null}
   <div style=${stil('display:flex;align-items:center;justify-content:space-between;padding:8px 20px 0')}>
     <div style=${stil('font-size:31px;font-weight:700;letter-spacing:-0.6px')}>Übersicht</div>
     <div onClick=${v.openSettings} style=${stil('width:36px;height:36px;border-radius:50%;background:var(--fill2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--lab2);cursor:pointer')}>${v.kontoInitialen}</div>
@@ -222,7 +237,11 @@
   };
 
   V.tabInbox = function (v, html, stil) {
-    return v.tabInbox ? html`<div data-screen-label="Posteingang" style=${stil(`${v.paneL}overflow-y:auto;padding:64px 0 128px`)}>
+    return v.tabInbox ? html`<div data-screen-label="Posteingang" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
+  ${v.ziehAn ? html`<div style=${stil(`position:absolute;left:0;right:0;top:${Math.round(v.ziehDy) - 34}px;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:none;z-index:3`)}>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" style=${stil(v.ziehLaeuft ? 'animation:spin 1s linear infinite' : 'transition:transform .15s')}><path d="M12 3a9 9 0 109 9"></path></svg>
+    <span style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
+  </div>` : null}
   <div style=${stil('padding:8px 20px 0')}>
     <div style=${stil('font-size:31px;font-weight:700;letter-spacing:-0.6px')}>Posteingang</div>
     <div style=${stil('font-size:14px;color:var(--lab2);margin-top:2px')}>${v.inboxCountLabel}</div>
@@ -255,7 +274,11 @@
   };
 
   V.tabMore = function (v, html, stil) {
-    return v.tabMore ? html`<div data-screen-label="Mehr" style=${stil(`${v.paneL}overflow-y:auto;padding:64px 0 128px`)}>
+    return v.tabMore ? html`<div data-screen-label="Mehr" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
+  ${v.ziehAn ? html`<div style=${stil(`position:absolute;left:0;right:0;top:${Math.round(v.ziehDy) - 34}px;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:none;z-index:3`)}>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" style=${stil(v.ziehLaeuft ? 'animation:spin 1s linear infinite' : 'transition:transform .15s')}><path d="M12 3a9 9 0 109 9"></path></svg>
+    <span style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
+  </div>` : null}
   <div style=${stil('font-size:31px;font-weight:700;letter-spacing:-0.6px;padding:8px 20px 0')}>Mehr</div>
   <div onClick=${v.openSettings} data-konto="1" style=${stil('background:var(--card);border-radius:16px;margin:16px 16px 0;padding:14px 16px;display:flex;gap:13px;align-items:center;cursor:pointer')}>
     <div style=${stil('width:46px;height:46px;border-radius:50%;background:var(--fill2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:var(--lab2);flex-shrink:0')}>${v.kontoInitialen}</div>

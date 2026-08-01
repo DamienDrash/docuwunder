@@ -374,6 +374,73 @@ def main():
                 assert bild.count() > 0, "kein Vorschaubild im Dokument"
                 return "Vorschau geladen und angezeigt"
 
+            # --- Bedienbarkeit der Kopfzeile ---------------------------------
+            # Der Umschalter der Ansicht lag in der Filterzeile, und die
+            # scrollt waagerecht. Bei vier Filtern stand er bei x=700 in einem
+            # 390 Pixel breiten Fenster - vorhanden, im Baum auffindbar, aber
+            # fuer niemanden sichtbar. Deshalb wird hier nicht geprueft, ob es
+            # ihn gibt, sondern ob er im Bild liegt.
+
+            def t_umschalter_ist_sichtbar():
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(3000)
+                seite.locator('text="Dokumente"').last.click()
+                seite.wait_for_timeout(2200)
+                lage = seite.evaluate(
+                    "() => { const k = [...document.querySelectorAll('div')]"
+                    ".find(d => d.style.borderRadius === '999px' && d.style.width === '32px');"
+                    " if (!k) return null; const r = k.getBoundingClientRect();"
+                    " return { links: r.left, rechts: r.right, fenster: innerWidth }; }")
+                assert lage, "Umschalter nicht gefunden"
+                assert lage["links"] >= 0 and lage["rechts"] <= lage["fenster"], \
+                    f"Umschalter liegt ausserhalb des Fensters: {lage}"
+                return f"sichtbar bei {round(lage['rechts'])} von {lage['fenster']} px"
+
+            # --- Ziehen zum Aktualisieren ------------------------------------
+
+            def ziehen(reiter, weit=True):
+                seite.mouse.move(200, 300)
+                seite.mouse.down()
+                for y in ((340, 400, 460) if weit else (315, 330)):
+                    seite.mouse.move(200, y)
+                    seite.wait_for_timeout(70)
+                gezogen = seite.evaluate(
+                    f"() => (document.querySelector(`[data-screen-label='{reiter}']`)"
+                    " || {style:{}}).style.transform")
+                seite.mouse.up()
+                return gezogen
+
+            def t_ziehen_laedt_neu():
+                for reiter in ("Übersicht", "Dokumente", "Posteingang", "Mehr"):
+                    seite.locator(f'text="{reiter}"').last.click()
+                    seite.wait_for_timeout(1800)
+                    anfragen = []
+                    seite.on("request", lambda r: anfragen.append(r.url)
+                             if "/api/" in r.url else None)
+                    gezogen = ziehen(reiter)
+                    assert gezogen and gezogen != "translateY(0px)", \
+                        f"{reiter} laesst sich nicht ziehen ({gezogen})"
+                    # Federt zurueck, sobald das Nachladen fertig ist.
+                    seite.wait_for_function(
+                        f"() => {{ const c = document.querySelector("
+                        f"`[data-screen-label='{reiter}']`);"
+                        " return c && c.style.transform === 'translateY(0px)'; }",
+                        timeout=20000)
+                    assert anfragen, f"{reiter} hat nichts nachgeladen"
+                return "vier Reiter, jeder laedt und federt zurueck"
+
+            def t_kurzes_ziehen_laedt_nicht():
+                # Sonst waere jedes Scrollen am oberen Rand ein Neuladen.
+                seite.locator('text="Dokumente"').last.click()
+                seite.wait_for_timeout(1800)
+                anfragen = []
+                seite.on("request", lambda r: anfragen.append(r.url)
+                         if "/api/documents/?" in r.url else None)
+                ziehen("Dokumente", weit=False)
+                seite.wait_for_timeout(2500)
+                assert not anfragen, f"kurzes Ziehen hat geladen: {len(anfragen)}"
+                return "unterhalb der Schwelle passiert nichts"
+
             # --- Ordneransicht im Reiter Dokumente ---------------------------
             # Der Umschalter kennt drei Ansichten. Geprueft wird die Wirkung:
             # dass jeder Ordner den Server fragt (die Anzeige also den Bestand
@@ -950,6 +1017,9 @@ def main():
                 ("Filter laedt neu", t_filter_laedt_neu),
                 ("Suche geht an den Server", t_suche_serverseitig),
                 ("Treffer oeffnet mit Vorschau", t_treffer_oeffnet_mit_vorschau),
+                ("Umschalter ist sichtbar", t_umschalter_ist_sichtbar),
+                ("Ziehen laedt neu", t_ziehen_laedt_neu),
+                ("Kurzes Ziehen laedt nicht", t_kurzes_ziehen_laedt_nicht),
                 ("Ordneransicht im Reiter", t_ordneransicht_im_reiter),
                 ("Listen zeigen echte Vorschau", t_listen_zeigen_echte_vorschau),
                 ("Textgroesse ist eine Anzeige", t_textgroesse_ist_anzeige),
