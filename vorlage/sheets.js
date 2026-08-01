@@ -54,13 +54,9 @@
         <div style=${stil('width:36px;height:36px;border-radius:9px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0')}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--onAcc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2h3.1l1.9-2.7h6l1.9 2.7H20v10.3H4z"></path><circle cx="12" cy="13" r="3.1"></circle></svg></div>
         <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Dokument scannen</div><div style=${stil(S.neben)}>Mehrere Aufnahmen werden ein Dokument</div></div>
       </div>
-      <div onClick=${v.pickPhoto} style=${stil('display:flex;align-items:center;gap:13px;background:var(--fill);border-radius:14px;padding:13px 14px;cursor:pointer')}>
-        <div style=${stil('width:36px;height:36px;border-radius:9px;background:#34C759;display:flex;align-items:center;justify-content:center;flex-shrink:0')}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"></rect><circle cx="8.6" cy="10" r="1.5"></circle><path d="M20.5 14.5L16 10l-8.6 9"></path></svg></div>
-        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Foto auswählen</div><div style=${stil(S.neben)}>Ein Bild aus der Mediathek</div></div>
-      </div>
       <div onClick=${v.pickFile} style=${stil('display:flex;align-items:center;gap:13px;background:var(--fill);border-radius:14px;padding:13px 14px;cursor:pointer')}>
         <div style=${stil('width:36px;height:36px;border-radius:9px;background:#5856D6;display:flex;align-items:center;justify-content:center;flex-shrink:0')}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h6.5L18 8v12.5H7z"></path><path d="M13.5 3.5V8H18"></path></svg></div>
-        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Datei hochladen</div><div style=${stil(S.neben)}>PDF, Text oder Office – auch mehrere</div></div>
+        <div style=${stil('flex:1')}><div style=${stil('font-size:16px;font-weight:600')}>Datei hochladen</div><div style=${stil(S.neben)}>PDF, Bild, Text oder Office – auch mehrere</div></div>
       </div>
     </div>` : null}
 

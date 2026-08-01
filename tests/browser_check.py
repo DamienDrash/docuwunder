@@ -473,7 +473,7 @@ def main():
                 # Hinzufuegen-Sheet. Sie tragen verschiedene Beschriftungen und
                 # sind schon einmal auseinandergelaufen.
                 stumm = []
-                for knopf in ("Scannen", "Foto", "Datei"):
+                for knopf in ("Scannen", "Datei"):
                     try:
                         with seite.expect_file_chooser(timeout=5000) as wahl:
                             seite.locator(f'text="{knopf}"').last.click()
@@ -484,7 +484,7 @@ def main():
                     seite.wait_for_timeout(700)
 
                 PLUS = 'path[d="M12 5v14M5 12h14"]'
-                for knopf in ("Dokument scannen", "Foto auswählen", "Datei hochladen"):
+                for knopf in ("Dokument scannen", "Datei hochladen"):
                     seite.locator('text="Dokumente"').last.click()
                     seite.wait_for_timeout(800)
                     seite.locator("svg").filter(has=seite.locator(PLUS)).last.click()
@@ -500,20 +500,24 @@ def main():
 
                 assert not stumm, f"kein Dialog bei: {stumm}"
                 assert not fehlerkonsole, "; ".join(fehlerkonsole[:3])
-                return "beide Einstiege, je drei Wege"
+                return "beide Einstiege, je zwei Wege"
 
-            def t_die_drei_wege_sind_verschieden():
-                """Drei Eintraege muessen zu drei verschiedenen Dialogen fuehren.
+            def t_die_wege_sind_verschieden():
+                """Zwei Eintraege muessen zu zwei verschiedenen Dialogen fuehren.
 
-                Sie taten es nicht: "Datei" erlaubte 'application/pdf,image/*'.
-                Sobald auch nur ein Bildtyp erlaubt ist, bietet iOS die
-                Fotomediathek an - "Foto" und "Datei" zeigten dasselbe Menue.
-                Auf dem Rechner faellt das nicht auf, dort ist es in beiden
-                Faellen derselbe Dateidialog.
+                Vorher waren es drei, und zwei davon oeffneten dasselbe: eine
+                Seite kann dem System nur sagen, WELCHE Typen sie annimmt -
+                welche Quellen es anbietet, entscheidet es selbst. Hinter
+                "Foto" standen deshalb auch Dateien und Google Drive. Ein
+                Foto-Picker laesst sich aus dem Web nicht anfordern, also gibt
+                es den Eintrag nicht mehr.
+
+                Was bleibt, muss sich unterscheiden: Scannen fragt die Kamera
+                an, Datei nicht.
                 """
                 PLUS = 'path[d="M12 5v14M5 12h14"]'
                 wege = {}
-                for knopf in ("Dokument scannen", "Foto auswählen", "Datei hochladen"):
+                for knopf in ("Dokument scannen", "Datei hochladen"):
                     seite.reload(wait_until="networkidle")
                     seite.wait_for_timeout(2600)
                     seite.locator('text="Dokumente"').last.click()
@@ -534,14 +538,16 @@ def main():
 
                 assert wege["Dokument scannen"]["kamera"] == "environment", \
                     "Scannen fragt nicht die Kamera an"
-                assert "image" in wege["Foto auswählen"]["accept"], \
-                    "Foto bietet keine Bilder an"
-                assert "image" not in wege["Datei hochladen"]["accept"], \
-                    "Datei bietet Bilder an – dann zeigt iOS dasselbe Menue wie bei Foto"
-                assert ".pdf" in wege["Datei hochladen"]["accept"], "Datei nimmt keine PDF"
+                assert wege["Datei hochladen"]["kamera"] is None, \
+                    "Datei springt in die Kamera"
+                for was in ("image/*", ".pdf"):
+                    assert was in wege["Datei hochladen"]["accept"], \
+                        f"Datei nimmt {was} nicht an"
+                assert seite.locator('text="Foto auswählen"').count() == 0, \
+                    "der Foto-Eintrag ist wieder da"
                 unterschiede = {(w["accept"], w["mehrere"], w["kamera"]) for w in wege.values()}
-                assert len(unterschiede) == 3, f"zwei Wege sind gleich: {wege}"
-                return "Kamera, Mediathek und Dateien – drei verschiedene Dialoge"
+                assert len(unterschiede) == 2, f"beide Wege sind gleich: {wege}"
+                return "Kamera und Dateiauswahl – zwei verschiedene Dialoge"
 
             def t_datei_kommt_beim_server_an():
                 seite.reload(wait_until="networkidle")
@@ -550,7 +556,7 @@ def main():
                 seite.on("response", lambda r: antworten.append((r.status, r.url))
                          if r.request.method == "POST" else None)
                 with seite.expect_file_chooser() as wahl:
-                    seite.locator('text="Foto"').last.click()
+                    seite.locator('text="Datei"').last.click()
                 wahl.value.set_files([str(pathlib.Path(__file__).parent / "bilder" / "hoch.jpg")])
                 seite.wait_for_timeout(4000)
                 assert any(s == 200 and "post_document" in u for s, u in antworten), \
@@ -567,7 +573,7 @@ def main():
                             method="DELETE")
                         weg.add_header("Authorization", "Token " + TOKEN)
                         urllib.request.urlopen(weg)
-                        return "ueber „Foto“ gewaehlte Datei liegt im Server"
+                        return "ueber „Datei“ gewaehlte Datei liegt im Server"
                 raise AssertionError("Server hat die Datei nicht verarbeitet")
 
             # --- Scannen -----------------------------------------------------
@@ -859,7 +865,7 @@ def main():
                 ("Hilfe oeffnet den Quelltext", t_hilfe_oeffnet_wirklich),
                 ("Mailabruf stoesst wirklich an", t_mailabruf_stoesst_wirklich_an),
                 ("Alle Wege zum Hochladen oeffnen", t_alle_drei_wege_oeffnen),
-                ("Die drei Wege sind verschieden", t_die_drei_wege_sind_verschieden),
+                ("Die Wege sind verschieden", t_die_wege_sind_verschieden),
                 ("Gewaehlte Datei kommt an", t_datei_kommt_beim_server_an),
                 ("Mehrseitig scannen", t_scannen_mehrseitig),
                 ("Zuschnitt wirkt auf das Bild", t_zuschnitt_wirkt),

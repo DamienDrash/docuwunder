@@ -285,6 +285,14 @@ der Bildschirme** statisch auf ihre Wirkung abgebildet. Ergebnis: 114 unauffäll
 | „Textgröße" | sah aus wie ein Schalter, zeigte nur einen Hinweis | Anzeige ohne `cursor:pointer` — die App kann daran nichts ändern |
 | „Jetzt abrufen" | „Der Abruf läuft nach dem Zeitplan des Servers" | `POST /mail_accounts/{id}/process/`; im Server-Log als `trigger_source: manual` belegt. Ohne Konto heißt der Knopf „Kein Konto eingerichtet" |
 
+**Nachtrag:** „Foto" und „Datei" öffneten auf dem Gerät dieselbe Systemauswahl — inklusive
+Dateien und Google Drive. Eine Seite kann dem System nur mitteilen, *welche Typen* sie annimmt
+(`accept`); welche Quellen es daraufhin anbietet, entscheidet es selbst. Einen Foto-Picker
+kann das Web nicht anfordern, das können nur native Apps. Zwei Einträge, die dieselbe Auswahl
+öffnen, sind keine zwei Wege, sondern ein Versprechen, das das System nicht hält — deshalb
+gibt es jetzt zwei statt drei: **Dokument scannen** (Kamera, mehrere Aufnahmen werden ein
+Dokument) und **Datei hochladen** (PDF, Bild, Text oder Office, auch mehrere).
+
 Zwei neue Netze, beide mit Gegenprobe:
 
 - **`tests/aufrufe_check.py`** — jedes `this.name()` muss eine Definition haben, in der Klasse

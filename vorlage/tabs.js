@@ -122,10 +122,6 @@
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.2h3.1l1.9-2.7h6l1.9 2.7H20v10.3H4z"></path><circle cx="12" cy="13" r="3.1"></circle></svg>
       <span style=${stil('font-size:12.5px;font-weight:600;color:var(--acc)')}>Scannen</span>
     </div>
-    <div onClick=${v.pickPhoto} style=${stil('flex:1;background:var(--card);border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer')}>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"></rect><circle cx="8.6" cy="10" r="1.5"></circle><path d="M20.5 14.5L16 10l-8.6 9"></path></svg>
-      <span style=${stil('font-size:12.5px;font-weight:600;color:var(--acc)')}>Foto</span>
-    </div>
     <div onClick=${v.pickFile} style=${stil('flex:1;background:var(--card);border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer')}>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h6.5L18 8v12.5H7z"></path><path d="M13.5 3.5V8H18"></path></svg>
       <span style=${stil('font-size:12.5px;font-weight:600;color:var(--acc)')}>Datei</span>
