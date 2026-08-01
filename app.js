@@ -1985,7 +1985,11 @@ class Oberflaeche extends React.Component {
       loading: false, loadErr: null
     });
   }
-  renderVals() {
+
+  // Zwischenwerte, die mehrere Abschnitte brauchen: einmal berechnet und als
+  // Kontext weitergereicht. Die Abschnitte darunter lesen daraus, statt erneut
+  // zu rechnen - sonst haette ein Render mehrere Wahrheiten.
+  renderKontext() {
     const s = this.state, dark = this.isDark(), top = this.top() || {}, inbox = this.inboxEff();
     const wide = this.isWide(), nav = this.navStack();
     const chip = (on) => 'height:32px;padding:0 13px;border-radius:999px;display:flex;align-items:center;flex-shrink:0;cursor:pointer;font-size:13.5px;font-weight:600;' + (on ? 'background:var(--acc);color:var(--onAcc)' : 'background:var(--fill);color:var(--lab)');
@@ -2013,6 +2017,13 @@ class Oberflaeche extends React.Component {
     // Dokumenten, statt einer festen Liste.
     const datumOpts = Array.from(new Set(s.docs.concat(s.recent).map(d => d.datum).filter(Boolean))).slice(0, 12);
     const pickOpts = s.pickField === 'Absender' ? s.absM : s.pickField === 'Dokumentart' ? s.artenM : s.pickField === 'Schlagwörter' ? s.tagsM : s.pickField === 'Ablageort' ? s.orteM : datumOpts;
+    return { s, dark, top, inbox, wide, nav, chip, iconSq, sv, dDoc, rev, org, res, share, fundParts, ed, orgD, revF, selN, userS, listeKind, listeDocs, auto, datumOpts, pickOpts };
+  }
+
+  // --- Rahmen ------------------------------------------------------
+  // Farbschema, Split-View-Rahmen und der Wechsel zwischen App und Onboarding.
+  valsRahmen(k) {
+    const { s, dark, top, wide, dDoc } = k;
     return {
       isDark: dark,
       themeVars: dark ? { ...SICHER, background: 'var(--bg)', color: 'var(--lab)', '--bg': '#0D1B2A', '--card': '#152436', '--fill': 'rgba(120,120,128,0.24)', '--fill2': 'rgba(120,120,128,0.36)', '--lab': '#FFFFFF', '--lab2': 'rgba(226,239,237,0.62)', '--lab3': 'rgba(235,235,245,0.30)', '--sep': 'rgba(142,229,218,0.16)', '--acc': '#8EE5DA', '--onAcc': '#0D1B2A', '--mint': '#8EE5DA', '--accT': 'rgba(142,229,218,0.16)', '--grn': '#8EE5DA', '--org': '#F0B454', '--red': '#FF6B60', '--glass': 'rgba(21,36,54,0.86)', '--gbor': 'rgba(255,255,255,0.10)', '--mark': 'rgba(142,229,218,0.32)', '--pg': '#1B2B3E', '--pgl': 'rgba(235,235,245,0.16)' } : { ...SICHER, color: 'var(--lab)' },
@@ -2021,10 +2032,6 @@ class Oberflaeche extends React.Component {
       // screenEff() das Onboarding waehlen wuerde. Es hat dort aber nichts zu
       // suchen - es wuerde unter dem Entsperrbildschirm kurz aufblitzen.
       showOnb: this.screenEff() === 'onb' && !s.sperreOffen,
-      tabHome: s.tab === 'home' && !nav.length, tabDocs: s.tab === 'docs' && !nav.length, tabInbox: s.tab === 'inbox' && !nav.length, tabMore: s.tab === 'more' && !nav.length,
-      goHome: () => this.setState({ tab: 'home', stack: [], selMode: false, sel: [] }), goDocs: () => this.setState({ tab: 'docs', stack: [], selMode: false, sel: [] }), goInbox: () => this.setState({ tab: 'inbox', stack: [], selMode: false, sel: [] }), goMore: () => this.setState({ tab: 'more', stack: [], selMode: false, sel: [] }),
-      cHome: s.tab === 'home' ? 'var(--acc)' : 'var(--lab2)', cDocs: s.tab === 'docs' ? 'var(--acc)' : 'var(--lab2)', cInbox: s.tab === 'inbox' ? 'var(--acc)' : 'var(--lab2)', cMore: s.tab === 'more' ? 'var(--acc)' : 'var(--lab2)',
-      tabbarOn: !nav.length && !s.selMode && !s.scan, selbarOn: s.selMode && s.tab === 'docs' && !nav.length,
       // Split-View: Positionsrahmen fuer linke Spalte, rechte Spalte und die
       // schwebenden Leisten. Schmal bleibt alles Vollbild wie bisher.
       paneL: wide ? 'position:absolute;top:0;bottom:0;left:0;width:' + PANE_W + 'px;border-right:0.5px solid var(--sep);' : 'position:absolute;inset:0;',
@@ -2039,18 +2046,43 @@ class Oberflaeche extends React.Component {
       sheetPos: wide ? 'left:50%;width:min(520px,92vw);transform:translateX(-50%);' : 'left:0;right:0;',
       // Rechte Spalte ohne Auswahl: Platzhalter statt leerer Flaeche.
       docPaneEmpty: wide && this.screenEff() === 'app' && !(top.t === 'doc' && !!dDoc),
+      popPush: () => this.pop(),
+    };
+  }
+
+  // --- Navigation --------------------------------------------------
+  // Tableiste, Auswahlleiste und die Einstiege, die von ueberall erreichbar sind.
+  valsNavigation(k) {
+    const { s, nav } = k;
+    return {
+      tabHome: s.tab === 'home' && !nav.length, tabDocs: s.tab === 'docs' && !nav.length, tabInbox: s.tab === 'inbox' && !nav.length, tabMore: s.tab === 'more' && !nav.length,
+      goHome: () => this.setState({ tab: 'home', stack: [], selMode: false, sel: [] }), goDocs: () => this.setState({ tab: 'docs', stack: [], selMode: false, sel: [] }), goInbox: () => this.setState({ tab: 'inbox', stack: [], selMode: false, sel: [] }), goMore: () => this.setState({ tab: 'more', stack: [], selMode: false, sel: [] }),
+      cHome: s.tab === 'home' ? 'var(--acc)' : 'var(--lab2)', cDocs: s.tab === 'docs' ? 'var(--acc)' : 'var(--lab2)', cInbox: s.tab === 'inbox' ? 'var(--acc)' : 'var(--lab2)', cMore: s.tab === 'more' ? 'var(--acc)' : 'var(--lab2)',
+      tabbarOn: !nav.length && !s.selMode && !s.scan, selbarOn: s.selMode && s.tab === 'docs' && !nav.length,
       openSettings: () => this.pushV({ t: 'set' }), openSearch: () => this.setState(st => ({ stack: [...st.stack, { t: 'search' }], q: '', qRes: [], qErr: '', qBusy: false, qEinfach: false })), openAdd: () => this.setState({ sheet: 'add' }),
       startScan: () => this.scanOeffnen(),
       pickPhoto: () => this.dateiWaehlen('image/*', false),
       pickFile: () => this.dateiWaehlen('application/pdf,image/*', false),
+    };
+  }
+
+  // --- Start -------------------------------------------------------
+  // Startseite: laufende Uploads und die drei kurzen Dokumentreihen.
+  valsStart(k) {
+    const { s } = k;
+    return {
       uploadsOn: s.uploads.length > 0, uploadRows: s.uploads,
-      inboxHasNew: inbox.length > 0, inboxEmpty: inbox.length === 0, inboxAllDone: inbox.length === 0,
-      inboxBadge: String(inbox.length), inboxCountLabel: inbox.length === 0 ? 'Keine neuen Dokumente' : inbox.length === 1 ? '1 neues Dokument' : inbox.length + ' neue Dokumente',
-      dupOn: inbox.some(i => i.dup), openDup: () => { this.setState({ tab: 'inbox', revIdx: inbox.findIndex(i => i.dup) }); this.pushV({ t: 'rev' }); },
-      missOn: inbox.some(i => i.felder[0].v === ''), openMissing: () => { this.setState({ tab: 'inbox', revIdx: inbox.findIndex(i => i.felder[0].v === '') }); this.pushV({ t: 'rev' }); },
       recentDocs: s.recent.slice(0, 4).map(d => this.enrich(d)),
       lastOpened: s.opened.map(id => this.docById(id)).filter(Boolean).slice(0, 3).map(d => this.enrich(d)),
       favDocs: s.favs.map(d => this.enrich(d)),
+    };
+  }
+
+  // --- Dokumentliste -----------------------------------------------
+  // Dokumente-Tab: Liste, Zaehler, Ansicht, Sortierung, Filter, Mehrfachauswahl.
+  valsDokumentliste(k) {
+    const { s, chip } = k;
+    return {
       visDocs: s.docs.map(d => this.enrich(d)),
       docsEmpty: s.docs.length === 0 && !s.docsBusy,
       // Serverseitig gefiltert: die Gesamtzahl ist die des Filters, nicht die
@@ -2083,11 +2115,46 @@ class Oberflaeche extends React.Component {
       bulkTagOpen: () => { if (s.sel.length) this.setState({ sheet: 'bulktag' }); },
       bulkExport: () => this.bulkExport(),
       bulkTrash: () => this.bulkTrash(),
+    };
+  }
+
+  // --- Posteingang -------------------------------------------------
+  // Posteingang: Zaehler auf der Startseite, Liste und der Pruefbildschirm.
+  valsPosteingang(k) {
+    const { top, inbox, rev, revF } = k;
+    return {
+      inboxHasNew: inbox.length > 0, inboxEmpty: inbox.length === 0, inboxAllDone: inbox.length === 0,
+      inboxBadge: String(inbox.length), inboxCountLabel: inbox.length === 0 ? 'Keine neuen Dokumente' : inbox.length === 1 ? '1 neues Dokument' : inbox.length + ' neue Dokumente',
+      dupOn: inbox.some(i => i.dup), openDup: () => { this.setState({ tab: 'inbox', revIdx: inbox.findIndex(i => i.dup) }); this.pushV({ t: 'rev' }); },
+      missOn: inbox.some(i => i.felder[0].v === ''), openMissing: () => { this.setState({ tab: 'inbox', revIdx: inbox.findIndex(i => i.felder[0].v === '') }); this.pushV({ t: 'rev' }); },
       inboxList: inbox.map((it, i) => ({ ...it, nSug: it.felder.filter(f => f.v).length + ' Vorschläge', review: () => { this.setState({ revIdx: i }); this.pushV({ t: 'rev' }); } })),
+      showRev: top.t === 'rev' && !!rev,
+      revTitel: rev ? rev.titel : '', revQuelle: rev ? rev.quelle + ' · ' + rev.hinzugefuegt : '', revDup: !!(rev && rev.dup), revDupRef: rev ? (rev.dupRef || '') : '',
+      revPos: rev ? (inbox.indexOf(rev) + 1) + ' von ' + inbox.length : '',
+      revFields: revF.map((f, i) => ({ k: f.k, conf: f.conf, vShow: f.v, hasVal: !!f.v, empty: !f.v, ok: !!(f.ok && f.v), notOk: !(f.ok && f.v), toggle: () => this.patchRev(it => ({ ...it, felder: it.felder.map((x, j) => j === i ? { ...x, ok: !x.ok } : x) })), edit: () => this.setState({ pickTarget: 'rev', pickField: f.k, pickNew: '', sheet: 'pick' }) })),
+      acceptAll: () => this.patchRev(it => ({ ...it, felder: it.felder.map(x => x.v ? { ...x, ok: true } : x) })),
+      revConfirm: () => this.confirmRev(),
+      revSkip: () => { if (inbox.length) this.setState({ revIdx: (inbox.indexOf(rev) + 1) % inbox.length }); },
+      revDelete: () => { if (rev) this.revDelete(rev.id); },
+    };
+  }
+
+  // --- Mehr --------------------------------------------------------
+  // Mehr-Tab: die drei Reihen Bibliothek, Ordnung und Verwaltung.
+  valsMehr(k) {
+    const { s, iconSq, sv } = k;
+    return {
       bibRows: [ { label: 'Zuletzt verwendet', detail: '', svg: sv('<circle cx="12" cy="12" r="8.2"></circle><path d="M12 7.5V12l3 2"></path>'), bg: '#5AC8FA', tap: () => this.pushV({ t: 'liste', kind: 'zuletzt' }) }, { label: 'Favoriten', detail: String(s.favs.length), svg: sv('<path d="M12 3.6l2.5 5.2 5.7.7-4.2 3.9 1.1 5.6-5.1-2.8-5.1 2.8 1.1-5.6-4.2-3.9 5.7-.7z"></path>'), bg: '#F7B500', tap: () => this.pushV({ t: 'liste', kind: 'fav' }) }, { label: 'Geteilt', detail: String(s.geteiltL.length), svg: sv('<path d="M10.2 13.8a4 4 0 005.6 0l3.1-3.1a4 4 0 00-5.7-5.6l-1.5 1.5"></path><path d="M13.8 10.2a4 4 0 00-5.6 0l-3.1 3.1a4 4 0 005.7 5.6l1.5-1.5"></path>'), bg: '#34C759', tap: () => this.pushV({ t: 'liste', kind: 'geteilt' }) }, { label: 'Papierkorb', detail: String(s.trash.length), svg: sv('<path d="M4.5 6.5h15"></path><path d="M8.5 6.2V4.5h7v1.7"></path><path d="M6.5 6.5l1 14h9l1-14"></path>'), bg: '#8E8E93', tap: () => this.pushV({ t: 'trash' }) } ].map((m, i, a) => ({ ...m, iconStyle: iconSq(m.bg), sep: i < a.length - 1 })),
       orgRows: [ { label: 'Absender', detail: String(s.absM.length), svg: sv('<circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c1-4 4-5.6 7-5.6s6 1.6 7 5.6"></path>'), bg: '#007AFF', kind: 'abs' }, { label: 'Dokumentarten', detail: String(s.artenM.length), svg: sv('<path d="M7 3.5h6.5L18 8v12.5H7z"></path><path d="M13.5 3.5V8H18"></path>'), bg: '#5856D6', kind: 'art' }, { label: 'Schlagwörter', detail: String(s.tagsM.length), svg: sv('<path d="M3.5 12V4.5H11l9 9L12.5 21z"></path><circle cx="7.6" cy="8.6" r="1.3"></circle>'), bg: '#34C759', kind: 'tag' }, { label: 'Ordner', detail: String(s.orteM.length), svg: sv('<path d="M3.5 6.5h6l2 2.5h9V19h-17z"></path>'), bg: '#FF9500', kind: 'ort' }, { label: 'Eigene Felder', detail: String(s.felderM.length), svg: sv('<path d="M4 8h10M18 8h2M4 16h4M12 16h8"></path><circle cx="16" cy="8" r="2"></circle><circle cx="10" cy="16" r="2"></circle>'), bg: '#8E8E93', kind: 'feld' }, { label: 'Gespeicherte Suchen', detail: String(s.suchenM.length), svg: sv('<circle cx="11" cy="11" r="7"></circle><path d="M16.8 16.8L21 21"></path>'), bg: '#5AC8FA', kind: 'such' } ].map((m, i, a) => ({ ...m, iconStyle: iconSq(m.bg), sep: i < a.length - 1, tap: () => { if (m.kind === 'ort') this.oeffneOrdner(''); else this.pushV({ t: 'org', kind: m.kind }); } })),
       adminRows: [ { label: 'Automatisierungen', detail: s.autos.filter(a => a.on).length + ' aktiv', svg: sv('<path d="M13 3L5 13.5h5.5L11 21l8-10.5h-5.5z"></path>'), bg: '#FF9500', tap: () => this.pushV({ t: 'auto' }) }, { label: 'E-Mail-Import', detail: s.mailRules.length ? s.mailRules.filter(r => r.on).length + ' aktiv' : 'Keine Regeln', svg: sv('<rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect><path d="M4.5 7.5l7.5 5.5 7.5-5.5"></path>'), bg: '#007AFF', tap: () => this.pushV({ t: 'mail' }) }, { label: 'Benutzer & Gruppen', detail: String(s.users.length), svg: sv('<circle cx="9" cy="8.5" r="3"></circle><path d="M3.5 19c.8-3.4 3-4.7 5.5-4.7s4.7 1.3 5.5 4.7"></path><path d="M15.5 6.2a3 3 0 010 5.6M17.5 14.6c1.7.7 2.7 2 3 4.4"></path>'), bg: '#34C759', tap: () => this.pushV({ t: 'users' }) }, { label: 'Verarbeitung', detail: s.uploads.length ? s.uploads.length + ' aktiv' : '', svg: sv('<circle cx="12" cy="12" r="3.2"></circle><path d="M12 4v2.5M12 17.5V20M4 12h2.5M17.5 12H20M6.4 6.4l1.8 1.8M15.8 15.8l1.8 1.8M17.6 6.4l-1.8 1.8M8.2 15.8l-1.8 1.8"></path>'), bg: '#8E8E93', tap: () => { this.ladeAufgaben(); this.pushV({ t: 'tasks' }); } }, { label: 'Systemstatus', detail: s.loadErr ? 'Getrennt' : 'Verbunden', svg: sv('<rect x="4" y="4" width="16" height="6.5" rx="1.8"></rect><rect x="4" y="13.5" width="16" height="6.5" rx="1.8"></rect><path d="M7.5 7.2h0.1M7.5 16.7h0.1"></path>'), bg: '#30B0C7', tap: () => { this.ladeAufgaben(); this.pushV({ t: 'status' }); } } ].map((m, i, a) => ({ ...m, iconStyle: iconSq(m.bg), sep: i < a.length - 1 })),
-      popPush: () => this.pop(),
+    };
+  }
+
+  // --- Dokument ----------------------------------------------------
+  // Dokument-Detail samt Vorschau, Volltext und Dokumentmenue.
+  valsDokument(k) {
+    const { s, top, dDoc, fundParts } = k;
+    return {
       showDoc: top.t === 'doc' && !!dDoc,
       dTitel: dDoc ? dDoc.titel : '', dAbs: dDoc ? (dDoc.absender || '—') : '', dArt: dDoc ? dDoc.dokumentart : '', dDatum: dDoc ? dDoc.datum : '', dHinzu: dDoc ? dDoc.hinzugefuegt : '', dOrt: dDoc ? dDoc.ablageort : '', dAsn: dDoc ? dDoc.archivnummer : '', dSeitenLabel: dDoc ? 'Seite 1 von ' + dDoc.seitenzahl : '', dTags: dDoc ? dDoc.tags.map(n => ({ n })) : [], dFav: !!(dDoc && dDoc.favorit), dNoFav: !(dDoc && dDoc.favorit), dAbsHead: dDoc ? (dDoc.absender || 'Unbekannter Absender') : '', dBetreff: dDoc ? dDoc.titel : '', dOcr: dDoc ? dDoc.inhalt : '',
       dToggleFav: () => { if (dDoc) { this.updDoc(dDoc.id, { favorit: !dDoc.favorit }); this.note(dDoc.favorit ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzugefügt'); } },
@@ -2113,14 +2180,14 @@ class Oberflaeche extends React.Component {
       dmDownload: () => { if (dDoc) this.dateiLaden(dDoc.id, true); },
       dmPrint: () => { if (dDoc) this.drucken(dDoc.id); },
       dmTrash: () => { if (dDoc) this.deleteDoc(dDoc.id); },
-      showRev: top.t === 'rev' && !!rev,
-      revTitel: rev ? rev.titel : '', revQuelle: rev ? rev.quelle + ' · ' + rev.hinzugefuegt : '', revDup: !!(rev && rev.dup), revDupRef: rev ? (rev.dupRef || '') : '',
-      revPos: rev ? (inbox.indexOf(rev) + 1) + ' von ' + inbox.length : '',
-      revFields: revF.map((f, i) => ({ k: f.k, conf: f.conf, vShow: f.v, hasVal: !!f.v, empty: !f.v, ok: !!(f.ok && f.v), notOk: !(f.ok && f.v), toggle: () => this.patchRev(it => ({ ...it, felder: it.felder.map((x, j) => j === i ? { ...x, ok: !x.ok } : x) })), edit: () => this.setState({ pickTarget: 'rev', pickField: f.k, pickNew: '', sheet: 'pick' }) })),
-      acceptAll: () => this.patchRev(it => ({ ...it, felder: it.felder.map(x => x.v ? { ...x, ok: true } : x) })),
-      revConfirm: () => this.confirmRev(),
-      revSkip: () => { if (inbox.length) this.setState({ revIdx: (inbox.indexOf(rev) + 1) % inbox.length }); },
-      revDelete: () => { if (rev) this.revDelete(rev.id); },
+    };
+  }
+
+  // --- Suche -------------------------------------------------------
+  // Suche: Eingabe, Vorschlaege, Verlauf, Treffer und gespeicherte Ansichten.
+  valsSuche(k) {
+    const { s, top, res } = k;
+    return {
       showSearch: top.t === 'search',
       qVal: s.q, setQ: (e) => this.sucheSetzen(e.target.value), qClear: () => this.sucheSetzen(''),
       cancelSearch: () => { this.sucheSetzen(''); this.pop(); },
@@ -2153,6 +2220,14 @@ class Oberflaeche extends React.Component {
       searchErrOn: !!s.qErr, searchErr: s.qErr,
       canSave: s.q.trim().length >= 2 && !s.qBusy && !s.qErr && res.length > 0,
       saveSearch: () => this.sucheSpeichern(s.q.trim()),
+    };
+  }
+
+  // --- Ordnung -----------------------------------------------------
+  // Stammdaten, Ordnerbaum, die drei festen Listen und der Papierkorb.
+  valsOrdnung(k) {
+    const { s, top, org, listeKind, listeDocs } = k;
+    return {
       showOrg: top.t === 'org' && !!org,
       orgTitle: (top.kind === 'ort') ? ((top.pfad || '').split('/').pop() || 'Ordner') : (org ? org.title : ''),
       orgHint: (top.kind === 'ort') ? (top.pfad || '') : (org ? org.hint : ''),
@@ -2191,6 +2266,14 @@ class Oberflaeche extends React.Component {
       })),
       delName: (s.trash.find(x => x.id === s.pendingDel) || {}).titel || '',
       confirmDelFinal: () => { const id = s.pendingDel; this.setState({ sheet: null, pendingDel: null }); if (id) this.purgeDoc(id); },
+    };
+  }
+
+  // --- Einstellungen -----------------------------------------------
+  // Einstellungen: Schema, Konto, Server, Geraetesperre, lokale Daten, Abmelden.
+  valsEinstellungen(k) {
+    const { s, top } = k;
+    return {
       showSet: top.t === 'set',
       setModeHell: () => this.setState({ mode: 'hell' }), setModeDunkel: () => this.setState({ mode: 'dunkel' }), setModeSystem: () => this.setState({ mode: 'system' }),
       msHell: this.seg(s.mode === 'hell'), msDunkel: this.seg(s.mode === 'dunkel'), msSystem: this.seg(s.mode === 'system'),
@@ -2242,6 +2325,14 @@ class Oberflaeche extends React.Component {
       },
       doHelp: () => this.note('Hilfe öffnet sich im Browser'), doPrivacy: () => this.note('Datenschutzerklärung öffnet sich'),
       logout: () => this.logoutGo(),
+    };
+  }
+
+  // --- Verwaltung --------------------------------------------------
+  // Automatisierungen, E-Mail-Regeln, Mitglieder, Aufgaben und Systemstatus.
+  valsVerwaltung(k) {
+    const { s, top, auto } = k;
+    return {
       showAuto: top.t === 'auto',
       autoRows: s.autos.map(a => { const t = this.tg(a.on); return { name: a.name, verlauf: this.autoLage(a.on), tgBg: t.bg, tgKnob: t.knob, toggle: () => this.autoSchalten(a.id, !a.on), open: () => this.pushV({ t: 'autoD', id: a.id }) }; }),
       showAutoD: top.t === 'autoD' && !!auto,
@@ -2293,9 +2384,30 @@ class Oberflaeche extends React.Component {
       }),
       gruppenLeer: (s.gruppen || []).length === 0,
       userHinweis: 'Benutzer und Gruppen werden in Paperless verwaltet – dort werden auch die Rechte vergeben. Hier lässt sich einstellen, in welchen Gruppen jemand ist.',
+      showTasks: top.t === 'tasks',
+      tasksFehlerOn: !!s.tasksFehler, tasksFehler: s.tasksFehler || '',
+      // Laufende eigene Uploads zuerst, danach die Aufgaben des Servers.
+      taskRows: [...s.uploads.map(u => ({ name: u.name, st: u.st, run: true, ok: false, err: false, hasRetry: false })), ...(s.tasksRaw || [])],
+      tasksEmpty: !s.uploads.length && !(s.tasksRaw || []).length,
+      showStatus: top.t === 'status',
+      statusRows: s.sysStatus || [{ k: 'Verbindung', v: s.loadErr ? 'Getrennt' : 'Verbunden', grn: !s.loadErr }],
+      // Die letzten Serveraufgaben als Protokoll. Paperless stellt seine
+      // eigentlichen Logdateien nicht ueber die API bereit.
+      logLines: (s.tasksRaw || []).slice(0, 8).map(t => ({
+        t: (t.err ? 'FEHLER  ' : t.ok ? 'OK      ' : 'LÄUFT   ') + t.name + ' – ' + t.st
+      })),
+    };
+  }
+
+  // --- Sheets ------------------------------------------------------
+  // Alle Sheets. Die Reihenfolge zaehlt hier: shUser steht in der Flaggenzeile
+  // weiter unten ein zweites Mal - dort mit der Bedingung, dass auch eine Person
+  // gewaehlt ist. Der spaetere Eintrag gilt.
+  valsSheets(k) {
+    const { s, chip, dDoc, rev, share, ed, orgD, selN, userS, pickOpts } = k;
+    return {
 
       // Sheet: Gruppenzugehoerigkeit einer Person aendern (echtes PATCH).
-      shUser: s.sheet === 'user',
       userName: userS ? userS.name : '',
       userGruppen: (s.gruppen || []).map(g => ({
         label: g.name,
@@ -2352,19 +2464,6 @@ class Oberflaeche extends React.Component {
             : 'Die Gruppe hat keine Mitglieder.')
         : '',
       gwGo: () => this.gruppeEntfernen(s.gruppeSel),
-
-      showTasks: top.t === 'tasks',
-      tasksFehlerOn: !!s.tasksFehler, tasksFehler: s.tasksFehler || '',
-      // Laufende eigene Uploads zuerst, danach die Aufgaben des Servers.
-      taskRows: [...s.uploads.map(u => ({ name: u.name, st: u.st, run: true, ok: false, err: false, hasRetry: false })), ...(s.tasksRaw || [])],
-      tasksEmpty: !s.uploads.length && !(s.tasksRaw || []).length,
-      showStatus: top.t === 'status',
-      statusRows: s.sysStatus || [{ k: 'Verbindung', v: s.loadErr ? 'Getrennt' : 'Verbunden', grn: !s.loadErr }],
-      // Die letzten Serveraufgaben als Protokoll. Paperless stellt seine
-      // eigentlichen Logdateien nicht ueber die API bereit.
-      logLines: (s.tasksRaw || []).slice(0, 8).map(t => ({
-        t: (t.err ? 'FEHLER  ' : t.ok ? 'OK      ' : 'LÄUFT   ') + t.name + ' – ' + t.st
-      })),
       sheetOn: !!s.sheet, closeSheet: () => this.setState({ sheet: null, editDraft: null, orgDraft: null, pendingDel: null }),
       // --- Zuweisen -------------------------------------------------------
       dmZuweisen: () => this.setState({ sheet: 'zuweisen' }),
@@ -2474,6 +2573,14 @@ class Oberflaeche extends React.Component {
       orgWarnOn: !!(orgD && orgD.warn), orgWarnText: orgD ? '„' + orgD.alt + '“ wird von ' + orgD.count + ' Dokumenten entfernt. Die Dokumente selbst bleiben erhalten.' : '',
       orgDelOn: !!(orgD && orgD.alt && !orgD.warn), orgDelTap: () => this.orgDeleteGo(false), orgDelForce: () => this.orgDeleteGo(true),
       orgSaveTap: () => this.orgSaveGo(),
+    };
+  }
+
+  // --- Erfassen ----------------------------------------------------
+  // Scannen, Zuschneiden, Hochladen - und die Meldung samt Widerruf.
+  valsErfassen(k) {
+    const { s } = k;
+    return {
       scanOn: !!s.scan,
       scanSeiten: !!(s.scan && s.scan.schritt === 'seiten'),
       scanZuschnitt: !!(s.scan && s.scan.schritt === 'zuschnitt'),
@@ -2509,6 +2616,16 @@ class Oberflaeche extends React.Component {
       scanTitlePlatz: 'Scan vom ' + new Date().toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' }),
       scanPagesLabel: s.scan ? (s.scan.seiten.length === 1 ? '1 Seite' : s.scan.seiten.length + ' Seiten') : '',
       doUpload: () => this.scanHochladen(),
+      toastOn: !!s.toast, toastMsg: s.toast, undoOn: !!s.undoFn, undoLabel: s.undoLabel || 'Widerrufen',
+      doUndo: () => { if (s.undoFn) s.undoFn(); this.setState({ toast: null, undoFn: null }); }
+    };
+  }
+
+  // --- Onboarding --------------------------------------------------
+  // Onboarding: Server, Anmeldung, Abschluss.
+  valsOnboarding(k) {
+    const { s } = k;
+    return {
       ob0: s.onbStep === 0, ob1: s.onbStep === 1, ob2: s.onbStep === 2, ob3: s.onbStep === 3,
       obStart: () => this.setState({ onbStep: 1, onbErr: '' }),
       obBack: () => this.setState(st => ({ onbStep: Math.max(0, st.onbStep - 1), onbErr: '' })),
@@ -2525,9 +2642,30 @@ class Oberflaeche extends React.Component {
       obLoginTap: () => this.obLoginGo(false), obSSO: () => this.obLoginGo(true),
       obFertig: () => this.obDone(),
       obFertigText: 'Dein Archiv ist bereit. Du kannst jetzt Dokumente hinzufügen, suchen und ordnen.',
-      toastOn: !!s.toast, toastMsg: s.toast, undoOn: !!s.undoFn, undoLabel: s.undoLabel || 'Widerrufen',
-      doUndo: () => { if (s.undoFn) s.undoFn(); this.setState({ toast: null, undoFn: null }); }
     };
+  }
+
+  // Der flache Wertesack, den die Bildschirme lesen, abschnittsweise
+  // zusammengelegt. Inhalt und Reihenfolge entsprechen dem frueheren einen
+  // Literal; tests/template_check.py folgt der Aufteilung.
+  renderVals() {
+    const k = this.renderKontext();
+    return Object.assign({},
+      this.valsRahmen(k),
+      this.valsNavigation(k),
+      this.valsStart(k),
+      this.valsDokumentliste(k),
+      this.valsPosteingang(k),
+      this.valsMehr(k),
+      this.valsDokument(k),
+      this.valsSuche(k),
+      this.valsOrdnung(k),
+      this.valsEinstellungen(k),
+      this.valsVerwaltung(k),
+      this.valsSheets(k),
+      this.valsErfassen(k),
+      this.valsOnboarding(k)
+    );
   }
 
   render() {

@@ -20,7 +20,7 @@ Sortiert nach dem, was zuerst weh tut.
 | Tests | 6 Stufen, 2039 Zeilen: Syntax, Logik (46 Unit-Tests), Template-Bindungen, API-Vertrag (24), Browser (18), PWA |
 | Visuell geprüft | 38 Stationen × 3 Varianten (schmal, Split-View, dunkel) |
 | Aufbau | React direkt, htm statt JSX, kein Build-Schritt. Bildschirme einzeln in `vorlage/` |
-| Offene Schuld | `renderVals()` mit 414 gelesenen Werten — der letzte grosse Block in einer Hand |
+| Offene Schuld | `renderVals()` ist aufgeteilt (4.5); offen bleibt die Länge von `app.js` selbst |
 
 ---
 
@@ -301,6 +301,30 @@ Das Dokument-Detail nutzt ein anderes Glyph (`M10 2L2 10l8 8`) als alle übrigen
 wörtlich da, der Trenner 20-mal, der runde Kopfknopf 17-mal. Aufgenommen ist nur, was
 mindestens fünfmal wortgleich vorkam: eine Konstante für einen einzigen Ort verschiebt
 die Suche nur.
+
+### ✅ 4.5 `renderVals()` aufgeteilt
+543 Zeilen, 419 Schlüssel, ein Objektliteral — der letzte grosse Block in einer Hand. Wer
+einen Wert suchte, las alles; zwei Änderungen an verschiedenen Bildschirmen trafen sich
+im selben Diff.
+
+Jetzt rechnet `renderKontext()` die 25 Zwischenwerte einmal aus (`dDoc`, `rev`, `pickOpts`
+und so fort) und reicht sie als Kontext weiter; vierzehn Abschnitte liefern je ein
+Sachgebiet — `valsRahmen`, `valsNavigation`, `valsStart`, `valsDokumentliste`,
+`valsPosteingang`, `valsMehr`, `valsDokument`, `valsSuche`, `valsOrdnung`,
+`valsEinstellungen`, `valsVerwaltung`, `valsSheets`, `valsErfassen`, `valsOnboarding`.
+Jeder destrukturiert vorne genau das, was er braucht — daran lässt sich seine Abhängigkeit
+ablesen, statt sie zu suchen. `renderVals()` legt die Abschnitte zusammen und ist damit
+zwanzig Zeilen lang.
+
+**Kein Wert hat sich geändert**: jede Zeile wurde wortgleich verschoben, die 418 Schlüssel
+sind dieselben. Entfallen ist genau einer — `shUser` stand zweimal im Literal, die erste
+Zuweisung war seit jeher tot (die spätere, mit `!!userS`, hat immer gewonnen). Genau so
+etwas verbirgt ein 543-Zeilen-Block.
+
+`tests/template_check.py` folgt der Aufteilung und prüft weiterhin beide Richtungen. Neu
+ist ein dritter Fehlerfall: ein `vals`-Abschnitt in `app.js`, den `renderVals()` nicht
+zusammenlegt, bricht die Prüfung ab — sonst wären seine Werte im Browser leer und die
+Prüfung stillschweigend löchrig.
 
 ---
 

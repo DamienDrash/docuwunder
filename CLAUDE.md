@@ -20,7 +20,13 @@ Dieses Projekt dient dem Aufbau und der Wartung einer modernen, performanten, be
   die Style-Objekte, die React verlangt, und merkt sie sich (die Oberfläche hat rund 940
   solcher Zeichenketten). Dazu ein Fehlerfang und `starten()`.
 - `app.js` — Zustand und Verhalten. `renderVals()` liefert alles, was die Bildschirme brauchen;
-  `render()` reicht es an `DWVorlage.wurzel()` weiter.
+  `render()` reicht es an `DWVorlage.wurzel()` weiter. Es ist **kein** einzelnes Literal mehr:
+  `renderKontext()` rechnet die Zwischenwerte einmal aus, vierzehn Abschnitte (`valsRahmen`,
+  `valsNavigation`, `valsStart`, `valsDokumentliste`, `valsPosteingang`, `valsMehr`,
+  `valsDokument`, `valsSuche`, `valsOrdnung`, `valsEinstellungen`, `valsVerwaltung`,
+  `valsSheets`, `valsErfassen`, `valsOnboarding`) liefern je ein Sachgebiet, `renderVals()`
+  legt sie zusammen. Ein neuer Wert gehört in **einen** Abschnitt; ein neuer Abschnitt muss in
+  der Liste in `renderVals()` stehen, sonst schlägt `tests/template_check.py` an.
 - `vorlage/*.js` — die Bildschirme, nach Bereichen getrennt (tabs, dokument, ordnung,
   verwaltung, sheets, erfassen, onboarding). Jeder Bildschirm ist eine Funktion
   `(v, html, stil)`. **Werte kommen ausschließlich über `v`** — Schleifenvariablen sind

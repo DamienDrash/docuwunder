@@ -17,6 +17,13 @@ Schleifenvariablen (d.titel in einer map-Schleife) sind nicht qualifiziert und
 tauchen hier deshalb gar nicht erst auf - der Konverter unterscheidet das
 bereits (tools/konvert.py).
 
+renderVals liefert kein einzelnes Objektliteral mehr, sondern legt die
+Abschnitte (valsRahmen, valsSheets, ...) zusammen. Geprueft wird deshalb jeder
+Abschnitt, den renderVals nennt. Findet sich einer davon nicht - oder gibt es in
+app.js einen vals-Abschnitt, den renderVals gar nicht zusammenlegt -, ist das
+ein Fehler: sonst wuerde die Pruefung stillschweigend loecherig, und genau das
+soll sie ja verhindern.
+
 Aufruf: python3 tests/template_check.py
 """
 import pathlib
@@ -31,15 +38,8 @@ LOGIK = ROOT / "app.js"
 ZUGRIFF = re.compile(r"\bv\.([A-Za-z_$][\w$]*)")
 
 
-def render_vals_schluessel(quelle: str) -> set:
-    """Die Schluessel des von renderVals zurueckgegebenen Objekts."""
-    pos = quelle.find("renderVals()")
-    if pos < 0:
-        return set()
-    start = quelle.find("return {", pos)
-    if start < 0:
-        return set()
-
+def objekt_schluessel(quelle: str, start: int) -> set:
+    """Die Schluessel auf oberster Ebene des Objektliterals ab `start`."""
     # Zeichenweise bis zur schliessenden Klammer der Rueckgabe, damit
     # verschachtelte Objekte, Zeichenketten und Funktionen nicht stoeren.
     i = quelle.index("{", start)
@@ -90,6 +90,45 @@ def render_vals_schluessel(quelle: str) -> set:
                 k += m.end()
                 continue
         k += 1
+    return schluessel
+
+
+def abschnitt_schluessel(quelle: str, name: str) -> set:
+    """Die Schluessel eines einzelnen Abschnitts (valsRahmen, valsSheets, ...)."""
+    m = re.search(r"\n  " + re.escape(name) + r"\s*\([^)]*\)\s*\{", quelle)
+    if m is None:
+        print(f"  FEHLER  Abschnitt {name}() steht nicht in app.js")
+        sys.exit(1)
+    start = quelle.find("return {", m.end())
+    if start < 0:
+        print(f"  FEHLER  Abschnitt {name}() gibt kein Objekt zurueck")
+        sys.exit(1)
+    return objekt_schluessel(quelle, start)
+
+
+def render_vals_schluessel(quelle: str) -> set:
+    """Alles, was renderVals liefert - ueber die Abschnitte, die es zusammenlegt."""
+    pos = quelle.find("renderVals()")
+    if pos < 0:
+        return set()
+    ende = quelle.find("\n  }", pos)
+    kopf = quelle[pos:ende if ende > 0 else len(quelle)]
+    genutzt = re.findall(r"this\.(vals[A-Za-z_$][\w$]*)\s*\(", kopf)
+    if not genutzt:
+        # Ein einzelnes Literal, wie vor der Aufteilung.
+        start = quelle.find("return {", pos)
+        return objekt_schluessel(quelle, start) if start >= 0 else set()
+
+    # Ein Abschnitt, den renderVals nicht zusammenlegt, liefert nichts an die
+    # Bildschirme - dann stimmt entweder der Name oder die Liste nicht.
+    vergessen = sorted(set(re.findall(r"\n  (vals[A-Za-z_$][\w$]*)\s*\(", quelle)) - set(genutzt))
+    if vergessen:
+        print("  FEHLER  Abschnitt(e) ohne Anschluss an renderVals: " + ", ".join(vergessen))
+        sys.exit(1)
+
+    schluessel = set()
+    for name in genutzt:
+        schluessel |= abschnitt_schluessel(quelle, name)
     return schluessel
 
 
