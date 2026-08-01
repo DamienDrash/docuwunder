@@ -148,7 +148,7 @@ class Oberflaeche extends React.Component {
       // gespeicherte Ansichten und E-Mail-Regeln.
       autos: [], felderM: [], suchenM: [], mailRules: [], mailKonten: [],
       // Dokumente des gerade geoeffneten Ordners (eigene Serverabfrage).
-      ordnerDocs: [], ordnerLaden: false,
+      ordnerDocs: [], ordnerLaden: false, ordnerTabPfad: '', ordnerTabDocs: [], ordnerTabLaden: false,
       // Team fuer die Zuweisung und deren Laufzustand.
       gruppen: [], zuweisenBusy: false,
       // Mitgliederverwaltung: Entwurf, einmalig gezeigte Zugangsdaten,
@@ -783,20 +783,35 @@ class Oberflaeche extends React.Component {
   // Dokumente eines Ordners kommen vom Server, nicht aus der geladenen Seite -
   // sonst waere die Anzeige eine Aussage ueber den Gesamtbestand, die die App
   // nicht treffen kann.
-  ladeOrdner(pfad) {
+  //
+  // Zwei Stellen zeigen Ordner: der Bildschirm unter "Mehr" und die
+  // Ordneransicht im Reiter Dokumente. Sie haben getrennte Zustaende, damit
+  // ein Wechsel an der einen Stelle die andere nicht mitzieht - dasselbe
+  // Laden benutzen aber beide.
+  ladeOrdner(pfad, ziel) {
     const A = this.api();
+    const wo = ziel || 'ordner';
+    const docs = wo + 'Docs', laden = wo + 'Laden';
     const ids = this.ordnerIds(pfad);
     if (!A || !A.hasToken() || !ids.length) {
-      this.setState({ ordnerDocs: [], ordnerLaden: false });
+      this.setState({ [docs]: [], [laden]: false });
       return Promise.resolve();
     }
-    this.setState({ ordnerLaden: true });
+    this.setState({ [laden]: true });
     return A.documents.list({ storage_path__id__in: ids, ordering: '-created', page_size: DOC_PAGE })
       .then(r => this.setState({
-        ordnerDocs: (r.results || []).map(d => this.mapDoc(d, this.lookups(), this.state.shares)),
-        ordnerLaden: false
+        [docs]: (r.results || []).map(d => this.mapDoc(d, this.lookups(), this.state.shares)),
+        [laden]: false
       }))
-      .catch(() => this.setState({ ordnerDocs: [], ordnerLaden: false }));
+      .catch(() => this.setState({ [docs]: [], [laden]: false }));
+  }
+
+  // Ordneransicht im Reiter Dokumente: ein Schritt tiefer oder zurueck.
+  // Anders als der Bildschirm unter "Mehr" legt sie nichts auf den Stapel -
+  // die Ansicht bleibt der Reiter, es wechselt nur der Ort darin.
+  ordnerTabGehe(pfad) {
+    this.setState({ ordnerTabPfad: pfad || '', ordnerTabDocs: [] });
+    return this.ladeOrdner(pfad || '', 'ordnerTab');
   }
 
   oeffneOrdner(pfad) {
@@ -1380,6 +1395,7 @@ class Oberflaeche extends React.Component {
     dazu(s.favs);
     dazu(s.qRes);
     dazu(s.ordnerDocs);
+    dazu(s.ordnerTabDocs);
     (s.opened || []).forEach(id => ids.push(id));
     return ids.slice(0, BILDER_MAX);
   }
@@ -1723,7 +1739,7 @@ class Oberflaeche extends React.Component {
       q: '', qRes: [], qBusy: false, qErr: '', qEinfach: false, opened: [],
       tagsM: [], absM: [], artenM: [], orteM: [],
       tagsRaw: [], absRaw: [], artenRaw: [], orteRaw: [], shares: {}, me: null,
-      autos: [], felderM: [], suchenM: [], mailRules: [], mailKonten: [], users: [], tasksRaw: [], sysStatus: null, ordnerDocs: [], ordnerLaden: false,
+      autos: [], felderM: [], suchenM: [], mailRules: [], mailKonten: [], users: [], tasksRaw: [], sysStatus: null, ordnerDocs: [], ordnerLaden: false, ordnerTabPfad: '', ordnerTabDocs: [], ordnerTabLaden: false,
       loading: false, loadErr: null
     });
   }
@@ -1831,7 +1847,14 @@ class Oberflaeche extends React.Component {
       // Serverseitig gefiltert: die Gesamtzahl ist die des Filters, nicht die
       // der geladenen Seiten. Beides zu nennen waere irrefuehrend, solange
       // noch nicht alles geladen ist.
-      docsCountLabel: s.docsMore
+      docsCountLabel: s.view === 'ordner'
+        // Im Ordnermodus waere die Gesamtzahl eine Aussage ueber etwas
+        // anderes als das, was hier steht.
+        ? [
+            this.ordnerKinder(s.ordnerTabPfad || '').length,
+            (s.ordnerTabDocs || []).length,
+          ].map((n, i) => n + (i === 0 ? (n === 1 ? ' Ordner' : ' Ordner') : (n === 1 ? ' Dokument' : ' Dokumente'))).join(' · ')
+        : s.docsMore
         ? (s.docs.length + ' von ' + s.docsTotal + ' Dokumenten geladen')
         : (s.docsTotal === 1 ? '1 Dokument' : s.docsTotal + ' Dokumente'),
       docsMoreOn: s.docsMore && !s.docsBusy, docsBusy: s.docsBusy,
@@ -1843,7 +1866,38 @@ class Oberflaeche extends React.Component {
       docsEmptyText: this.filterAktiv()
         ? 'Keine Dokumente passen zu den gewählten Filtern.'
         : 'Noch keine Dokumente. Lade eines hoch, um zu beginnen.',
-      viewIsList: s.view === 'liste', viewIsGrid: s.view === 'raster', toggleView: () => this.setState({ view: s.view === 'liste' ? 'raster' : 'liste' }),
+      viewIsList: s.view === 'liste', viewIsGrid: s.view === 'raster', viewIsOrdner: s.view === 'ordner',
+      // --- Ordneransicht im Reiter Dokumente ---
+      // Die Ordner entstehen aus den Ablageorten: ein Name wie
+      // "Privat/Steuern" ergibt zwei Ebenen (siehe ordnerKinder).
+      otPfad: s.ordnerTabPfad || '',
+      // Die Pfadleiste. "Alle" ist die Wurzel und immer der erste Eintrag.
+      otWeg: [{ name: 'Alle', pfad: '', letzter: !s.ordnerTabPfad, tap: () => this.ordnerTabGehe('') }].concat(
+        (s.ordnerTabPfad || '').split('/').filter(Boolean).map((teil, i, alle) => ({
+          name: teil,
+          pfad: alle.slice(0, i + 1).join('/'),
+          letzter: i === alle.length - 1,
+          tap: () => this.ordnerTabGehe(alle.slice(0, i + 1).join('/')),
+        }))),
+      otHochAn: !!s.ordnerTabPfad,
+      otHoch: () => this.ordnerTabGehe((s.ordnerTabPfad || '').split('/').slice(0, -1).join('/')),
+      otOrdner: this.ordnerKinder(s.ordnerTabPfad || '').map(f => ({
+        name: f.name,
+        countLabel: (f.anzahl === 1 ? '1 Dokument' : f.anzahl + ' Dokumente') + (f.direkt ? '' : ' · nur Unterordner'),
+        tap: () => this.ordnerTabGehe(f.voll),
+      })),
+      otDateien: (s.ordnerTabDocs || []).map(d => this.enrich(d)),
+      otLaden: !!s.ordnerTabLaden,
+      otLeer: !s.ordnerTabLaden && this.ordnerKinder(s.ordnerTabPfad || '').length === 0 && (s.ordnerTabDocs || []).length === 0,
+      otLeerText: (s.ordnerTabPfad || '')
+        ? 'In diesem Ordner liegt nichts. Setze bei einem Dokument diesen Ablageort, damit es hier erscheint.'
+        : 'Es gibt noch keine Ablageorte. Unter „Mehr → Ordner“ legst du den ersten an – ein Name wie „Privat/Steuern“ ergibt zwei Ebenen.',
+      // Der Knopf zeigt, was als Naechstes kommt - nicht, was gerade gilt.
+      toggleView: () => {
+        const naechste = { liste: 'raster', raster: 'ordner', ordner: 'liste' }[s.view] || 'liste';
+        this.setState({ view: naechste });
+        if (naechste === 'ordner') this.ordnerTabGehe(s.ordnerTabPfad || '');
+      },
       sortLabel: { neu: 'Neueste', alt: 'Älteste', titel: 'Titel', absender: 'Absender' }[s.sort], openSort: () => this.setState({ sheet: 'sort' }), openFilter: () => this.setState({ sheet: 'filter' }),
       // Die Schnellfilter zeigen die tatsaechlich vorhandenen Dokumentarten,
       // die haeufigsten zuerst - eine feste Liste ginge auf einem fremden

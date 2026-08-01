@@ -331,6 +331,25 @@ sich darüber, sobald es geladen ist. Beim Scrollen springt dadurch nichts.
 `absender` hatte `Math.abs` mit erwischt. Jedes Wischen an einer Listenzeile warf
 `Math.absender is not a function`.
 
+### ✅ 3.9 Dateimanager-Ansicht im Reiter Dokumente
+
+Der Umschalter oben rechts kennt jetzt drei Ansichten statt zwei: **Liste → Raster → Ordner →
+Liste**. Die Ordneransicht ist ein Dateimanager — Pfadleiste, eine Ebene höher, Unterordner mit
+Anzahl, darunter die Dokumente des Ordners mit ihrer Vorschau.
+
+Die Hierarchie entsteht wie schon unter „Mehr → Ordner" aus den Ablageorten: ein Name wie
+`Arbeit/Freelancer/CycleCoin/Vertrag` ergibt vier Ebenen. Beide Stellen teilen sich das Laden,
+haben aber getrennte Zustände — ein Wechsel an der einen zieht die andere nicht mit.
+
+Zwei Entscheidungen, die der Ehrlichkeit dienen:
+
+- **Jeder Ordner fragt den Server.** Die Anzeige meint damit den Bestand, nicht die geladene
+  Seite — dieselbe Regel wie beim Filtern und Suchen.
+- **Filter und Sortierung verschwinden im Ordnermodus.** Sie wirken auf die Liste, nicht auf
+  Ordner. Stehen zu lassen, was dort nichts tut, wäre genau die Sorte Bedienung, gegen die
+  dieses Projekt schon zweimal antreten musste. Aus demselben Grund zählt die Zeile darunter
+  im Ordnermodus „2 Ordner · 2 Dokumente" statt der Gesamtzahl.
+
 ---
 
 ## Phase 4 — Aufräumen

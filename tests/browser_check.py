@@ -374,6 +374,65 @@ def main():
                 assert bild.count() > 0, "kein Vorschaubild im Dokument"
                 return "Vorschau geladen und angezeigt"
 
+            # --- Ordneransicht im Reiter Dokumente ---------------------------
+            # Der Umschalter kennt drei Ansichten. Geprueft wird die Wirkung:
+            # dass jeder Ordner den Server fragt (die Anzeige also den Bestand
+            # meint und nicht die geladene Seite), dass die Pfadleiste
+            # mitwandert und dass ein Sprung darin wirklich zurueckfuehrt.
+
+            def umschalten():
+                seite.evaluate(
+                    "() => { const b = [...document.querySelectorAll('div')]"
+                    ".find(d => d.style.borderRadius === '999px' && d.style.width === '32px');"
+                    " if (b) b.click(); }")
+
+            def t_ordneransicht_im_reiter():
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(3000)
+                seite.locator('text="Dokumente"').last.click()
+                seite.wait_for_timeout(2500)
+
+                # Liste -> Raster -> Ordner
+                umschalten()
+                seite.wait_for_timeout(1300)
+                umschalten()
+                seite.wait_for_timeout(2400)
+                assert seite.locator('text="Alle"').count() > 0, "keine Pfadleiste"
+                # Filter und Sortierung wirken auf Ordner nicht und duerfen
+                # deshalb nicht dastehen.
+                assert seite.locator('text="Filter"').count() == 0, \
+                    "Filter steht im Ordnermodus, wirkt dort aber nicht"
+
+                abfragen = []
+                seite.on("request", lambda r: abfragen.append(r.url)
+                         if "storage_path__id__in" in r.url else None)
+                for name in ("Arbeit", "Freelancer", "CycleCoin", "Vertrag"):
+                    seite.locator(f'text="{name}"').last.click()
+                    seite.wait_for_timeout(2300)
+                assert len(abfragen) >= 4, \
+                    f"nicht jeder Ordner fragt den Server: {len(abfragen)}"
+
+                weg = seite.evaluate(
+                    "() => [...document.querySelectorAll('span')]"
+                    ".filter(s => s.childElementCount === 0)"
+                    ".map(s => s.textContent.trim())"
+                    ".filter(t => ['Alle','Arbeit','Freelancer','CycleCoin','Vertrag'].includes(t))")
+                assert weg == ["Alle", "Arbeit", "Freelancer", "CycleCoin", "Vertrag"], \
+                    f"Pfadleiste stimmt nicht: {weg}"
+
+                # Sprung in der Pfadleiste zurueck auf die zweite Ebene.
+                seite.locator('text="Arbeit"').first.click()
+                seite.wait_for_timeout(2400)
+                assert seite.locator('text="Freelancer"').count() > 0, \
+                    "der Sprung in der Pfadleiste fuehrt nicht zurueck"
+
+                # Und zurueck zur Liste - der Umschalter muss rundlaufen.
+                umschalten()
+                seite.wait_for_timeout(1800)
+                assert seite.locator('text="Filter"').count() > 0, \
+                    "aus dem Ordnermodus geht es nicht zurueck in die Liste"
+                return "drei Ansichten, vier Ebenen tief, Pfadleiste traegt zurueck"
+
             # --- Vorschaubilder ----------------------------------------------
             # Die Listen zeigten fuer jedes Dokument dasselbe gezeichnete
             # Blatt mit grauen Strichen. Geprueft wird, dass dort jetzt das
@@ -891,6 +950,7 @@ def main():
                 ("Filter laedt neu", t_filter_laedt_neu),
                 ("Suche geht an den Server", t_suche_serverseitig),
                 ("Treffer oeffnet mit Vorschau", t_treffer_oeffnet_mit_vorschau),
+                ("Ordneransicht im Reiter", t_ordneransicht_im_reiter),
                 ("Listen zeigen echte Vorschau", t_listen_zeigen_echte_vorschau),
                 ("Textgroesse ist eine Anzeige", t_textgroesse_ist_anzeige),
                 ("Datenschutz hat Inhalt", t_datenschutz_hat_inhalt),

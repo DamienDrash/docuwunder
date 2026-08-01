@@ -30,7 +30,10 @@
     <span style=${stil('font-size:16px')}>Titel, Absender oder Inhalt</span>
   </div>
   <div style=${stil('display:flex;gap:8px;overflow-x:auto;padding:12px 16px 4px;align-items:center')}>
-    <div onClick=${v.openFilter} style=${stil('height:32px;padding:0 11px;border-radius:999px;background:var(--fill);display:flex;align-items:center;gap:6px;flex-shrink:0;cursor:pointer')}>
+    ${''/* Filter und Sortierung wirken auf die Liste, nicht auf Ordner.
+         Im Ordnermodus stehen zu lassen, was dort nichts tut, waere
+         genau die Sorte Bedienung, die diese App schon zu oft hatte. */}
+    ${v.viewIsOrdner ? null : html`<div onClick=${v.openFilter} style=${stil('height:32px;padding:0 11px;border-radius:999px;background:var(--fill);display:flex;align-items:center;gap:6px;flex-shrink:0;cursor:pointer')}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><path d="M4 7.5h16M7 12h10M10 16.5h4"></path></svg>
       <span style=${stil('font-size:13.5px;font-weight:600;color:var(--acc)')}>Filter</span>
     </div>
@@ -38,10 +41,11 @@
     <div onClick=${v.openSort} style=${stil('height:32px;padding:0 11px;border-radius:999px;background:var(--fill);display:flex;align-items:center;gap:5px;flex-shrink:0;cursor:pointer')}>
       <span style=${stil('font-size:13.5px;font-weight:500;color:var(--lab2)')}>${v.sortLabel}</span>
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--lab2)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"></path></svg>
-    </div>
+    </div>`}
     <div onClick=${v.toggleView} style=${stil('width:32px;height:32px;border-radius:999px;background:var(--fill);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer')}>
       ${v.viewIsList ? html`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--lab2)" stroke-width="1.8"><rect x="3.5" y="3.5" width="7.2" height="7.2" rx="1.5"></rect><rect x="13.3" y="3.5" width="7.2" height="7.2" rx="1.5"></rect><rect x="3.5" y="13.3" width="7.2" height="7.2" rx="1.5"></rect><rect x="13.3" y="13.3" width="7.2" height="7.2" rx="1.5"></rect></svg>` : null}
-      ${v.viewIsGrid ? html`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--lab2)" stroke-width="2" stroke-linecap="round"><path d="M8.5 6h12M8.5 12h12M8.5 18h12"></path><path d="M4 6h0.1M4 12h0.1M4 18h0.1"></path></svg>` : null}
+      ${v.viewIsGrid ? html`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--lab2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5a2 2 0 012-2h4l2 2.5h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>` : null}
+      ${v.viewIsOrdner ? html`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--lab2)" stroke-width="2" stroke-linecap="round"><path d="M8.5 6h12M8.5 12h12M8.5 18h12"></path><path d="M4 6h0.1M4 12h0.1M4 18h0.1"></path></svg>` : null}
     </div>
   </div>
   <div style=${stil('font-size:12.5px;color:var(--lab3);padding:6px 20px 8px')}>${v.docsCountLabel}</div>
@@ -81,6 +85,37 @@
         </div>
         </div>`)}
     </div>` : null}
+  ${v.viewIsOrdner ? html`<div>
+    ${''/* Pfadleiste. Der letzte Eintrag ist der Ort, an dem man steht - er
+         fuehrt nirgendwohin und ist deshalb nicht anklickbar. */}
+    <div style=${stil('display:flex;align-items:center;gap:4px;padding:0 16px 10px;overflow-x:auto;white-space:nowrap')}>
+      ${v.otHochAn ? html`<div onClick=${v.otHoch} title="Eine Ebene höher" style=${stil('width:26px;height:26px;border-radius:999px;background:var(--fill);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-right:4px')}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></div>` : null}
+      ${(v.otWeg || []).map((w, wIdx) => html`<span key=${wIdx} style=${stil('display:flex;align-items:center;gap:4px;flex-shrink:0')}>
+        ${wIdx > 0 ? html`<span style=${stil('font-size:13px;color:var(--lab3)')}>/</span>` : null}
+        <span onClick=${w.letzter ? null : w.tap} style=${stil('font-size:13.5px;font-weight:' + (w.letzter ? '600' : '500') + ';color:var(--' + (w.letzter ? 'lab' : 'acc') + ');' + (w.letzter ? '' : 'cursor:pointer'))}>${w.name}</span>
+      </span>`)}
+    </div>
+    <div style=${stil(S.karte)}>
+      ${(v.otOrdner || []).map((f, fIdx) => html`<div key=${'o' + fIdx} onClick=${f.tap} style=${stil('display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;position:relative')}>
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style=${stil('flex-shrink:0')}><path d="M3 6.5a2 2 0 012-2h4l2 2.5h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+          <div style=${stil('flex:1;min-width:0')}><div style=${stil(S.zeileTitel)}>${f.name}</div><div style=${stil('font-size:13px;color:var(--lab2);margin-top:1px')}>${f.countLabel}</div></div>
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none" stroke="var(--lab3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l6 6-6 6"></path></svg>
+          <div style=${stil(S.trenner)}></div>
+        </div>`)}
+      ${(v.otDateien || []).map((d, dIdx) => html`<div key=${d && d.id != null ? d.id : 'd' + dIdx} onClick=${d.open} style=${stil('display:flex;align-items:center;gap:11px;padding:10px 16px;cursor:pointer;position:relative')}>
+          <div style=${stil('width:34px;height:44px;border-radius:5px;background:var(--pg);border:0.5px solid var(--sep);flex-shrink:0;position:relative;overflow:hidden')}>${d.bild ? html`<img src=${d.bild} alt="" loading="lazy" style=${stil('position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top')} />` : null}</div>
+          <div style=${stil('flex:1;min-width:0')}><div style=${stil('font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis')}>${d.titel}</div><div style=${stil('font-size:13px;color:var(--lab2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px')}>${d.sub}</div></div>
+          <span style=${stil('font-size:12.5px;color:var(--lab2);flex-shrink:0')}>${d.dShort}</span>
+          <div style=${stil(S.trenner)}></div>
+        </div>`)}
+    </div>
+    ${v.otLaden ? html`<div style=${stil('text-align:center;font-size:13px;color:var(--lab3);padding:18px')}>Wird geladen …</div>` : null}
+    ${v.otLeer ? html`<div style=${stil('text-align:center;padding:46px 34px')}>
+        <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--lab3)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style=${stil(S.mitte)}><path d="M3 6.5a2 2 0 012-2h4l2 2.5h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+        <div style=${stil('font-size:16px;font-weight:600;margin-top:12px')}>Nichts in diesem Ordner</div>
+        <div style=${stil('font-size:13.5px;color:var(--lab2);margin-top:6px;line-height:1.5')}>${v.otLeerText}</div>
+      </div>` : null}
+  </div>` : null}
   ${v.viewIsGrid ? html`<div style=${stil('display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px')}>
       ${(v.visDocs || []).map((d, dIdx) => html`<div key=${d && d.id != null ? d.id : dIdx} onClick=${d.tap} style=${stil('background:var(--card);border-radius:14px;padding:10px;cursor:pointer;position:relative')}>
           <div style=${stil('height:118px;border-radius:8px;background:var(--pg);border:0.5px solid var(--sep);padding:14px 12px;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden')}><div style=${stil('height:4px;width:50%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:4px;width:85%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:4px;width:70%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:4px;width:80%;background:var(--pgl);border-radius:2px;margin-top:10px')}></div><div style=${stil('height:4px;width:65%;background:var(--pgl);border-radius:2px')}></div>${d.bild ? html`<img src=${d.bild} alt="" loading="lazy" style=${stil('position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top')} />` : null}</div>
