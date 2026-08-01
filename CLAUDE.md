@@ -36,7 +36,8 @@ Dieses Projekt dient dem Aufbau und der Wartung einer modernen, performanten, be
 - `api.js` — Zugriffsschicht auf die REST-API (`window.PaperlessAPI`).
 - Eigenständige Module neben `app.js`, je ein Sachgebiet: `sperre.js` (WebAuthn/PRF),
   `scan.js` (JPEGs zu einem PDF), `stile.js`, `mitglieder.js` (Mitglieder und Gruppen),
-  `erfassen.js` (Scannen und Hochladen).
+  `erfassen.js` (Scannen und Hochladen), `suche.js` (Volltextindex, Verlauf, gespeicherte
+  Ansichten), `vorschau.js` (Vorschaubilder, Vorschau, Herunterladen, Drucken).
   Sie liefern `start()` (Zustandswerte für den Konstruktor), teils `beimSchliessen()`, und
   `methoden`; `app.js` hängt letztere mit `Object.assign(Oberflaeche.prototype, …)` an —
   `this.mitgliedAnlegen()` und `this.scanOeffnen()` bleiben also unverändert aufrufbar. Ein
@@ -48,6 +49,15 @@ Dieses Projekt dient dem Aufbau und der Wartung einer modernen, performanten, be
   Es liest keine Liste, keinen Filter und keinen Cache — zurück in den Bestand führt allein
   `reloadDocs()`. Welche Dateitypen der Server annimmt (`DOKUMENT_TYPEN`), steht dort und
   nicht in `app.js`; die Knopfleiste ruft `this.dokumentWaehlen()`.
+  `vorschau.js` hält alles, was als **Blob** vom Server kommt: die Vorschaubilder der Listen,
+  die Vorschau des geöffneten Dokuments und die Datei selbst. Sie teilen eine Pflicht — eine
+  Object-URL gibt der Browser nie von selbst frei. Deshalb steht das Widerrufen dort an jeder
+  Stelle mit dabei: eine Obergrenze für die Listen (`BILDER_MAX`, älteste fallen heraus), ein
+  Wechsel für die Detailvorschau, eine Frist für die heruntergeladene Datei. Die Bilder liegen
+  neben dem Zustand (`speicher()`), nicht darin — ein einzelnes fertiges Bild ist kein Anlass,
+  den Baum neu zu zeichnen; dafür zählt `bildStand` hoch. `componentDidUpdate` treibt beides
+  an (`bilderNachladen()`, `vorschauFolgen()`), Abmelden und „Lokale Daten löschen“ rufen
+  `alleBilderFreigeben()`.
 - `tools/konvert.py` — hat die frühere DC-Vorlage nach htm übersetzt. **Kein laufendes
   Werkzeug**: Änderungen gehören in `vorlage/`, nicht in eine erneute Übersetzung. Steht im
   Repository, weil er die Herkunft der Dateien belegt.

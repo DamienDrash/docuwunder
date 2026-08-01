@@ -17,7 +17,7 @@ import tempfile
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 HTML = []  # keine DC-Skriptbloecke mehr - die Oberflaeche ist reines JavaScript
 JS = ["logik.js", "api.js", "stile.js", "sperre.js", "scan.js", "mitglieder.js",
-      "erfassen.js", "suche.js", "ui.js", "app.js", "vorlage.js",
+      "erfassen.js", "suche.js", "vorschau.js", "ui.js", "app.js", "vorlage.js",
       "vorlage/tabs.js", "vorlage/dokument.js", "vorlage/ordnung.js",
       "vorlage/verwaltung.js", "vorlage/sheets.js", "vorlage/erfassen.js",
       "vorlage/onboarding.js", "vorlage/sperre.js", "sw.js"]

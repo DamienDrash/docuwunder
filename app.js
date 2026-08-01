@@ -24,6 +24,10 @@
   // Und die Suche in suche.js: Volltextindex, Verlauf und gespeicherte
   // Ansichten - eine Liste neben den anderen, mit eigener Serverabfrage.
   const DWSuche = global.DWSuche;
+  // Und die Vorschau in vorschau.js: Vorschaubilder der Listen, Vorschau des
+  // geoeffneten Dokuments, Herunterladen und Drucken - alles, was als Blob
+  // kommt und eine Object-URL hinterlaesst, die wieder freigehoert.
+  const DWVorschau = global.DWVorschau;
 
 // Der Rahmen, in dem die ganze Oberflaeche sitzt.
 //
@@ -84,14 +88,6 @@ const SORT_API = { neu: '-created', alt: 'created', titel: 'title', absender: 'c
 // der Datenschutzhinweis.
 const PROJEKT_URL = 'https://github.com/DamienDrash/docuwunder';
 
-// Wie viele Vorschaubilder hoechstens gleichzeitig im Speicher liegen. Eines
-// wiegt als Blob 10 bis 30 Kilobyte; 120 sind also wenige Megabyte und decken
-// das, was man an einem Stueck durchscrollt.
-const BILDER_MAX = 120;
-// Wie viele auf einmal geholt werden. Mehr macht die Liste nicht schneller,
-// belegt aber die Verbindungen, die gleichzeitig auch die Daten brauchen.
-const BILDER_GLEICHZEITIG = 6;
-
 // Wie weit sich der Inhalt hoechstens ziehen laesst und ab wann Loslassen neu
 // laedt. Die Schwelle liegt deutlich unter dem Maximum: wer zieht, soll den
 // Punkt erreichen, ohne zu zerren.
@@ -142,8 +138,9 @@ class Oberflaeche extends React.Component {
       // "Zuletzt geoeffnet" und Suchtreffer greifen darauf zu, auch wenn das
       // Dokument in keiner der aktuellen Listen mehr steht.
       cache: {},
-      // Vorschaubild des geoeffneten Dokuments (Blob-URL, siehe ladeVorschau).
-      prev: null,
+      // Vorschau des geoeffneten Dokuments (Blob-URL) und der Zaehler, der ein
+      // fertiges Vorschaubild anzeigt. Was dazugehoert, steht in vorschau.js.
+      ...DWVorschau.start(),
       // Namenslisten fuer Auswahlmenues.
       tagsM: [], absM: [], artenM: [], orteM: [],
       // Rohdaten und Nachschlagetabellen (Name <-> id), von mapDoc gebraucht.
@@ -174,6 +171,9 @@ class Oberflaeche extends React.Component {
       serverUrl: window.PaperlessAPI ? window.PaperlessAPI.getBase() : '',
     };
     this._t = [];
+    // Die geladenen Vorschaubilder liegen neben dem Zustand, nicht darin -
+    // warum, steht in vorschau.js.
+    Object.assign(this, DWVorschau.speicher());
   }
   componentWillUnmount() {
     this._t.forEach(clearTimeout);
@@ -195,13 +195,6 @@ class Oberflaeche extends React.Component {
     if (ziel === 'suche') return { tab: 'home', stack: [{ t: 'search' }] };
     return ['home', 'docs', 'inbox', 'more'].includes(ziel) ? { tab: ziel, stack: [] } : leer;
   }
-  // Optionaler Rückkanal: das Desktop-Vorschau-Mockup (iphone.html) faerbt damit
-  // die simulierte iOS-Statusleiste passend zum In-App-Darstellungsmodus ein.
-  // Vorschaubilder der Listen. Kein Zustand, weil ein einzelnes Bild kein
-  // Anlass zum Neuzeichnen ist - das loest bildStand aus, wenn eines fertig
-  // wird.
-  bilder = new Map();
-  bilderLaufend = new Set();
 
   componentDidMount() {
     this.reportDark();
@@ -245,17 +238,13 @@ class Oberflaeche extends React.Component {
     };
     this.loadAll();
   }
-  // Die Vorschau haengt am geoeffneten Dokument, nicht an einer einzelnen
-  // Aktion: sie wird auch beim Zurueckblaettern und im Split-View beim
-  // Wechsel der Auswahl gebraucht.
   componentDidUpdate() {
     this.reportDark();
+    // Beides treibt vorschau.js an: die Bilder der Listen holen sich nach, was
+    // sichtbar geworden ist, und die Detailvorschau folgt dem Dokument, das
+    // gerade oben auf dem Stapel liegt.
     this.bilderNachladen();
-    const top = this.top();
-    const id = (top && top.t === 'doc') ? top.id : null;
-    const p = this.state.prev;
-    if (id && (!p || p.id !== id)) this.ladeVorschau(id);
-    else if (!id && p) { this.vorschauFrei(); this.setState({ prev: null }); }
+    this.vorschauFolgen();
   }
   // Das ?tab= eines Kurzbefehls hat seinen Zweck erfuellt, sobald der
   // Startzustand steht. Bliebe es stehen, landete jedes spaetere Neuladen
@@ -269,6 +258,9 @@ class Oberflaeche extends React.Component {
       history.replaceState(null, '', u.pathname + u.search + u.hash);
     } catch (e) { /* geht es nicht, bleibt der Parameter eben stehen */ }
   }
+  // Rueckkanal an index.html: leiste() faerbt damit beide theme-color-Angaben
+  // auf das Schema, das in der App tatsaechlich gilt. Ohne das stuende eine
+  // helle Systemleiste ueber einer dunklen Oberflaeche.
   reportDark() { const cb = this.props.onDark || this.props.ondark; if (typeof cb !== 'function') return; const d = this.isDark(); if (this._lastDark === d) return; this._lastDark = d; cb(d); }
   later(fn, ms) { this._t.push(setTimeout(fn, ms)); }
   top() { const s = this.state.stack; return s.length ? s[s.length - 1] : null; }
@@ -1315,138 +1307,8 @@ class Oberflaeche extends React.Component {
     return Promise.all([this.loadAll(), this.reloadDocs()]);
   }
 
-  // --- Vorschaubilder in den Listen ---------------------------------------
-  //
-  // Paperless legt zu jedem Dokument ein Vorschaubild ab. Die Listen zeigten
-  // stattdessen ein gezeichnetes Blatt mit grauen Strichen - fuer jedes
-  // Dokument dasselbe. Zwischen zwanzig Rechnungen unterscheidet das nichts.
-  //
-  // Die Bilder brauchen den Auth-Header, den ein <img src> nicht mitschickt;
-  // sie kommen deshalb als Blob und liegen als Object-URL vor. Solche URLs
-  // gibt der Browser nie von selbst frei, also gilt hier eine Obergrenze:
-  // was am laengsten nicht gebraucht wurde, faellt heraus.
-  //
-  // Das gezeichnete Blatt bleibt als Platzhalter darunter liegen. Es ist
-  // sofort da, das Bild legt sich darueber, sobald es geladen ist - so
-  // springt beim Scrollen nichts.
-
-  bildFuer(id) { return this.bilder.get(id) || ''; }
-
-  bildMerken(id, url) {
-    // Neu einsortieren, damit die Reihenfolge der Map die Nutzung abbildet.
-    if (this.bilder.has(id)) {
-      const alt = this.bilder.get(id);
-      if (alt && alt !== url) URL.revokeObjectURL(alt);
-      this.bilder.delete(id);
-    }
-    this.bilder.set(id, url);
-    DWLogik.bilderUeberzaehlig([...this.bilder.keys()], BILDER_MAX).forEach(alt => {
-      const weg = this.bilder.get(alt);
-      if (weg) URL.revokeObjectURL(weg);
-      this.bilder.delete(alt);
-    });
-  }
-
-  // Alles, was gerade in einer Liste stehen koennte. Die Reihenfolge zaehlt:
-  // was oben steht, wird zuerst geholt.
-  bildKandidaten() {
-    const s = this.state, ids = [];
-    const dazu = (liste) => (liste || []).forEach(d => { if (d && d.id != null) ids.push(d.id); });
-    dazu(this.inboxEff());
-    dazu(s.docs);
-    dazu(s.recent);
-    dazu(s.favs);
-    dazu(s.qRes);
-    dazu(s.ordnerDocs);
-    dazu(s.ordnerTabDocs);
-    (s.opened || []).forEach(id => ids.push(id));
-    return ids.slice(0, BILDER_MAX);
-  }
-
-  bilderNachladen() {
-    const A = this.api();
-    if (!A) return;
-    let frei = BILDER_GLEICHZEITIG - this.bilderLaufend.size;
-    for (const id of this.bildKandidaten()) {
-      if (frei <= 0) break;
-      if (this.bilder.has(id) || this.bilderLaufend.has(id)) continue;
-      this.bilderLaufend.add(id);
-      frei--;
-      A.documents.thumbUrl(id).then(url => {
-        this.bilderLaufend.delete(id);
-        this.bildMerken(id, url);
-        this.setState(st => ({ bildStand: (st.bildStand || 0) + 1 }));
-      }).catch(() => {
-        // Kein Vorschaubild ist kein Fehler, der jemanden interessiert - die
-        // Zeile behaelt dann ihr gezeichnetes Blatt. Der leere Eintrag
-        // verhindert, dass es endlos erneut versucht wird.
-        this.bilderLaufend.delete(id);
-        this.bildMerken(id, '');
-        this.setState(st => ({ bildStand: (st.bildStand || 0) + 1 }));
-      });
-    }
-  }
-
-  bilderVergessen() {
-    this.bilder.forEach(url => { if (url) URL.revokeObjectURL(url); });
-    this.bilder.clear();
-    this.bilderLaufend.clear();
-  }
-
-  // --- Dateien ------------------------------------------------------------
-  // Vorschaubild des geoeffneten Dokuments. Bilddaten brauchen den
-  // Auth-Header, den ein <img src> nicht mitschickt - api.js laedt sie
-  // deshalb als Blob. Die Object-URL wird beim Wechsel wieder freigegeben,
-  // sonst haelt der Browser jedes je geoeffnete Dokument im Speicher.
-  ladeVorschau(id) {
-    const A = this.api();
-    if (!A || !id) return;
-    this.vorschauFrei();
-    this.setState({ prev: { id, url: '', busy: true, err: '' } });
-    A.documents.thumbUrl(id).then(url => {
-      const p = this.state.prev;
-      if (p && p.id === id) this.setState({ prev: { id, url, busy: false, err: '' } });
-      else A.util.revoke(url);
-    }).catch(e => {
-      const p = this.state.prev;
-      if (p && p.id === id) this.setState({ prev: { id, url: '', busy: false, err: (e && e.message) || 'Vorschau nicht verfügbar.' } });
-    });
-  }
-  vorschauFrei() {
-    const p = this.state.prev, A = this.api();
-    if (p && p.url && A) A.util.revoke(p.url);
-  }
-
-  // Original bzw. archivierte Fassung herunterladen.
-  dateiLaden(id, original) {
-    const A = this.api();
-    this.setState({ sheet: null });
-    this.note('Datei wird geladen …');
-    A.documents.file(id, original).then(f => {
-      const a = document.createElement('a');
-      a.href = f.url;
-      a.download = f.name || ('dokument-' + id + '.pdf');
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      // Der Browser braucht die URL noch einen Moment nach dem Klick.
-      this.later(() => A.util.revoke(f.url), 60000);
-      this.note('Datei gespeichert');
-    }).catch(e => this.note('Download fehlgeschlagen: ' + e.message));
-  }
-
-  // Drucken laeuft ueber die PDF-Ansicht des Browsers.
-  drucken(id) {
-    const A = this.api();
-    this.setState({ sheet: null });
-    this.note('Druckansicht wird vorbereitet …');
-    A.documents.previewUrl(id).then(url => {
-      const w = window.open(url, '_blank');
-      if (!w) { A.util.revoke(url); this.note('Der Browser hat das Fenster blockiert. Erlaube Pop-ups für diese Seite.'); return; }
-      this.later(() => A.util.revoke(url), 120000);
-    }).catch(e => this.note('Drucken nicht möglich: ' + e.message));
-  }
-
+  // Text in die Zwischenablage. Steht hier und nicht in vorschau.js: es geht
+  // um Freigabe-Links und Zugangsdaten, nicht um eine Datei.
   kopiere(text, meldung) {
     const nein = () => this.note('Kopieren nicht möglich – bitte den Link von Hand markieren.');
     if (!text) return;
@@ -1689,8 +1551,7 @@ class Oberflaeche extends React.Component {
     const A = this.api();
     A.logout();
     this.sucheAbbrechen();
-    this.vorschauFrei();
-    this.bilderVergessen();
+    this.alleBilderFreigeben();
     // Nach dem Abmelden darf nichts mehr aus dem alten Konto sichtbar sein -
     // auch nicht im Cache, in stehen gebliebenen Suchtreffern oder in den
     // Vorschaubildern, die als Object-URL im Speicher liegen.
@@ -2086,8 +1947,7 @@ class Oberflaeche extends React.Component {
         // Wo der Suchverlauf liegt, weiss suche.js - hier steht nur, dass er
         // mit weg muss.
         this.verlaufVergessen();
-        this.vorschauFrei();
-        this.bilderVergessen();
+        this.alleBilderFreigeben();
         this.setState({ cache: {}, opened: [], prev: null });
         this.reloadDocs().then(() => this.note('Lokale Daten gelöscht'));
       },
@@ -2449,11 +2309,12 @@ class Oberflaeche extends React.Component {
 }
 
 // Die Methoden der ausgelagerten Sachgebiete an den Prototyp haengen. Danach
-// sind this.mitgliedAnlegen(), this.scanOeffnen() und this.sucheSetzen()
-// dasselbe wie zuvor - die Aufrufer in valsVerwaltung, valsSheets,
-// valsNavigation, valsErfassen und valsSuche merken nichts davon, dass die
-// Bodies in mitglieder.js, erfassen.js und suche.js stehen.
-Object.assign(Oberflaeche.prototype, DWMitglieder.methoden, DWErfassen.methoden, DWSuche.methoden);
+// sind this.mitgliedAnlegen(), this.scanOeffnen(), this.sucheSetzen() und
+// this.drucken() dasselbe wie zuvor - die Aufrufer in valsVerwaltung,
+// valsSheets, valsNavigation, valsErfassen, valsSuche und valsDokument merken
+// nichts davon, dass die Bodies in mitglieder.js, erfassen.js, suche.js und
+// vorschau.js stehen.
+Object.assign(Oberflaeche.prototype, DWMitglieder.methoden, DWErfassen.methoden, DWSuche.methoden, DWVorschau.methoden);
 
 
   // Wurzel: loest 'System' zum tatsaechlichen Schema auf, damit die
