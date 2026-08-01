@@ -378,3 +378,31 @@ test('pdf: die Bildbytes landen unveraendert in der Datei', () => {
   assert.ok(t.includes(JPEG.toString('latin1')), 'JPEG wurde veraendert');
   assert.ok(t.includes('/Length ' + JPEG.length), 'Laengenangabe passt nicht');
 });
+
+// --- Vorschaubilder im Speicher ---------------------------------------------
+//
+// Object-URLs gibt der Browser nie von selbst frei. Ohne Obergrenze waechst
+// der Verbrauch mit jedem gescrollten Dokument.
+
+test('bilderUeberzaehlig: unter der Grenze faellt nichts weg', () => {
+  assert.deepStrictEqual(L.bilderUeberzaehlig([1, 2, 3], 5), []);
+  assert.deepStrictEqual(L.bilderUeberzaehlig([1, 2, 3], 3), []);
+});
+
+test('bilderUeberzaehlig: es faellt weg, was am laengsten nicht gebraucht wurde', () => {
+  // Vorn steht das aelteste - die Liste ist nach Nutzung sortiert.
+  assert.deepStrictEqual(L.bilderUeberzaehlig([1, 2, 3, 4, 5], 3), [1, 2]);
+});
+
+test('bilderUeberzaehlig: leere Liste und fehlende Angabe stuerzen nicht ab', () => {
+  assert.deepStrictEqual(L.bilderUeberzaehlig([], 10), []);
+  assert.deepStrictEqual(L.bilderUeberzaehlig(null, 10), []);
+});
+
+test('bilderUeberzaehlig: die Grenze wird wirklich eingehalten', () => {
+  // Der Fall, der in der App zaehlt: 5000 Dokumente durchgescrollt.
+  const ids = Array.from({ length: 5000 }, (x, i) => i);
+  const weg = L.bilderUeberzaehlig(ids, 120);
+  assert.strictEqual(ids.length - weg.length, 120);
+  assert.strictEqual(weg[0], 0, 'das aelteste muss zuerst weichen');
+});

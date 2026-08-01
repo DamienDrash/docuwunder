@@ -307,6 +307,30 @@ verschluckte alles bis zum nächsten. Der Filter dagegen muss reguläre Ausdrüc
 in `/^https?:\/\//` steht die Folge `\/\/`, und wer nur nach zwei Schrägstrichen sucht,
 frisst den Rest der Datei.
 
+### ✅ 3.8 Vorschaubilder statt gezeichneter Striche
+
+Die Listen zeigten für jedes Dokument dasselbe gemalte Blatt mit grauen Strichen. Zwischen
+zwanzig Rechnungen unterscheidet das nichts. Paperless legt zu jedem Dokument ein
+Vorschaubild ab — jetzt steht es an sechs Stellen: Dokumentliste, Raster, „Zuletzt
+hinzugefügt", „Zuletzt geöffnet", Posteingang und Ordneransicht.
+
+Zwei Dinge waren dabei zu lösen:
+
+- **Authentifizierung.** Vorschaubilder brauchen den Auth-Header, den ein `<img src>` nicht
+  mitschickt. Sie kommen deshalb als Blob und liegen als Object-URL vor.
+- **Speicher.** Object-URLs gibt der Browser nie von selbst frei. Bei 5000 Dokumenten wären
+  das hunderte Megabyte, nur weil jemand durchgescrollt hat. Es gilt eine Obergrenze von 120;
+  was am längsten nicht gebraucht wurde, fällt heraus. Die Verdrängung liegt als reine
+  Funktion in `logik.js` und ist mit vier Fällen abgedeckt — eine Browserprüfung könnte sie
+  bei fünf Testdokumenten gar nicht erreichen und hätte nur so ausgesehen, als täte sie es.
+
+Das gezeichnete Blatt bleibt als Platzhalter darunter liegen: es ist sofort da, das Bild legt
+sich darüber, sobald es geladen ist. Beim Scrollen springt dadurch nichts.
+
+**Nebenbefund:** `Math.absender(...)` in der Wischgeste — die frühere Umbenennung `abs` →
+`absender` hatte `Math.abs` mit erwischt. Jedes Wischen an einer Listenzeile warf
+`Math.absender is not a function`.
+
 ---
 
 ## Phase 4 — Aufräumen

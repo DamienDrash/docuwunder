@@ -374,6 +374,37 @@ def main():
                 assert bild.count() > 0, "kein Vorschaubild im Dokument"
                 return "Vorschau geladen und angezeigt"
 
+            # --- Vorschaubilder ----------------------------------------------
+            # Die Listen zeigten fuer jedes Dokument dasselbe gezeichnete
+            # Blatt mit grauen Strichen. Geprueft wird, dass dort jetzt das
+            # Vorschaubild des Servers steht - an der Bildgroesse, die ein
+            # gezeichnetes Blatt nicht hat.
+
+            def t_listen_zeigen_echte_vorschau():
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(4000)
+                gezeigt = seite.evaluate(
+                    "() => [...document.querySelectorAll('img')]"
+                    ".filter(i => i.src.startsWith('blob:') && i.naturalWidth > 0)"
+                    ".map(i => i.naturalWidth)")
+                assert len(gezeigt) >= 3, \
+                    f"Startseite zeigt {len(gezeigt)} Vorschaubilder, erwartet mindestens 3"
+
+                seite.locator('text="Dokumente"').last.click()
+                seite.wait_for_timeout(3500)
+                inListe = seite.evaluate(
+                    "() => [...document.querySelectorAll('img')]"
+                    ".filter(i => i.src.startsWith('blob:') && i.naturalWidth > 0).length")
+                assert inListe >= 5, f"Liste zeigt nur {inListe} Vorschaubilder"
+
+                # Und sie muessen sich unterscheiden - sonst waere es wieder
+                # ein Platzhalter, nur diesmal als Bild.
+                verschieden = seite.evaluate(
+                    "() => new Set([...document.querySelectorAll('img')]"
+                    ".filter(i => i.src.startsWith('blob:')).map(i => i.src)).size")
+                assert verschieden >= 5, f"nur {verschieden} verschiedene Bilder"
+                return f"{inListe} echte Vorschaubilder in der Liste"
+
             # --- Bedienungen, die nur geredet haben --------------------------
             # Vier Knoepfe hatten als ganze Wirkung einen Hinweistext:
             # "Hilfe oeffnet sich im Browser" (es oeffnete sich nichts),
@@ -860,6 +891,7 @@ def main():
                 ("Filter laedt neu", t_filter_laedt_neu),
                 ("Suche geht an den Server", t_suche_serverseitig),
                 ("Treffer oeffnet mit Vorschau", t_treffer_oeffnet_mit_vorschau),
+                ("Listen zeigen echte Vorschau", t_listen_zeigen_echte_vorschau),
                 ("Textgroesse ist eine Anzeige", t_textgroesse_ist_anzeige),
                 ("Datenschutz hat Inhalt", t_datenschutz_hat_inhalt),
                 ("Hilfe oeffnet den Quelltext", t_hilfe_oeffnet_wirklich),

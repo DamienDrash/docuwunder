@@ -98,6 +98,14 @@ const DOKUMENT_TYPEN = 'image/*,.pdf,.txt,.csv,.rtf,.eml,.doc,.docx,.odt,.xls,.x
 // Der Quelltext. Steht hier, weil ihn zwei Stellen brauchen: die Hilfe und
 // der Datenschutzhinweis.
 const PROJEKT_URL = 'https://github.com/DamienDrash/docuwunder';
+
+// Wie viele Vorschaubilder hoechstens gleichzeitig im Speicher liegen. Eines
+// wiegt als Blob 10 bis 30 Kilobyte; 120 sind also wenige Megabyte und decken
+// das, was man an einem Stueck durchscrollt.
+const BILDER_MAX = 120;
+// Wie viele auf einmal geholt werden. Mehr macht die Liste nicht schneller,
+// belegt aber die Verbindungen, die gleichzeitig auch die Daten brauchen.
+const BILDER_GLEICHZEITIG = 6;
 // Ein Dokument steht je nach Bildschirm in mehreren Listen zugleich. Eine
 // Aenderung muss in allen ankommen, sonst zeigen zwei Bildschirme
 // gleichzeitig verschiedene Staende desselben Dokuments.
@@ -203,6 +211,12 @@ class Oberflaeche extends React.Component {
   }
   // Optionaler Rückkanal: das Desktop-Vorschau-Mockup (iphone.html) faerbt damit
   // die simulierte iOS-Statusleiste passend zum In-App-Darstellungsmodus ein.
+  // Vorschaubilder der Listen. Kein Zustand, weil ein einzelnes Bild kein
+  // Anlass zum Neuzeichnen ist - das loest bildStand aus, wenn eines fertig
+  // wird.
+  bilder = new Map();
+  bilderLaufend = new Set();
+
   componentDidMount() {
     this.reportDark();
     this.adresseAufraeumen();
@@ -250,6 +264,7 @@ class Oberflaeche extends React.Component {
   // Wechsel der Auswahl gebraucht.
   componentDidUpdate() {
     this.reportDark();
+    this.bilderNachladen();
     const top = this.top();
     const id = (top && top.t === 'doc') ? top.id : null;
     const p = this.state.prev;
@@ -978,10 +993,10 @@ class Oberflaeche extends React.Component {
   enrich(d) {
     const s = this.state, sel = s.sel.includes(d.id);
     const sw = s.swipe && s.swipe.id === d.id ? s.swipe : null, dx = sw ? sw.dx : 0;
-    return { ...d, sub: [d.absender, d.dokumentart].filter(Boolean).join(' · ') || 'Keine Angaben', dShort: this.kurzDatum(d.datum), neu: this.istNeu(d), tags2: d.tags.slice(0, 2).map(n => ({ n })), selMode: s.selMode, selected: sel, unselected: !sel, open: () => this.openDoc(d.id),
+    return { ...d, bild: this.bildFuer(d.id), sub: [d.absender, d.dokumentart].filter(Boolean).join(' · ') || 'Keine Angaben', dShort: this.kurzDatum(d.datum), neu: this.istNeu(d), tags2: d.tags.slice(0, 2).map(n => ({ n })), selMode: s.selMode, selected: sel, unselected: !sel, open: () => this.openDoc(d.id),
       rowStyle: 'display:flex;align-items:center;gap:11px;padding:10px 16px;cursor:pointer;position:relative;background:var(--card);touch-action:pan-y;transform:translateX(' + dx + 'px);transition:' + (sw && sw.drag ? 'none' : 'transform .28s cubic-bezier(.3,.7,.4,1)'),
       pd: (e) => { if (this.state.selMode) return; this.setState({ swipe: { id: d.id, x0: e.clientX, base: dx, dx, drag: true, mv: false } }); },
-      pm: (e) => { const w = this.state.swipe; if (w && w.drag && w.id === d.id) { const nx = Math.max(-136, Math.min(0, w.base + e.clientX - w.x0)); this.setState({ swipe: { ...w, dx: nx, mv: w.mv || Math.absender(e.clientX - w.x0) > 6 } }); } },
+      pm: (e) => { const w = this.state.swipe; if (w && w.drag && w.id === d.id) { const nx = Math.max(-136, Math.min(0, w.base + e.clientX - w.x0)); this.setState({ swipe: { ...w, dx: nx, mv: w.mv || Math.abs(e.clientX - w.x0) > 6 } }); } },
       pu: () => { const w = this.state.swipe; if (w && w.id === d.id && w.drag) this.setState({ swipe: { ...w, dx: w.dx < -60 ? -136 : 0, drag: false } }); },
       swFav: () => { this.updDoc(d.id, { favorit: !d.favorit }); this.setState({ swipe: null }); },
       swFavLabel: d.favorit ? 'Entfernen' : 'Favorit',
@@ -1607,6 +1622,83 @@ class Oberflaeche extends React.Component {
     }).catch(e => this.note('Export fehlgeschlagen: ' + e.message));
   }
 
+  // --- Vorschaubilder in den Listen ---------------------------------------
+  //
+  // Paperless legt zu jedem Dokument ein Vorschaubild ab. Die Listen zeigten
+  // stattdessen ein gezeichnetes Blatt mit grauen Strichen - fuer jedes
+  // Dokument dasselbe. Zwischen zwanzig Rechnungen unterscheidet das nichts.
+  //
+  // Die Bilder brauchen den Auth-Header, den ein <img src> nicht mitschickt;
+  // sie kommen deshalb als Blob und liegen als Object-URL vor. Solche URLs
+  // gibt der Browser nie von selbst frei, also gilt hier eine Obergrenze:
+  // was am laengsten nicht gebraucht wurde, faellt heraus.
+  //
+  // Das gezeichnete Blatt bleibt als Platzhalter darunter liegen. Es ist
+  // sofort da, das Bild legt sich darueber, sobald es geladen ist - so
+  // springt beim Scrollen nichts.
+
+  bildFuer(id) { return this.bilder.get(id) || ''; }
+
+  bildMerken(id, url) {
+    // Neu einsortieren, damit die Reihenfolge der Map die Nutzung abbildet.
+    if (this.bilder.has(id)) {
+      const alt = this.bilder.get(id);
+      if (alt && alt !== url) URL.revokeObjectURL(alt);
+      this.bilder.delete(id);
+    }
+    this.bilder.set(id, url);
+    DWLogik.bilderUeberzaehlig([...this.bilder.keys()], BILDER_MAX).forEach(alt => {
+      const weg = this.bilder.get(alt);
+      if (weg) URL.revokeObjectURL(weg);
+      this.bilder.delete(alt);
+    });
+  }
+
+  // Alles, was gerade in einer Liste stehen koennte. Die Reihenfolge zaehlt:
+  // was oben steht, wird zuerst geholt.
+  bildKandidaten() {
+    const s = this.state, ids = [];
+    const dazu = (liste) => (liste || []).forEach(d => { if (d && d.id != null) ids.push(d.id); });
+    dazu(this.inboxEff());
+    dazu(s.docs);
+    dazu(s.recent);
+    dazu(s.favs);
+    dazu(s.qRes);
+    dazu(s.ordnerDocs);
+    (s.opened || []).forEach(id => ids.push(id));
+    return ids.slice(0, BILDER_MAX);
+  }
+
+  bilderNachladen() {
+    const A = this.api();
+    if (!A) return;
+    let frei = BILDER_GLEICHZEITIG - this.bilderLaufend.size;
+    for (const id of this.bildKandidaten()) {
+      if (frei <= 0) break;
+      if (this.bilder.has(id) || this.bilderLaufend.has(id)) continue;
+      this.bilderLaufend.add(id);
+      frei--;
+      A.documents.thumbUrl(id).then(url => {
+        this.bilderLaufend.delete(id);
+        this.bildMerken(id, url);
+        this.setState(st => ({ bildStand: (st.bildStand || 0) + 1 }));
+      }).catch(() => {
+        // Kein Vorschaubild ist kein Fehler, der jemanden interessiert - die
+        // Zeile behaelt dann ihr gezeichnetes Blatt. Der leere Eintrag
+        // verhindert, dass es endlos erneut versucht wird.
+        this.bilderLaufend.delete(id);
+        this.bildMerken(id, '');
+        this.setState(st => ({ bildStand: (st.bildStand || 0) + 1 }));
+      });
+    }
+  }
+
+  bilderVergessen() {
+    this.bilder.forEach(url => { if (url) URL.revokeObjectURL(url); });
+    this.bilder.clear();
+    this.bilderLaufend.clear();
+  }
+
   // --- Dateien ------------------------------------------------------------
   // Vorschaubild des geoeffneten Dokuments. Bilddaten brauchen den
   // Auth-Header, den ein <img src> nicht mitschickt - api.js laedt sie
@@ -1904,8 +1996,10 @@ class Oberflaeche extends React.Component {
     A.logout();
     if (this._suchAb) { this._suchAb.abort(); this._suchAb = null; }
     this.vorschauFrei();
+    this.bilderVergessen();
     // Nach dem Abmelden darf nichts mehr aus dem alten Konto sichtbar sein -
-    // auch nicht im Cache oder in stehen gebliebenen Suchtreffern.
+    // auch nicht im Cache, in stehen gebliebenen Suchtreffern oder in den
+    // Vorschaubildern, die als Object-URL im Speicher liegen.
     this.setState({
       screenSet: 'onb', onbStep: 1, onbErr: '', onbUser: '', onbPass: '', onbToken: '',
       stack: [], sheet: null, tab: 'home',
@@ -2060,7 +2154,7 @@ class Oberflaeche extends React.Component {
       inboxBadge: String(inbox.length), inboxCountLabel: inbox.length === 0 ? 'Keine neuen Dokumente' : inbox.length === 1 ? '1 neues Dokument' : inbox.length + ' neue Dokumente',
       dupOn: inbox.some(i => i.dup), openDup: () => { this.setState({ tab: 'inbox', revIdx: inbox.findIndex(i => i.dup) }); this.pushV({ t: 'rev' }); },
       missOn: inbox.some(i => i.felder[0].v === ''), openMissing: () => { this.setState({ tab: 'inbox', revIdx: inbox.findIndex(i => i.felder[0].v === '') }); this.pushV({ t: 'rev' }); },
-      inboxList: inbox.map((it, i) => ({ ...it, nSug: it.felder.filter(f => f.v).length + ' Vorschläge', review: () => { this.setState({ revIdx: i }); this.pushV({ t: 'rev' }); } })),
+      inboxList: inbox.map((it, i) => ({ ...it, bild: this.bildFuer(it.id), nSug: it.felder.filter(f => f.v).length + ' Vorschläge', review: () => { this.setState({ revIdx: i }); this.pushV({ t: 'rev' }); } })),
       showRev: top.t === 'rev' && !!rev,
       revTitel: rev ? rev.titel : '', revQuelle: rev ? rev.quelle + ' · ' + rev.hinzugefuegt : '', revDup: !!(rev && rev.dup), revDupRef: rev ? (rev.dupRef || '') : '',
       revPos: rev ? (inbox.indexOf(rev) + 1) + ' von ' + inbox.length : '',
@@ -2252,6 +2346,7 @@ class Oberflaeche extends React.Component {
       clearLocal: () => {
         try { localStorage.removeItem(SUCH_KEY); } catch (e) { /* gesperrt */ }
         this.vorschauFrei();
+        this.bilderVergessen();
         this.setState({ recents: [], cache: {}, opened: [], prev: null });
         this.reloadDocs().then(() => this.note('Lokale Daten gelöscht'));
       },

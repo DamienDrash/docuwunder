@@ -260,7 +260,22 @@
     return sauber + Date.now();
   }
 
+  // Welche Vorschaubilder muessen weichen, damit hoechstens `max` im Speicher
+  // bleiben?
+  //
+  // Object-URLs gibt der Browser nie von selbst frei: was einmal angelegt
+  // wurde, belegt Speicher bis zum Neuladen der Seite. Bei 5000 Dokumenten
+  // waeren das hunderte Megabyte, nur weil jemand durchgescrollt hat.
+  //
+  // `ids` steht in der Reihenfolge der Nutzung - zuletzt gebrauchtes zuletzt.
+  // Es faellt also von vorn weg, was am laengsten niemand gebraucht hat.
+  function bilderUeberzaehlig(ids, max) {
+    if (!ids || ids.length <= max) return [];
+    return ids.slice(0, ids.length - max);
+  }
+
   return {
+    bilderUeberzaehlig: bilderUeberzaehlig,
     dateDE: dateDE,
     kurzDatum: kurzDatum,
     initialen: initialen,
