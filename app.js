@@ -199,6 +199,16 @@ class Oberflaeche extends React.Component {
   componentDidMount() {
     this.reportDark();
     this.adresseAufraeumen();
+    // Ziehen zum Aktualisieren auf Beruehrungsgeraeten. Am Dokument statt am
+    // Behaelter, weil React die Behaelter neu erzeugt - die Geste soll das
+    // nicht merken.
+    this._ziehAn = (e) => this.ziehTouchStart(e);
+    this._ziehZug = (e) => this.ziehTouchZug(e);
+    this._ziehAus = () => this.ziehEnde();
+    document.addEventListener('touchstart', this._ziehAn, { passive: true });
+    document.addEventListener('touchmove', this._ziehZug, { passive: false });
+    document.addEventListener('touchend', this._ziehAus, { passive: true });
+    document.addEventListener('touchcancel', this._ziehAus, { passive: true });
     this._rs = () => { const w = window.innerWidth; if (w !== this.state.vw) this.setState({ vw: w }); };
     window.addEventListener('resize', this._rs);
 
@@ -1262,6 +1272,10 @@ class Oberflaeche extends React.Component {
   // versehentlich neu laden.
 
   ziehStart(e) {
+    // Nur die Maus. Auf Beruehrungsgeraeten uebernimmt der Browser die
+    // Bewegung und bricht die Zeigerereignisse ab - dort greifen die
+    // Beruehrungszuhoerer weiter unten.
+    if (e.pointerType && e.pointerType !== 'mouse') return;
     const el = e.currentTarget;
     if (!el || el.scrollTop > 0) return;
     if (this.state.zieh && this.state.zieh.laeuft) return;
@@ -1284,6 +1298,33 @@ class Oberflaeche extends React.Component {
       const aus = window.getSelection && window.getSelection();
       if (aus && aus.removeAllRanges) aus.removeAllRanges();
     }
+    this.setState({ zieh: { dy: dy, reif: dy >= ZIEH_SCHWELLE, laeuft: false } });
+  }
+
+  // Beruehrungsgeraete brauchen eigene Zuhoerer.
+  //
+  // React haengt touchmove passiv ein, und ein passiver Zuhoerer darf die
+  // Bewegung nicht abfangen. Der Browser nimmt sie dann fuer sich, scrollt
+  // selbst und bricht die Zeigerereignisse mit pointercancel ab - gemessen:
+  // ein pointermove, dann Schluss, waehrend touchmove weiterlief. Deshalb
+  // hier von Hand und ausdruecklich nicht passiv.
+  ziehTouchStart(e) {
+    if (!e.touches || e.touches.length !== 1) { this._zieh = null; return; }
+    const ziel = e.target && e.target.closest ? e.target.closest('[data-zieh]') : null;
+    if (!ziel || ziel.scrollTop > 0) { this._zieh = null; return; }
+    if (this.state.zieh && this.state.zieh.laeuft) return;
+    this._zieh = { y0: e.touches[0].clientY, el: ziel };
+  }
+
+  ziehTouchZug(e) {
+    const z = this._zieh;
+    if (!z || !e.touches || e.touches.length !== 1) return;
+    if (z.el.scrollTop > 0) { this._zieh = null; if (this.state.zieh) this.setState({ zieh: null }); return; }
+    const roh = e.touches[0].clientY - z.y0;
+    if (roh <= 0) { if (this.state.zieh) this.setState({ zieh: null }); return; }
+    // Der entscheidende Punkt: ohne das nimmt der Browser die Bewegung.
+    if (e.cancelable) e.preventDefault();
+    const dy = Math.min(ZIEH_MAX, roh * 0.45);
     this.setState({ zieh: { dy: dy, reif: dy >= ZIEH_SCHWELLE, laeuft: false } });
   }
 

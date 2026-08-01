@@ -161,7 +161,14 @@ def main():
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        seite = browser.new_page(viewport={"width": 430, "height": 900})
+        # has_touch, weil die Geste zum Aktualisieren an Beruehrungs-
+        # ereignissen haengt. Mit der Maus geprueft bestand sie, auf dem
+        # Geraet nicht: dort bricht der Browser die Zeigerereignisse ab,
+        # sobald er die Bewegung fuer sich nimmt.
+        kontext = browser.new_context(viewport={"width": 430, "height": 900},
+                                      has_touch=True, is_mobile=True)
+        seite = kontext.new_page()
+        cdp = kontext.new_cdp_session(seite)
         # Der Token liegt im Browser, sonst startet die App im Onboarding.
         seite.add_init_script(
             f"localStorage.setItem('paperless.token', {TOKEN!r});"
@@ -399,16 +406,61 @@ def main():
             # --- Ziehen zum Aktualisieren ------------------------------------
 
             def ziehen(reiter, weit=True):
-                seite.mouse.move(200, 300)
-                seite.mouse.down()
+                """Mit dem Finger, nicht mit der Maus.
+
+                Der Unterschied ist der ganze Punkt: bei einer Beruehrung
+                nimmt der Browser die Bewegung fuer sich und beendet die
+                Zeigerereignisse mit pointercancel - gemessen ein einziges
+                pointermove, waehrend touchmove weiterlief. Eine Pruefung mit
+                der Maus haette das nie gesehen.
+                """
+                cdp.send("Input.dispatchTouchEvent",
+                         {"type": "touchStart", "touchPoints": [{"x": 200, "y": 300}]})
                 for y in ((340, 400, 460) if weit else (315, 330)):
-                    seite.mouse.move(200, y)
+                    cdp.send("Input.dispatchTouchEvent",
+                             {"type": "touchMove", "touchPoints": [{"x": 200, "y": y}]})
                     seite.wait_for_timeout(70)
                 gezogen = seite.evaluate(
                     f"() => (document.querySelector(`[data-screen-label='{reiter}']`)"
                     " || {style:{}}).style.transform")
-                seite.mouse.up()
+                cdp.send("Input.dispatchTouchEvent",
+                         {"type": "touchEnd", "touchPoints": []})
                 return gezogen
+
+            def t_scrollen_bleibt_scrollen():
+                """Die Geste darf das Scrollen nicht auffressen.
+
+                Sie greift nur ganz oben - mitten in der Liste nach unten zu
+                ziehen ist Scrollen und darf nichts nachladen.
+                """
+                seite.locator('text="Mehr"').last.click()
+                seite.wait_for_timeout(2000)
+
+                def wisch(y0, y1):
+                    cdp.send("Input.dispatchTouchEvent",
+                             {"type": "touchStart", "touchPoints": [{"x": 200, "y": y0}]})
+                    for i in range(1, 9):
+                        cdp.send("Input.dispatchTouchEvent", {"type": "touchMove",
+                                 "touchPoints": [{"x": 200, "y": y0 + (y1 - y0) * i / 8}]})
+                        seite.wait_for_timeout(40)
+                    cdp.send("Input.dispatchTouchEvent",
+                             {"type": "touchEnd", "touchPoints": []})
+
+                hoch = lambda: seite.evaluate(
+                    "() => (document.querySelector('[data-zieh]') || {}).scrollTop")
+                assert hoch() == 0, "Liste steht nicht oben"
+                wisch(600, 200)
+                seite.wait_for_timeout(800)
+                assert hoch() > 30, f"Scrollen geht nicht mehr (scrollTop {hoch()})"
+
+                anfragen = []
+                seite.on("request", lambda r: anfragen.append(r.url)
+                         if "/api/" in r.url else None)
+                wisch(300, 460)
+                seite.wait_for_timeout(1500)
+                assert not anfragen, \
+                    f"Ziehen mitten in der Liste hat geladen: {len(anfragen)}"
+                return "oben ziehen laedt, mittendrin scrollt es"
 
             def t_ziehen_laedt_neu():
                 for reiter in ("Übersicht", "Dokumente", "Posteingang", "Mehr"):
@@ -1027,6 +1079,7 @@ def main():
                 ("Umschalter ist sichtbar", t_umschalter_ist_sichtbar),
                 ("Ziehen laedt neu", t_ziehen_laedt_neu),
                 ("Kurzes Ziehen laedt nicht", t_kurzes_ziehen_laedt_nicht),
+                ("Scrollen bleibt Scrollen", t_scrollen_bleibt_scrollen),
                 ("Ordneransicht im Reiter", t_ordneransicht_im_reiter),
                 ("Listen zeigen echte Vorschau", t_listen_zeigen_echte_vorschau),
                 ("Textgroesse ist eine Anzeige", t_textgroesse_ist_anzeige),

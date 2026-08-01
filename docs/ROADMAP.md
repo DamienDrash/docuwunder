@@ -372,10 +372,21 @@ Selbst gebaut, weil es dafür nichts Eingebautes gibt: der Browser kennt nur sei
 Überziehen, und das ist in `index.html` abgeschaltet — in einer installierten App ist ein
 federnder Bildschirm falsch.
 
+**Der Fehler beim ersten Anlauf:** Die Geste hing an Zeiger-Ereignissen. Mit der Maus geprüft
+funktionierte sie, auf dem Gerät nicht. Nachgemessen mit echten Berührungsereignissen: nach
+**einem** `pointermove` kommt `pointercancel` — der Browser nimmt die Bewegung für sich —
+während `touchmove` weiterläuft. React hängt `touchmove` passiv ein, und ein passiver Zuhörer
+darf die Bewegung nicht abfangen. Sie hängt jetzt an eigenen, ausdrücklich **nicht passiven**
+Zuhörern am Dokument, die `preventDefault()` aufrufen.
+
+Die Prüfung läuft seitdem über `Input.dispatchTouchEvent` statt über die Maus. Gegenprobe
+gemacht: setzt man den Zuhörer wieder auf passiv, schlägt sie fehl.
+
 Drei Details, die den Unterschied machen:
 
 - **Nur ganz oben.** Sonst wäre die Geste dieselbe wie Scrollen, und man würde mitten in der
-  Liste versehentlich neu laden.
+  Liste versehentlich neu laden. Eigens geprüft: mittendrin nach unten ziehen scrollt und lädt
+  nichts.
 - **Gedämpft (Faktor 0,45) und mit Schwelle (62 px).** Der Finger legt mehr Weg zurück als der
   Inhalt; das macht den Widerstand spürbar und verhindert ein Auslösen beim Wischen.
 - **Kein Markieren.** Mit der Maus gezogen markierte der Browser sonst den Text unter dem

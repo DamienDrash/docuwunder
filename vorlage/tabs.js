@@ -17,7 +17,7 @@
   };
 
   V.tabDocs = function (v, html, stil) {
-    return v.tabDocs ? html`<div data-screen-label="Dokumente" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
+    return v.tabDocs ? html`<div data-screen-label="Dokumente" data-zieh="1" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
   ${v.ziehAn ? html`<div style=${stil(`position:absolute;left:0;right:0;top:${Math.round(v.ziehDy) - 34}px;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:none;z-index:3`)}>
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" style=${stil(v.ziehLaeuft ? 'animation:spin 1s linear infinite' : 'transition:transform .15s')}><path d="M12 3a9 9 0 109 9"></path></svg>
     <span style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
@@ -154,7 +154,7 @@
   };
 
   V.tabHome = function (v, html, stil) {
-    return v.tabHome ? html`<div data-screen-label="Übersicht" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
+    return v.tabHome ? html`<div data-screen-label="Übersicht" data-zieh="1" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
   ${v.ziehAn ? html`<div style=${stil(`position:absolute;left:0;right:0;top:${Math.round(v.ziehDy) - 34}px;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:none;z-index:3`)}>
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" style=${stil(v.ziehLaeuft ? 'animation:spin 1s linear infinite' : 'transition:transform .15s')}><path d="M12 3a9 9 0 109 9"></path></svg>
     <span style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
@@ -237,7 +237,7 @@
   };
 
   V.tabInbox = function (v, html, stil) {
-    return v.tabInbox ? html`<div data-screen-label="Posteingang" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
+    return v.tabInbox ? html`<div data-screen-label="Posteingang" data-zieh="1" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
   ${v.ziehAn ? html`<div style=${stil(`position:absolute;left:0;right:0;top:${Math.round(v.ziehDy) - 34}px;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:none;z-index:3`)}>
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" style=${stil(v.ziehLaeuft ? 'animation:spin 1s linear infinite' : 'transition:transform .15s')}><path d="M12 3a9 9 0 109 9"></path></svg>
     <span style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
@@ -274,7 +274,7 @@
   };
 
   V.tabMore = function (v, html, stil) {
-    return v.tabMore ? html`<div data-screen-label="Mehr" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
+    return v.tabMore ? html`<div data-screen-label="Mehr" data-zieh="1" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
   ${v.ziehAn ? html`<div style=${stil(`position:absolute;left:0;right:0;top:${Math.round(v.ziehDy) - 34}px;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:none;z-index:3`)}>
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" style=${stil(v.ziehLaeuft ? 'animation:spin 1s linear infinite' : 'transition:transform .15s')}><path d="M12 3a9 9 0 109 9"></path></svg>
     <span style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
