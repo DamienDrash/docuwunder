@@ -35,12 +35,19 @@ Dieses Projekt dient dem Aufbau und der Wartung einer modernen, performanten, be
   per `require`; `tests/logik.test.js` prüft sie ohne Browser.
 - `api.js` — Zugriffsschicht auf die REST-API (`window.PaperlessAPI`).
 - Eigenständige Module neben `app.js`, je ein Sachgebiet: `sperre.js` (WebAuthn/PRF),
-  `scan.js` (JPEGs zu einem PDF), `stile.js`, `mitglieder.js` (Mitglieder und Gruppen).
-  `mitglieder.js` liefert `start()` (Zustandswerte für den Konstruktor), `beimSchliessen()`
-  und `methoden`; `app.js` hängt letztere mit `Object.assign(Oberflaeche.prototype, …)` an —
-  `this.mitgliedAnlegen()` bleibt also unverändert aufrufbar. Ein neues Modul muss in
-  `index.html` **vor** `app.js` stehen und in `sw.js` (HUELLE, `VERSION` hoch) sowie in
-  `tests/syntax_check.py` eingetragen werden.
+  `scan.js` (JPEGs zu einem PDF), `stile.js`, `mitglieder.js` (Mitglieder und Gruppen),
+  `erfassen.js` (Scannen und Hochladen).
+  Sie liefern `start()` (Zustandswerte für den Konstruktor), teils `beimSchliessen()`, und
+  `methoden`; `app.js` hängt letztere mit `Object.assign(Oberflaeche.prototype, …)` an —
+  `this.mitgliedAnlegen()` und `this.scanOeffnen()` bleiben also unverändert aufrufbar. Ein
+  neues Modul muss in `index.html` **vor** `app.js` stehen und in `sw.js` (HUELLE, `VERSION`
+  hoch) sowie in `tests/syntax_check.py` eingetragen werden.
+  `erfassen.js` hält den Weg **ins** Archiv hinein: Dateidialog des Systems, Seiten eines
+  Scans (Drehung und Zuschnitt werden stets neu auf das Original angewendet, deshalb verliert
+  wiederholtes Drehen nichts), das PDF über `DWScan` und das Verfolgen der Serveraufgabe.
+  Es liest keine Liste, keinen Filter und keinen Cache — zurück in den Bestand führt allein
+  `reloadDocs()`. Welche Dateitypen der Server annimmt (`DOKUMENT_TYPEN`), steht dort und
+  nicht in `app.js`; die Knopfleiste ruft `this.dokumentWaehlen()`.
 - `tools/konvert.py` — hat die frühere DC-Vorlage nach htm übersetzt. **Kein laufendes
   Werkzeug**: Änderungen gehören in `vorlage/`, nicht in eine erneute Übersetzung. Steht im
   Repository, weil er die Herkunft der Dateien belegt.

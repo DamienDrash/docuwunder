@@ -31,7 +31,7 @@
 
 // Aendert sich die Aufteilung oben oder die Liste unten, hochzaehlen: beim
 // naechsten Start wird der alte Cache dann verworfen statt weitergefuehrt.
-const VERSION = 'v8';
+const VERSION = 'v9';
 const CACHE = 'docuwunder-huelle-' + VERSION;
 
 // Wie lange auf das Netz gewartet wird, bevor der Cache einspringt. Kurz
@@ -52,6 +52,7 @@ const HUELLE = [
   './sperre.js',
   './scan.js',
   './mitglieder.js',
+  './erfassen.js',
   './stile.js',
   './ui.js',
   './app.js',

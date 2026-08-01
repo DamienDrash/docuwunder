@@ -1,0 +1,363 @@
+// Erfassen: wie ein Dokument in das Archiv hineinkommt.
+//
+// Ein Sachgebiet fuer sich, und deshalb eine Datei fuer sich. Es haengt an
+// zwei Dingen: am Dateidialog des Systems und an POST /api/documents/
+// post_document. Es liest keine Dokumentliste, keinen Filter, keine Suche und
+// keinen Cache - der einzige Weg zurueck in den Bestand ist reloadDocs() am
+// Ende eines Uploads, wenn tatsaechlich etwas Neues da ist.
+//
+// Umgekehrt ruft aus dem uebrigen app.js auch nichts hier herein: die
+// Bildschirme greifen ueber valsErfassen und valsNavigation zu, also ueber v,
+// wie alle anderen auch.
+//
+// Warum als Aufsatz auf die Klasse und nicht als eigener Dienst mit eigenem
+// Zustand? Aus demselben Grund wie bei mitglieder.js: der Zustand gehoert
+// React. Ein zweiter Halter daneben muesste jede Aenderung selbst
+// weitermelden. Stattdessen bleibt der Zustand in setState, und diese Datei
+// liefert die Startwerte (start) und die Methoden (methoden), die app.js an
+// den Prototyp haengt. Aufrufer merken davon nichts, this ist dasselbe.
+//
+// Was hier ausdruecklich NICHT steht: das Erzeugen des PDF. Das ist reine
+// Rechnerei ohne Zustand und steht in scan.js (DWScan) - hier steht nur, wann
+// sie angestossen wird und was mit dem Ergebnis geschieht.
+(function (global) {
+  'use strict';
+
+  // Was der Server annimmt.
+  //
+  // Es gab hier einmal zwei Wege, "Foto" und "Datei". Die Trennung liess sich
+  // nicht durchhalten: eine Seite kann dem System nur mitteilen, WELCHE Typen
+  // sie annimmt - welche Quellen es daraufhin anbietet, entscheidet es selbst.
+  // Auf Android standen deshalb auch hinter "Foto" die Dateien und Google
+  // Drive. Ein Foto-Picker laesst sich aus dem Web nicht anfordern, den koennen
+  // nur native Apps. Zwei Eintraege, die dieselbe Auswahl oeffnen, sind aber
+  // keine zwei Wege, sondern ein Versprechen, das das System nicht haelt -
+  // also ist es jetzt einer.
+  //
+  // Die Liste stammt aus dem, was diese Instanz tatsaechlich verarbeitet
+  // (documents.parsers.get_supported_file_extensions); Office-Formate sind
+  // dabei, weil Tika und Gotenberg laufen.
+  const DOKUMENT_TYPEN = 'image/*,.pdf,.txt,.csv,.rtf,.eml,.doc,.docx,.odt,.xls,.xlsx,'
+                       + '.ods,.ppt,.pptx,.odp,.odg,application/pdf,text/plain';
+
+  // Wie oft nach dem Verarbeitungsstand gefragt wird, bevor aufgegeben wird.
+  const VERSUCHE = 40;
+
+  // Kleinster Zuschnitt, als Anteil der Bildkante. Verhindert einen Rahmen
+  // ohne Flaeche, aus dem sich kein Bild mehr schneiden liesse.
+  const ZUSCHNITT_MIN = 0.08;
+
+  // Der Zustand dieses Sachgebiets, an einer Stelle statt verstreut im
+  // Konstruktor.
+  //
+  //   scan       der laufende Scan: Schritt, Seiten, Zuschnitt-Rahmen
+  //   scanTitle  der Titel, den der Scan-Bildschirm anbietet
+  //   uploads    was gerade hochgeladen oder verarbeitet wird
+  function start() {
+    return { scan: null, scanTitle: '', uploads: [] };
+  }
+
+  // --- Scannen ------------------------------------------------------------
+  //
+  // Ein Scan ist eine Liste von Seiten, die am Ende zu einem PDF wird. Jede
+  // Seite haelt ihre Aufnahme unveraendert fest; Drehung und Zuschnitt sind
+  // Angaben, die bei jeder Aenderung neu auf das Original angewendet werden.
+  // Dadurch verliert dreimal Drehen nichts an Qualitaet, und ein Zuschnitt
+  // laesst sich zurueckziehen, ohne dass etwas fehlt.
+  var methoden = {
+
+    scanOeffnen() {
+      this.setState({ sheet: null, scan: { schritt: 'seiten', seiten: [], zId: null, zRect: null, busy: false } });
+      this.scanAufnehmen();
+    },
+
+    // Der Dateidialog des Systems.
+    //
+    // Das Feld haengt kurz im Dokument, weil manche Browser an einem losgeloesten
+    // Element kein change melden, und verschwindet danach wieder. Abgebrochen
+    // wird mit einer leeren Liste beantwortet - dafuer gibt es seit kurzem das
+    // cancel-Ereignis; wo es fehlt, bleibt die Zusage offen, und das ist
+    // richtig: dann ist auch nichts passiert.
+    dateiDialog(opt) {
+      return new Promise(fertig => {
+        const feld = document.createElement('input');
+        feld.type = 'file';
+        feld.accept = opt.accept;
+        if (opt.mehrere) feld.multiple = true;
+        // capture="environment" bittet ein Telefon um die rueckwaertige Kamera.
+        // Auf dem Rechner kennt der Browser das Attribut nicht und oeffnet den
+        // gewohnten Dialog - beides ist richtig, es braucht keine Weiche.
+        if (opt.kamera) feld.setAttribute('capture', 'environment');
+        // Nicht display:none. Safari oeffnet den Dialog fuer ein so verstecktes
+        // Feld nicht, wenn der Klick aus dem Code kommt - das Feld muss
+        // dargestellt werden, nur eben ausserhalb des Sichtbaren.
+        feld.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
+        document.body.appendChild(feld);
+        const schliessen = (dateien) => {
+          if (feld.parentNode) document.body.removeChild(feld);
+          fertig(dateien);
+        };
+        feld.onchange = () => schliessen(Array.from(feld.files || []));
+        feld.oncancel = () => schliessen([]);
+        feld.click();
+      });
+    },
+
+    // Fertige Dateien abgeben - ein Foto aus der Mediathek, eine PDF vom Geraet.
+    //
+    // Bewusst ohne Nachbearbeitung: wer eine fertige Datei hat, will sie
+    // abgeben, nicht bearbeiten. Zuschneiden, Drehen und mehrere Seiten zu
+    // einem Dokument zusammenfassen macht "Scannen" (siehe scanOeffnen).
+    dateiWaehlen(accept, mehrere, meta) {
+      return this.dateiDialog({ accept: accept, mehrere: mehrere }).then(dateien => {
+        if (!dateien.length) { this.setState({ sheet: null }); return; }
+        dateien.forEach(d => this.uploadDatei(d, meta || {}));
+      });
+    },
+
+    // Der Weg "Datei hochladen" aus der Knopfleiste. Mehrere sind erlaubt: jede
+    // Datei wird ein eigenes Dokument - anders als beim Scannen, wo mehrere
+    // Aufnahmen zu einem PDF werden. Welche Typen der Server annimmt, steht in
+    // dieser Datei und bleibt damit beim Sachgebiet, das es angeht.
+    dokumentWaehlen(meta) {
+      return this.dateiWaehlen(DOKUMENT_TYPEN, true, meta);
+    },
+
+    scanAufnehmen() {
+      return this.dateiDialog({ accept: 'image/*', mehrere: true, kamera: true }).then(dateien => {
+        if (dateien.length) this.scanAufnahmen(dateien);
+        // Nichts aufgenommen und noch keine Seite da: der Scan-Bildschirm haette
+        // nichts zu zeigen.
+        else if (!(this.state.scan && this.state.scan.seiten.length)) this.setState({ scan: null });
+      });
+    },
+
+    scanAufnahmen(dateien) {
+      this.setState(st => ({ scan: { ...(st.scan || { schritt: 'seiten', seiten: [] }), busy: true } }));
+      const neue = dateien.map(d => ({ id: 's' + (this.scanZaehler = (this.scanZaehler || 0) + 1), datei: d, dreh: 0, zuschnitt: null }));
+      return Promise.all(neue.map(sei => this.scanRendern(sei)))
+        .then(fertig => {
+          this.setState(st => (st.scan ? { scan: { ...st.scan, seiten: [...st.scan.seiten, ...fertig], busy: false } } : {}));
+        })
+        .catch(e => {
+          this.setState(st => (st.scan ? { scan: { ...st.scan, busy: false } } : {}));
+          this.note('Aufnahme nicht verwendbar: ' + e.message);
+        });
+    },
+
+    // Drehung und Zuschnitt auf das Original anwenden und daraus das Bild
+    // machen, das spaeter im PDF landet.
+    scanRendern(sei) {
+      return global.DWScan.seiteAus(sei.datei, { dreh: sei.dreh, zuschnitt: sei.zuschnitt })
+        .then(erg => {
+          if (sei.url) URL.revokeObjectURL(sei.url);
+          return { ...sei, jpeg: erg.jpeg, breite: erg.breite, hoehe: erg.hoehe, url: URL.createObjectURL(erg.blob) };
+        });
+    },
+
+    scanErsetzen(id, aendern) {
+      const sei = (this.state.scan.seiten || []).find(x => x.id === id);
+      if (!sei) return;
+      const naechste = aendern(sei);
+      this.setState(st => ({ scan: { ...st.scan, seiten: st.scan.seiten.map(x => x.id === id ? { ...x, busy: true } : x) } }));
+      this.scanRendern(naechste)
+        .then(fertig => this.setState(st => (st.scan
+          ? { scan: { ...st.scan, seiten: st.scan.seiten.map(x => x.id === id ? { ...fertig, busy: false } : x) } }
+          : {})))
+        .catch(e => {
+          this.setState(st => (st.scan ? { scan: { ...st.scan, seiten: st.scan.seiten.map(x => x.id === id ? { ...x, busy: false } : x) } } : {}));
+          this.note('Nicht geändert: ' + e.message);
+        });
+    },
+
+    scanDrehen(id) { this.scanErsetzen(id, sei => ({ ...sei, dreh: (sei.dreh + 90) % 360 })); },
+
+    scanEntfernen(id) {
+      this.setState(st => {
+        if (!st.scan) return {};
+        const weg = st.scan.seiten.find(x => x.id === id);
+        if (weg && weg.url) URL.revokeObjectURL(weg.url);
+        return { scan: { ...st.scan, seiten: st.scan.seiten.filter(x => x.id !== id) } };
+      });
+    },
+
+    scanSchieben(id, um) {
+      this.setState(st => {
+        if (!st.scan) return {};
+        const liste = st.scan.seiten.slice();
+        const i = liste.findIndex(x => x.id === id);
+        const j = i + um;
+        if (i < 0 || j < 0 || j >= liste.length) return {};
+        liste[i] = liste[j];
+        liste[j] = st.scan.seiten[i];
+        return { scan: { ...st.scan, seiten: liste } };
+      });
+    },
+
+    // Die Seite, die gerade zugeschnitten wird.
+    zSeite() {
+      const sc = this.state.scan;
+      return sc && sc.zId ? (sc.seiten.find(x => x.id === sc.zId) || null) : null;
+    },
+
+    scanZuschnittOeffnen(id) {
+      const sei = (this.state.scan.seiten || []).find(x => x.id === id);
+      if (!sei) return;
+      // Der Rahmen bezieht sich auf das *angezeigte* Bild, das schon gedreht und
+      // zugeschnitten ist. Er startet deshalb immer bei ganz, nicht beim
+      // vorherigen Zuschnitt - der steckt bereits im Bild.
+      this.setState(st => ({ scan: { ...st.scan, schritt: 'zuschnitt', zId: id, zRect: { x0: 0, y0: 0, x1: 1, y1: 1 } } }));
+    },
+
+    // Welcher Griff gerade gefasst ist, steht als this.zGriff neben dem Zustand
+    // und nicht darin: er aendert nichts am Bild und soll zwischen zwei
+    // Zeigerereignissen kein erneutes Zeichnen ausloesen.
+    //
+    // setPointerCapture haelt die Bewegung beim Griff fest, auch wenn der
+    // Finger den kleinen Kreis verlaesst - ohne das reisst das Ziehen ab,
+    // sobald man schneller zieht, als das Bild folgt.
+    zGriffFassen(ecke, e) {
+      this.zGriff = ecke;
+      if (e.currentTarget.setPointerCapture) {
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (f) { /* aeltere Browser */ }
+      }
+    },
+
+    zLoslassen() { this.zGriff = null; },
+
+    // Ein Griff wurde gefasst und bewegt. Gerechnet wird in Anteilen der
+    // Bildkante, damit die Angabe von der Anzeigegroesse unabhaengig bleibt.
+    zZiehen(e) {
+      if (!this.zGriff) return;
+      const kasten = e.currentTarget.getBoundingClientRect();
+      if (!kasten.width || !kasten.height) return;
+      const x = Math.min(1, Math.max(0, (e.clientX - kasten.left) / kasten.width));
+      const y = Math.min(1, Math.max(0, (e.clientY - kasten.top) / kasten.height));
+      this.setState(st => {
+        if (!st.scan || !st.scan.zRect) return {};
+        const r = { ...st.scan.zRect };
+        if (this.zGriff[0] === 'l') r.x0 = Math.min(x, r.x1 - ZUSCHNITT_MIN);
+        else r.x1 = Math.max(x, r.x0 + ZUSCHNITT_MIN);
+        if (this.zGriff[1] === 'o') r.y0 = Math.min(y, r.y1 - ZUSCHNITT_MIN);
+        else r.y1 = Math.max(y, r.y0 + ZUSCHNITT_MIN);
+        return { scan: { ...st.scan, zRect: r } };
+      });
+    },
+
+    scanZuschnittSichern() {
+      const sc = this.state.scan;
+      const r = sc && sc.zRect;
+      const id = sc && sc.zId;
+      if (!id || !r) return;
+      this.setState(st => ({ scan: { ...st.scan, schritt: 'seiten', zId: null, zRect: null } }));
+      if (r.x0 <= 0.001 && r.y0 <= 0.001 && r.x1 >= 0.999 && r.y1 >= 0.999) return;
+      // Der Rahmen gilt fuer das angezeigte Bild. Dieses wird deshalb zur neuen
+      // Aufnahme der Seite - sonst muesste der Anteil durch Drehung und
+      // frueheren Zuschnitt zurueckgerechnet werden, was bei jedem Schritt
+      // ungenauer wird.
+      const sei = sc.seiten.find(x => x.id === id);
+      if (!sei) return;
+      fetch(sei.url).then(a => a.blob()).then(blob => {
+        this.scanErsetzen(id, alt => ({ ...alt, datei: blob, dreh: 0, zuschnitt: r }));
+      }).catch(e => this.note('Zuschnitt fehlgeschlagen: ' + e.message));
+    },
+
+    scanAbbrechen() {
+      const sc = this.state.scan;
+      if (sc) sc.seiten.forEach(x => { if (x.url) URL.revokeObjectURL(x.url); });
+      this.setState({ scan: null, scanTitle: '' });
+    },
+
+    scanHochladen() {
+      const sc = this.state.scan;
+      if (!sc || !sc.seiten.length) return;
+      const titel = (this.state.scanTitle || '').trim();
+      let datei;
+      try {
+        datei = global.DWScan.datei(sc.seiten, (titel || 'Scan') + '.pdf');
+      } catch (e) {
+        this.note('PDF nicht erzeugt: ' + e.message);
+        return;
+      }
+      sc.seiten.forEach(x => { if (x.url) URL.revokeObjectURL(x.url); });
+      this.uploadDatei(datei, titel ? { title: titel } : {});
+    },
+
+    // --- Hochladen --------------------------------------------------------
+    //
+    // Der Server nimmt die Datei entgegen, verarbeitet sie asynchron und
+    // liefert dafuer eine Aufgaben-Kennung zurueck.
+    uploadDatei(file, meta) {
+      const A = this.api();
+      const uid = 'u' + Date.now() + Math.random().toString(36).slice(2, 6);
+      this.setState(s => ({ sheet: null, scan: null, uploads: [...s.uploads, { id: uid, name: file.name, st: 'Wird hochgeladen …' }] }));
+
+      return A.documents.upload(file, meta || {})
+        .then(taskId => {
+          this.setState(s => ({ uploads: s.uploads.map(u => u.id === uid ? Object.assign({}, u, { st: 'Wird verarbeitet …', task: taskId }) : u) }));
+          this.wartAufVerarbeitung(uid, taskId, 0);
+        })
+        .catch(e => {
+          this.setState(s => ({ uploads: s.uploads.filter(u => u.id !== uid) }));
+          this.note('Upload fehlgeschlagen: ' + e.message);
+        });
+    },
+
+    // Verfolgt die Verarbeitung ueber /tasks/?task_id=… .
+    //
+    // Frueher wurde stattdessen verglichen, ob die Dokumentenliste laenger
+    // geworden ist. Das war schon bei einer vollen Seite falsch (die Laenge
+    // aendert sich dann nie) und konnte einen Fehlschlag nicht von "dauert noch"
+    // unterscheiden. Der Server weiss beides genau.
+    wartAufVerarbeitung(uid, taskId, versuch) {
+      const A = this.api();
+      const fertig = (meldung, dokId) => {
+        this.setState(s => ({ uploads: s.uploads.filter(u => u.id !== uid) }));
+        this.reloadDocs().then(() => {
+          this.note(meldung, dokId ? () => this.openDoc(dokId) : null, 'Anzeigen');
+        });
+      };
+
+      // Ohne Kennung (aeltere Server) bleibt nur, nach kurzer Zeit nachzuladen.
+      if (!taskId) {
+        this.later(() => fertig('Dokument hochgeladen'), 4000);
+        return;
+      }
+
+      this.later(() => {
+        A.tasks({ task_id: taskId }).then(d => {
+          const roh = Array.isArray(d) ? d : (d.results || []);
+          const t = roh[0];
+          const st = t ? String(t.status || '').toLowerCase() : '';
+
+          if (st === 'success') {
+            const ids = t.related_document_ids || [];
+            fertig('Dokument hinzugefügt', ids.length ? ids[0] : null);
+            return;
+          }
+          if (st === 'failure') {
+            this.setState(s => ({ uploads: s.uploads.filter(u => u.id !== uid) }));
+            const grund = typeof t.result === 'string' ? t.result
+                        : (t.result_data && (t.result_data.error || t.result_data.result)) || '';
+            this.note('Verarbeitung fehlgeschlagen: ' + (String(grund).split('\n')[0].slice(0, 140) || 'Der Server hat die Datei abgelehnt.'));
+            return;
+          }
+          if (versuch >= VERSUCHE) {
+            this.setState(s => ({ uploads: s.uploads.filter(u => u.id !== uid) }));
+            this.note('Das Dokument wird noch verarbeitet. Es erscheint, sobald der Server fertig ist.');
+            this.reloadDocs();
+            return;
+          }
+          this.wartAufVerarbeitung(uid, taskId, versuch + 1);
+        }).catch(() => {
+          // Netzwerkfehler beim Nachfragen sollen den Upload nicht als
+          // gescheitert darstellen - er laeuft auf dem Server weiter.
+          if (versuch >= VERSUCHE) { fertig('Upload abgeschlossen. Der Verarbeitungsstand liess sich nicht abfragen.'); return; }
+          this.wartAufVerarbeitung(uid, taskId, versuch + 1);
+        });
+      }, versuch < 4 ? 1200 : 3000);
+    }
+  };
+
+  global.DWErfassen = { start: start, methoden: methoden };
+})(typeof globalThis !== 'undefined' ? globalThis : this);
