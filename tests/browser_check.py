@@ -922,9 +922,16 @@ def main():
                 sw = ROOT / "sw.js"
                 app_alt, sw_alt = app.read_text(), sw.read_text()
                 fassung = re.search(r"const VERSION = '(v\d+)';", sw_alt).group(1)
+                # Die Marke haengt an einer Konstante im Kopf von app.js. Steht
+                # sie dort nicht mehr, weil ein Sachgebiet ausgezogen ist, waere
+                # die geaenderte Datei mit der alten identisch - und die
+                # Pruefung liefe stumm in ihren Zeitablauf, statt zu sagen, was
+                # ihr fehlt.
+                ANKER = "const SORT_API ="
+                assert ANKER in app_alt, f"{ANKER} steht nicht mehr in app.js"
                 try:
                     app.write_text(app_alt.replace(
-                        "const SUCH_KEY =", "globalThis.DW_STAND = 'NEU';\nconst SUCH_KEY ="))
+                        ANKER, "globalThis.DW_STAND = 'NEU';\n" + ANKER))
                     sw.write_text(sw_alt.replace(
                         f"const VERSION = '{fassung}';",
                         f"const VERSION = '{fassung}-pruefung';"))

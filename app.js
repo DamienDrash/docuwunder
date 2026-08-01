@@ -21,6 +21,9 @@
   // Ebenso das Erfassen (Scannen und Hochladen) in erfassen.js: der Weg ins
   // Archiv hinein, der vom Bestand nur reloadDocs() braucht.
   const DWErfassen = global.DWErfassen;
+  // Und die Suche in suche.js: Volltextindex, Verlauf und gespeicherte
+  // Ansichten - eine Liste neben den anderen, mit eigener Serverabfrage.
+  const DWSuche = global.DWSuche;
 
 // Der Rahmen, in dem die ganze Oberflaeche sitzt.
 //
@@ -74,12 +77,8 @@ function defViewSichern(wert) {
 const DOC_PAGE = 60;
 // Eintraege der Startseiten-Listen.
 const HOME_N = 8;
-// Wartezeit, bevor eine Eingabe in der Suche zum Server geht.
-const SUCH_MS = 300;
 // Sortierung der Oberflaeche -> ordering-Parameter der API.
 const SORT_API = { neu: '-created', alt: 'created', titel: 'title', absender: 'correspondent__name' };
-// Suchverlauf im Browser, damit er einen Neustart ueberlebt.
-const SUCH_KEY = 'paperless.suchverlauf';
 
 // Der Quelltext. Steht hier, weil ihn zwei Stellen brauchen: die Hilfe und
 // der Datenschutzhinweis.
@@ -118,10 +117,9 @@ class Oberflaeche extends React.Component {
       mode: 'system', ...this.startZiel(), sheet: null, pickTarget: null, pickField: null, pendingDel: null,
       view: DEFVIEW_START, sort: 'neu', selMode: false, sel: [],
       fArt: null, fFav: false, fAbs: [], fTags: [], fZeit: 'alle',
-      q: '', lastQ: '', recents: this.suchverlauf(),
-      // Treffer der Serversuche, ihr Ladezustand und - falls der Volltext-
-      // index die Eingabe nicht versteht - der Hinweis auf die einfache Suche.
-      qRes: [], qBusy: false, qErr: '', qEinfach: false,
+      // Eingabe, Verlauf und Treffer der Serversuche. Was dazugehoert, steht
+      // in suche.js.
+      ...DWSuche.start(),
       opened: [], docTab: 'vorschau', fund: false, revIdx: 0,
       // Scannen und Hochladen: der laufende Scan und was gerade zum Server
       // unterwegs ist. Was dazugehoert, steht in erfassen.js.
@@ -181,7 +179,7 @@ class Oberflaeche extends React.Component {
     this._t.forEach(clearTimeout);
     if (this._rs) window.removeEventListener('resize', this._rs);
     if (this._esc) window.removeEventListener('keydown', this._esc);
-    if (this._suchAb) this._suchAb.abort();
+    this.sucheAbbrechen();
     this.vorschauFrei();
   }
   // Womit die App startet. Normalerweise die Uebersicht - die Kurzbefehle des
@@ -196,14 +194,6 @@ class Oberflaeche extends React.Component {
     // Uebersicht - deshalb hier ein Stapel statt eines Tabnamens.
     if (ziel === 'suche') return { tab: 'home', stack: [{ t: 'search' }] };
     return ['home', 'docs', 'inbox', 'more'].includes(ziel) ? { tab: ziel, stack: [] } : leer;
-  }
-  // Suchverlauf aus dem Browser. Wird im Konstruktor gelesen, deshalb ohne
-  // Zugriff auf this.state.
-  suchverlauf() {
-    try {
-      const r = JSON.parse(localStorage.getItem(SUCH_KEY) || '[]');
-      return Array.isArray(r) ? r.filter(x => typeof x === 'string').slice(0, 6) : [];
-    } catch (e) { return []; }
   }
   // Optionaler Rückkanal: das Desktop-Vorschau-Mockup (iphone.html) faerbt damit
   // die simulierte iOS-Statusleiste passend zum In-App-Darstellungsmodus ein.
@@ -1023,105 +1013,11 @@ class Oberflaeche extends React.Component {
   parts(text, q) { return DWLogik.parts(text, q); }
 
   // --- Suche --------------------------------------------------------------
-  // Gesucht wird auf dem Server: nur er kennt alle Dokumente und den
-  // Volltextindex ueber den erkannten Text. Lokal liesse sich hoechstens das
-  // durchsuchen, was gerade geladen ist - das waere fuer den Nutzer nicht
-  // unterscheidbar von "gibt es nicht".
-  sucheSetzen(q) {
-    this.setState({ q });
-    if (this._suchT) clearTimeout(this._suchT);
-    if (q.trim().length < 2) {
-      if (this._suchAb) { this._suchAb.abort(); this._suchAb = null; }
-      this._suchLauf = (this._suchLauf || 0) + 1;
-      this.setState({ qRes: [], qBusy: false, qErr: '', qEinfach: false });
-      return;
-    }
-    this.setState({ qBusy: true, qErr: '' });
-    this._suchT = setTimeout(() => this.sucheGo(q.trim()), SUCH_MS);
-    this._t.push(this._suchT);
-  }
+  // Sie steht in suche.js: Eingabe, Verzoegerung, Serverabfrage, Verlauf und
+  // die gespeicherten Ansichten. Von hier aus fuehrt nur sichtQuery() hinein
+  // (loadAll benennt damit die gespeicherten Ansichten) und sucheAbbrechen()
+  // hinaus (Abmelden und Abbau der Oberflaeche).
 
-  sucheGo(q) {
-    const A = this.api();
-    if (!A || !A.hasToken()) { this.setState({ qBusy: false }); return; }
-    if (this._suchAb) this._suchAb.abort();
-    const ab = (this._suchAb = (typeof AbortController !== 'undefined' ? new AbortController() : null));
-    const lauf = (this._suchLauf = (this._suchLauf || 0) + 1);
-    const lk = this.lookups();
-
-    A.documents.search(q, { page_size: 40 }, { signal: ab ? ab.signal : undefined })
-      .then(d => {
-        if (lauf !== this._suchLauf) return;
-        const treffer = (d.results || []).map(r =>
-          Object.assign(this.mapDoc(r, lk, this.state.shares), { hit: r.__search_hit__ || null }));
-        this.setState(s => ({
-          qRes: treffer, cache: this.mitCache(s, treffer),
-          qBusy: false, qErr: '', qEinfach: !!d.einfach
-        }));
-      })
-      .catch(e => {
-        if (lauf !== this._suchLauf || (e && e.aborted)) return;
-        this.setState({ qBusy: false, qRes: [], qEinfach: false, qErr: (e && e.message) || 'Die Suche ist fehlgeschlagen.' });
-      });
-  }
-
-  // Der Server liefert den Ausschnitt mit <b>…</b> um die Fundstelle. Die
-  // Oberflaeche setzt die Markierung selbst, deshalb wird der Ausschnitt in
-  // Vor-, Treffer- und Nachtext zerlegt - nur die erste Fundstelle, mehr
-  // zeigt die Zeile ohnehin nicht.
-  ausschnitt(hl) { return DWLogik.ausschnitt(hl, (t) => this.nurText(t)); }
-
-  // Auszeichnungen entfernen und Entities aufloesen: der Ausschnitt wird als
-  // Text eingesetzt, nicht als HTML.
-  nurText(t) {
-    const el = document.createElement('div');
-    el.innerHTML = String(t || '');
-    return (el.textContent || '').replace(/\s+/g, ' ').trim();
-  }
-
-  // Volltextregel einer gespeicherten Ansicht, sofern sie nur aus einer
-  // besteht. rule_type 19 ist die Volltextsuche.
-  sichtQuery(v) { return DWLogik.sichtQuery(v); }
-
-
-  // Aktuelle Suche als gespeicherte Ansicht in Paperless ablegen - dort ist
-  // sie danach auch in der Weboberflaeche zu sehen.
-  sucheSpeichern(q) {
-    const A = this.api();
-    if (!q) return;
-    if (this.state.suchenM.some(x => x.q === q)) { this.note('Diese Suche ist schon gespeichert.'); return; }
-    A.savedViews.createQuery(q, q)
-      .then(v => {
-        this.setState(s => ({ suchenM: [...s.suchenM, { id: v.id, name: v.name, q: this.sichtQuery(v) }] }));
-        this.note('Suche gespeichert');
-      })
-      .catch(e => this.note('Nicht gespeichert: ' + e.message));
-  }
-
-  merkeSuche(q) {
-    this.setState(s => {
-      const r = [q, ...s.recents.filter(x => x !== q)].slice(0, 6);
-      try { localStorage.setItem(SUCH_KEY, JSON.stringify(r)); } catch (e) { /* Speicher voll oder gesperrt */ }
-      return { recents: r };
-    });
-  }
-
-  results() {
-    const s = this.state, q = s.q.trim();
-    if (q.length < 2) return [];
-    return s.qRes.map(d => {
-      // Ohne Volltextindex (Rueckfall auf die einfache Suche) gibt es keine
-      // Hervorhebung vom Server - dann wird sie lokal aus dem Text gebildet.
-      const a = this.ausschnitt(d.hit && d.hit.highlights) || this.parts(d.inhalt, q);
-      return {
-        id: d.id, titel: d.titel,
-        sub: [d.absender, d.dokumentart, this.kurzDatum(d.datum)].filter(Boolean).join(' · ') || 'Keine Angaben',
-        hasSnip: !!(a && a.hit),
-        snipPre: a ? a.pre : '', snipHit: a ? a.hit : '', snipPost: a ? a.post : '',
-        open: () => { this.merkeSuche(q); this.setState({ lastQ: q }); this.openDoc(d.id, !!(a && a.hit)); }
-      };
-    });
-  }
   orgData(kind) {
     // Die Zahl neben einem Eintrag meint alle zugehoerigen Dokumente, nicht
     // die der gerade geladenen Seite. Paperless liefert sie als
@@ -1792,7 +1688,7 @@ class Oberflaeche extends React.Component {
   logoutGo() {
     const A = this.api();
     A.logout();
-    if (this._suchAb) { this._suchAb.abort(); this._suchAb = null; }
+    this.sucheAbbrechen();
     this.vorschauFrei();
     this.bilderVergessen();
     // Nach dem Abmelden darf nichts mehr aus dem alten Konto sichtbar sein -
@@ -1803,7 +1699,7 @@ class Oberflaeche extends React.Component {
       stack: [], sheet: null, tab: 'home',
       docs: [], recent: [], favs: [], geteiltL: [], inbox: [], trash: [], cache: {}, prev: null,
       docsPage: 1, docsTotal: 0, docsMore: false, docsBusy: false,
-      q: '', qRes: [], qBusy: false, qErr: '', qEinfach: false, opened: [],
+      ...DWSuche.beimAbmelden(), opened: [],
       tagsM: [], absM: [], artenM: [], orteM: [],
       tagsRaw: [], absRaw: [], artenRaw: [], orteRaw: [], shares: {}, me: null,
       autos: [], felderM: [], suchenM: [], mailRules: [], mailKonten: [], users: [], tasksRaw: [], sysStatus: null, ordnerDocs: [], ordnerLaden: false, ordnerTabPfad: '', ordnerTabDocs: [], ordnerTabLaden: false,
@@ -2071,11 +1967,7 @@ class Oberflaeche extends React.Component {
         .sort((a, b) => (b.document_count || 0) - (a.document_count || 0)).slice(0, 3)
         .map(t => ({ label: t.name, tap: () => this.sucheSetzen(t.name) })),
       recentsRows: s.recents.map(r => ({ q: r, tap: () => this.sucheSetzen(r) })),
-      clearRecents: () => {
-        try { localStorage.removeItem(SUCH_KEY); } catch (e) { /* gesperrt */ }
-        this.setState({ recents: [] });
-        this.note('Suchverlauf gelöscht');
-      },
+      clearRecents: () => { this.verlaufVergessen(); this.note('Suchverlauf gelöscht'); },
       // Gespeicherte Ansichten mit genau einer Volltextregel lassen sich hier
       // wieder ausfuehren; komplexere bleiben der Paperless-Oberflaeche
       // vorbehalten und werden nur benannt.
@@ -2191,10 +2083,12 @@ class Oberflaeche extends React.Component {
       })(),
 
       clearLocal: () => {
-        try { localStorage.removeItem(SUCH_KEY); } catch (e) { /* gesperrt */ }
+        // Wo der Suchverlauf liegt, weiss suche.js - hier steht nur, dass er
+        // mit weg muss.
+        this.verlaufVergessen();
         this.vorschauFrei();
         this.bilderVergessen();
-        this.setState({ recents: [], cache: {}, opened: [], prev: null });
+        this.setState({ cache: {}, opened: [], prev: null });
         this.reloadDocs().then(() => this.note('Lokale Daten gelöscht'));
       },
       doHelp: () => this.hilfeOeffnen(),
@@ -2555,10 +2449,11 @@ class Oberflaeche extends React.Component {
 }
 
 // Die Methoden der ausgelagerten Sachgebiete an den Prototyp haengen. Danach
-// sind this.mitgliedAnlegen() und this.scanOeffnen() dasselbe wie zuvor - die
-// Aufrufer in valsVerwaltung, valsSheets, valsNavigation und valsErfassen
-// merken nichts davon, dass die Bodies in mitglieder.js und erfassen.js stehen.
-Object.assign(Oberflaeche.prototype, DWMitglieder.methoden, DWErfassen.methoden);
+// sind this.mitgliedAnlegen(), this.scanOeffnen() und this.sucheSetzen()
+// dasselbe wie zuvor - die Aufrufer in valsVerwaltung, valsSheets,
+// valsNavigation, valsErfassen und valsSuche merken nichts davon, dass die
+// Bodies in mitglieder.js, erfassen.js und suche.js stehen.
+Object.assign(Oberflaeche.prototype, DWMitglieder.methoden, DWErfassen.methoden, DWSuche.methoden);
 
 
   // Wurzel: loest 'System' zum tatsaechlichen Schema auf, damit die
