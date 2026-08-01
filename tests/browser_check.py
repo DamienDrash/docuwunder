@@ -19,6 +19,7 @@ import http.server
 import json
 import os
 import pathlib
+import re
 import socket
 import time
 import socketserver
@@ -700,6 +701,48 @@ def main():
             # Diese Pruefungen kommen ans Ende: die letzte kappt die Verbindung,
             # und danach sind Fehler in der Konsole richtig statt falsch.
 
+            def t_neue_fassung_kommt_an():
+                """Erreicht ein Update eine laufende App?
+
+                Der Fall, um den es geht: eine installierte App wird nie neu
+                geladen. iOS haelt die Seite tagelang am Leben, ein neuer
+                Service Worker belegt nur den Cache fuer den naechsten
+                Kaltstart. Behobene Fehler kamen deshalb nicht an - die App
+                wusste nicht, dass es sie gibt.
+
+                Geprueft wird mit einer echten Auslieferung: Datei aendern,
+                Huellenversion hochzaehlen, in den Vordergrund kommen. Danach
+                muss der neue Stand laufen, ohne dass jemand neu laedt.
+                """
+                app = ROOT / "app.js"
+                sw = ROOT / "sw.js"
+                app_alt, sw_alt = app.read_text(), sw.read_text()
+                fassung = re.search(r"const VERSION = '(v\d+)';", sw_alt).group(1)
+                try:
+                    app.write_text(app_alt.replace(
+                        "const SUCH_KEY =", "globalThis.DW_STAND = 'NEU';\nconst SUCH_KEY ="))
+                    sw.write_text(sw_alt.replace(
+                        f"const VERSION = '{fassung}';",
+                        f"const VERSION = '{fassung}-pruefung';"))
+                    assert seite.evaluate("() => globalThis.DW_STAND || null") is None, \
+                        "die laufende Seite kennt den neuen Stand schon"
+                    seite.evaluate("() => window.dispatchEvent(new Event('focus'))")
+                    seite.wait_for_function("() => globalThis.DW_STAND === 'NEU'", timeout=25000)
+                finally:
+                    app.write_text(app_alt)
+                    sw.write_text(sw_alt)
+                # Zurueck auf den echten Stand, sonst sitzen die folgenden
+                # Pruefungen auf der Pruef-Huelle. Gewartet wird auf die
+                # Tatsache, nicht auf eine Anzahl Sekunden: der Wechsel
+                # zurueck geht ueber dieselbe Installation wie hin.
+                seite.evaluate("() => window.dispatchEvent(new Event('focus'))")
+                seite.wait_for_function(
+                    "async () => (await caches.keys()).every(n => !n.includes('-pruefung'))",
+                    timeout=25000)
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                return "Update erreicht die laufende App ohne Zutun"
+
             def t_worker_uebernimmt():
                 # register() laeuft beim 'load' der Seite - der Worker muss
                 # danach nicht nur da sein, sondern die Seite auch steuern.
@@ -781,6 +824,7 @@ def main():
                 ("Scan wird ein mehrseitiges PDF", t_scan_wird_ein_pdf),
                 ("Automatisierung bearbeiten", t_automatisierung_bearbeiten),
                 ("Keine Fehler in der Konsole", t_keine_ausnahmen),
+                ("Neue Fassung kommt von selbst an", t_neue_fassung_kommt_an),
                 ("Service Worker steuert die Seite", t_worker_uebernimmt),
                 ("Huelle liegt im Cache", t_huelle_liegt_im_cache),
                 ("Keine Serverdaten im Cache", t_keine_dokumente_im_cache),

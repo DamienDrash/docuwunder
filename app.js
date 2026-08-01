@@ -1287,7 +1287,10 @@ class Oberflaeche extends React.Component {
       // Auf dem Rechner kennt der Browser das Attribut nicht und oeffnet den
       // gewohnten Dialog - beides ist richtig, es braucht keine Weiche.
       if (opt.kamera) feld.setAttribute('capture', 'environment');
-      feld.style.display = 'none';
+      // Nicht display:none. Safari oeffnet den Dialog fuer ein so verstecktes
+      // Feld nicht, wenn der Klick aus dem Code kommt - das Feld muss
+      // dargestellt werden, nur eben ausserhalb des Sichtbaren.
+      feld.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none';
       document.body.appendChild(feld);
       const schliessen = (dateien) => {
         if (feld.parentNode) document.body.removeChild(feld);
@@ -1686,8 +1689,22 @@ class Oberflaeche extends React.Component {
   // Hilfe heisst hier: der Quelltext. Es gibt keine gehostete Hilfeseite, und
   // eine zu behaupten waere schlimmer, als keine zu haben.
   hilfeOeffnen() {
-    const fenster = window.open(PROJEKT_URL, '_blank', 'noopener');
-    if (!fenster) this.note('Der Browser hat das Fenster geblockt: ' + PROJEKT_URL);
+    // Ueber einen Verweis, nicht ueber window.open. In einer installierten App
+    // auf iOS tut window.open nichts und meldet auch keinen Fehler - ein Klick
+    // auf einen Verweis mit target=_blank oeffnet dort dagegen Safari.
+    try {
+      const a = document.createElement('a');
+      a.href = PROJEKT_URL;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.style.cssText = 'position:fixed;left:-9999px;top:0';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      // Bleibt die Adresse wenigstens lesbar, statt dass gar nichts geschieht.
+      this.note(PROJEKT_URL);
+    }
   }
 
   regelSchalten(id, on) {

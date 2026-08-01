@@ -139,10 +139,49 @@ DWUi.starten(DWApp.Wurzel, '#app', { farbschema: 'System', onDark: leiste });
 // Der Service Worker haelt die Huelle der App vor, damit sie ohne Netz
 // startet (siehe sw.js). Er ist Zubehoer: schlaegt die Anmeldung fehl - kein
 // sicherer Kontext, abgeschaltet, Privatfenster -, laeuft die App wie bisher.
+//
+// Der zweite Teil ist wichtiger, als er aussieht: eine installierte App wird
+// nie neu geladen. iOS haelt die Seite tagelang am Leben, und ein neuer
+// Service Worker tauscht den *bereits laufenden* Code nicht aus - er belegt
+// nur den Cache fuer den naechsten Kaltstart. Ohne das Folgende laeuft eine
+// installierte App also beliebig lange auf einem alten Stand, waehrend der
+// Server laengst einen neuen ausliefert. Genau das ist passiert: behobene
+// Fehler kamen nicht an, weil die App gar nicht mitbekam, dass es sie gibt.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .then((reg) => {
+        // Nachsehen, sobald die App in den Vordergrund kommt. Ein Wechsel
+        // zwischen Apps ist der Moment, in dem ein Neuladen am wenigsten
+        // stoert - und bei einer installierten App der einzige regelmaessige.
+        const nachsehen = () => {
+          if (document.visibilityState === 'visible') reg.update().catch(() => {});
+        };
+        document.addEventListener('visibilitychange', nachsehen);
+        window.addEventListener('focus', nachsehen);
+      })
       .catch((e) => console.warn('Service Worker nicht angemeldet:', e));
+
+    // Uebernimmt ein neuer Worker, laeuft im Fenster noch der alte Code.
+    // Einmal neu laden holt ihn nach.
+    //
+    // Die Sperre gegen Schleifen ist noetig: der allererste Worker uebernimmt
+    // eine bis dahin ungesteuerte Seite ebenfalls ueber dieses Ereignis. Ohne
+    // sie wuerde die App bei der ersten Installation einmal neu laden, und bei
+    // einem Fehler im Worker immer wieder.
+    let laedtNeu = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (laedtNeu || !navigator.serviceWorker.controller) return;
+      if (!sessionStorage.getItem('docuwunder.erstgesteuert')) {
+        sessionStorage.setItem('docuwunder.erstgesteuert', '1');
+        return;
+      }
+      laedtNeu = true;
+      location.reload();
+    });
+    if (navigator.serviceWorker.controller) {
+      sessionStorage.setItem('docuwunder.erstgesteuert', '1');
+    }
   });
 }
 </script>
