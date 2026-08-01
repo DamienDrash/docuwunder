@@ -231,6 +231,22 @@
     return out.replace(/(.{4})(?=.)/g, '$1-');
   }
 
+  // Die Nachricht, mit der die Zugangsdaten weitergegeben werden.
+  //
+  // Sie steht hier und nicht beim Teilen-Dialog, weil an ihr etwas haengt: das
+  // Passwort ist in Vierergruppen gesetzt, und die Bindestriche gehoeren dazu.
+  // Wer sie beim Umbauen der Nachricht verliert, verschickt ein Passwort, das
+  // nicht funktioniert - und es ist nirgends mehr nachschlagbar, weil
+  // serverseitig nur der Hash liegt. Als reine Funktion faellt das im Test auf.
+  function zugangText(z, adresse) {
+    if (!z) return '';
+    return 'Zugang zu DocuWunder für ' + z.name + '\n\n'
+      + 'Adresse: ' + adresse + '\n'
+      + 'Benutzername: ' + z.benutzername + '\n'
+      + 'Passwort: ' + z.passwort + '\n\n'
+      + 'Bitte ändere das Passwort nach der ersten Anmeldung.';
+  }
+
   // Benutzername aus der E-Mail ableiten, Kollisionen durchnummerieren.
   function benutzernameAus(mail, name, belegt) {
     var basis = String(mail || '').split('@')[0] ||
@@ -259,6 +275,7 @@
     regelText: regelText,
     sichtQuery: sichtQuery,
     passwortAus: passwortAus,
+    zugangText: zugangText,
     benutzernameAus: benutzernameAus,
     ALPHABET: ALPHABET
   };

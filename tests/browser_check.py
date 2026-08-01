@@ -222,6 +222,33 @@ def main():
                 seite.wait_for_selector("text=Übersicht", timeout=20000)
                 return "Oberflaeche aufgebaut"
 
+            def t_mitglieder_angesetzt():
+                """Das Sachgebiet Mitglieder steht in mitglieder.js, nicht in app.js.
+
+                Seine Methoden haengen zur Laufzeit am Prototyp von
+                Oberflaeche. Faellt das Anhaengen aus - Ladereihenfolge in
+                index.html vertauscht, Datei nicht ausgeliefert -, dann rendert
+                die Verwaltung weiterhin klaglos: die Bildschirme bauen nur
+                Rueckrufe, und der Fehler kommt erst beim Antippen von
+                "Mitglied anlegen". Diese Pruefung sieht ihn beim Start.
+                """
+                fehlt = seite.evaluate(
+                    "() => {"
+                    " const p = window.DWApp && window.DWApp.Oberflaeche"
+                    "   && window.DWApp.Oberflaeche.prototype;"
+                    " if (!p) return ['Oberflaeche fehlt'];"
+                    " const soll = Object.keys((window.DWMitglieder || {}).methoden || {});"
+                    " if (!soll.length) return ['DWMitglieder fehlt'];"
+                    " return soll.filter(n => typeof p[n] !== 'function');"
+                    "}")
+                assert not fehlt, f"nicht am Prototyp: {fehlt}"
+                # Und der Zustand des Sachgebiets muss im Konstruktor gelandet
+                # sein, sonst laeuft der Anlegen-Dialog gegen undefined.
+                schluessel = seite.evaluate(
+                    "() => Object.keys(window.DWMitglieder.start())")
+                assert "neuMitglied" in schluessel and "zugang" in schluessel, schluessel
+                return f"{len(schluessel)} Zustandswerte, Methoden am Prototyp"
+
             def t_leiste_folgt_der_wahl():
                 # theme-color faerbt im installierten Zustand die Leiste des
                 # Systems ueber der App. Im Kopf steht sie je Systemschema -
@@ -579,6 +606,7 @@ def main():
 
             for name, fn in [
                 ("Oberflaeche baut sich auf", t_aufgebaut),
+                ("Mitglieder haengen an der Oberflaeche", t_mitglieder_angesetzt),
                 ("Leiste folgt dem gewaehlten Schema", t_leiste_folgt_der_wahl),
                 ("Startseite zeigt Serverdaten", t_startseite_hat_daten),
                 ("Dokumente werden geladen", t_dokumente_geladen),

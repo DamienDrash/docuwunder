@@ -272,6 +272,28 @@ test('benutzernameAus: Sonderzeichen fliegen raus, leer faellt zurueck', () => {
   assert.strictEqual(L.benutzernameAus('', '', []), 'mitglied');
 });
 
+test('zugangText: nennt Adresse, Benutzername und Passwort', () => {
+  const t = L.zugangText(
+    { name: 'Bea Beispiel', benutzername: 'bea', passwort: '6syX-TyZx-abcd-EFGH' },
+    'https://example.org/paperless-app/');
+  assert.ok(t.includes('https://example.org/paperless-app/'), 'ohne Adresse kommt niemand hin');
+  assert.ok(t.includes('bea'));
+  assert.ok(t.includes('Bea Beispiel'));
+});
+
+test('zugangText: die Bindestriche des Passworts bleiben stehen', () => {
+  // Sie gehoeren zum Passwort. Verschwinden sie beim Weitergeben, passt es
+  // nicht mehr - und nachschlagen laesst es sich nirgends, der Server haelt
+  // nur den Hash.
+  const pw = '6syX-TyZx-abcd-EFGH';
+  const t = L.zugangText({ name: 'Bea', benutzername: 'bea', passwort: pw }, 'https://x/');
+  assert.ok(t.includes('Passwort: ' + pw));
+});
+
+test('zugangText: ohne Daten leer statt "undefined"', () => {
+  assert.strictEqual(L.zugangText(null, 'https://x/'), '');
+});
+
 // --- Sonstiges --------------------------------------------------------------
 
 test('feldTyp: bekannte Typen uebersetzt, unbekannte auf Text', () => {

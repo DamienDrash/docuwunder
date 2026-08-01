@@ -34,6 +34,13 @@ Dieses Projekt dient dem Aufbau und der Wartung einer modernen, performanten, be
 - `logik.js` — reine Logik ohne Zustand, DOM oder Netz. Lädt im Browser als Script und in Node
   per `require`; `tests/logik.test.js` prüft sie ohne Browser.
 - `api.js` — Zugriffsschicht auf die REST-API (`window.PaperlessAPI`).
+- Eigenständige Module neben `app.js`, je ein Sachgebiet: `sperre.js` (WebAuthn/PRF),
+  `scan.js` (JPEGs zu einem PDF), `stile.js`, `mitglieder.js` (Mitglieder und Gruppen).
+  `mitglieder.js` liefert `start()` (Zustandswerte für den Konstruktor), `beimSchliessen()`
+  und `methoden`; `app.js` hängt letztere mit `Object.assign(Oberflaeche.prototype, …)` an —
+  `this.mitgliedAnlegen()` bleibt also unverändert aufrufbar. Ein neues Modul muss in
+  `index.html` **vor** `app.js` stehen und in `sw.js` (HUELLE, `VERSION` hoch) sowie in
+  `tests/syntax_check.py` eingetragen werden.
 - `tools/konvert.py` — hat die frühere DC-Vorlage nach htm übersetzt. **Kein laufendes
   Werkzeug**: Änderungen gehören in `vorlage/`, nicht in eine erneute Übersetzung. Steht im
   Repository, weil er die Herkunft der Dateien belegt.
