@@ -410,6 +410,24 @@ UND verknüpft werden, sind es zwei Abfragen, die zusammengeführt werden.
 Dazu: die Prüfansicht des Posteingangs zeigte noch das gemalte Blatt statt der echten Seite —
 ausgerechnet dort, wo man gerade entscheidet, was das Dokument ist.
 
+### ✅ 3.13 Blättern im Posteingang
+
+Waagerecht wischen wechselt das Dokument, das gerade geprüft wird. Die Knöpfe bleiben —
+die Geste nimmt nur den häufigsten Fall ab: ansehen, weiterblättern, zurückblättern.
+
+Der heikle Teil ist nicht das Blättern, sondern die **Koexistenz**: senkrecht muss weiterhin
+gescrollt werden. Die Achse wird beim ersten Zug entschieden (ab 10 px, je nachdem welche
+Richtung überwiegt) und dann festgehalten. Ohne das wäre jeder senkrechte Wisch auch ein
+bisschen waagerecht, und die Liste der erkannten Angaben ließe sich nicht mehr scrollen.
+
+Dazu zwei Pfeile neben der Zählung: eine Geste, die niemand vermutet, ist keine Bedienung —
+und sie sind der Weg für alle, die nicht wischen können oder wollen. Am Anfang und am Ende
+federt es nur, statt ins Leere zu blättern.
+
+**Nebenbefund:** Beim Einbau habe ich `s` in `valsPosteingang` benutzt, wo es nicht im
+Gültigkeitsbereich stand. Die Oberfläche stürzte ab — und die Fehlergrenze aus 1.2 fing es
+sauber ab: „Da ist etwas schiefgegangen. Deine Dokumente sind davon nicht betroffen."
+
 ---
 
 ## Phase 4 — Aufräumen

@@ -101,6 +101,9 @@ const PROJEKT_URL = 'https://github.com/DamienDrash/docuwunder';
 // Punkt erreichen, ohne zu zerren.
 const ZIEH_MAX = 96;
 const ZIEH_SCHWELLE = 62;
+
+// Ab wie viel waagerechtem Weg im Posteingang weitergeblaettert wird.
+const REV_SCHWELLE = 64;
 // Ein Dokument steht je nach Bildschirm in mehreren Listen zugleich. Eine
 // Aenderung muss in allen ankommen, sonst zeigen zwei Bildschirme
 // gleichzeitig verschiedene Staende desselben Dokuments.
@@ -128,7 +131,7 @@ class Oberflaeche extends React.Component {
       // Scannen und Hochladen: der laufende Scan und was gerade zum Server
       // unterwegs ist. Was dazugehoert, steht in erfassen.js.
       ...DWErfassen.start(),
-      zieh: null,
+      zieh: null, revZieh: null,
       toast: null, undoFn: null, undoLabel: 'Widerrufen', swipe: null,
       editDraft: null,
       // Stammdaten und Ordner: der Entwurf des Bearbeiten-Blattes, das Feld
@@ -222,6 +225,21 @@ class Oberflaeche extends React.Component {
     document.addEventListener('touchmove', this._ziehZug, { passive: false });
     document.addEventListener('touchend', this._ziehAus, { passive: true });
     document.addEventListener('touchcancel', this._ziehAus, { passive: true });
+    // Blaettern im Posteingang - aus demselben Grund nicht passiv: sonst
+    // scrollt der Browser waagerecht mit, statt uns die Bewegung zu geben.
+    this._revAn = (e) => {
+      const z = e.target && e.target.closest ? e.target.closest('[data-rev]') : null;
+      if (z && e.touches && e.touches.length === 1) this.revZiehStart(e.touches[0].clientX, e.touches[0].clientY);
+    };
+    this._revZug = (e) => {
+      if (!e.touches || e.touches.length !== 1) return;
+      this.revZiehZug(e.touches[0].clientX, e.touches[0].clientY, () => { if (e.cancelable) e.preventDefault(); });
+    };
+    this._revAus = () => this.revZiehEnde();
+    document.addEventListener('touchstart', this._revAn, { passive: true });
+    document.addEventListener('touchmove', this._revZug, { passive: false });
+    document.addEventListener('touchend', this._revAus, { passive: true });
+    document.addEventListener('touchcancel', this._revAus, { passive: true });
     this._rs = () => { const w = window.innerWidth; if (w !== this.state.vw) this.setState({ vw: w }); };
     window.addEventListener('resize', this._rs);
 
@@ -1029,6 +1047,63 @@ class Oberflaeche extends React.Component {
     }).catch(e => this.note('Export fehlgeschlagen: ' + e.message));
   }
 
+  // --- Blaettern im Posteingang -------------------------------------------
+  //
+  // Waagerecht wischen wechselt das Dokument, das gerade geprueft wird. Es
+  // ersetzt kein Bedienelement - "Uebernehmen & weiter" und "Ueberspringen"
+  // bleiben -, sondern nimmt den haeufigsten Fall ab: kurz ansehen,
+  // weiterblaettern, zurueckblaettern.
+  //
+  // Die Achse wird beim ersten Zug entschieden und dann festgehalten. Ohne
+  // das waere jeder senkrechte Wisch auch ein bisschen waagerecht, und die
+  // Liste der erkannten Angaben liesse sich nicht mehr scrollen.
+
+  revZiehStart(x, y) {
+    if (this.revAnzahl() < 2) return;
+    this._revZ = { x0: x, y0: y, achse: null };
+  }
+
+  revZiehZug(x, y, verhindern) {
+    const z = this._revZ;
+    if (!z) return;
+    const dx = x - z.x0, dy = y - z.y0;
+    if (!z.achse) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      z.achse = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (z.achse === 'y') { this._revZ = null; return; }
+    }
+    if (verhindern) verhindern();
+    // Am Anfang und am Ende gibt es keinen Nachbarn - dort federt es nur.
+    const i = this.revPosition();
+    const n = this.revAnzahl();
+    const gebremst = (dx > 0 && i === 0) || (dx < 0 && i === n - 1) ? dx * 0.28 : dx;
+    this.setState({ revZieh: { dx: Math.max(-260, Math.min(260, gebremst)), drag: true } });
+  }
+
+  revZiehEnde() {
+    const z = this.state.revZieh;
+    this._revZ = null;
+    if (!z) return;
+    const i = this.revPosition(), n = this.revAnzahl();
+    const weiter = z.dx <= -REV_SCHWELLE && i < n - 1;
+    const zurueck = z.dx >= REV_SCHWELLE && i > 0;
+    if (weiter || zurueck) {
+      // Erst hinausschieben, dann tauschen: sonst springt der Inhalt um,
+      // waehrend die alte Karte noch zu sehen ist.
+      this.setState({ revZieh: { dx: weiter ? -320 : 320, drag: false } });
+      this.later(() => this.setState(st => ({
+        revIdx: Math.max(0, Math.min(n - 1, st.revIdx + (weiter ? 1 : -1))),
+        revZieh: null,
+      })), 180);
+      return;
+    }
+    this.setState({ revZieh: { dx: 0, drag: false } });
+    this.later(() => this.setState({ revZieh: null }), 260);
+  }
+
+  revAnzahl() { return this.inboxEff().length; }
+  revPosition() { return Math.min(this.state.revIdx, Math.max(0, this.revAnzahl() - 1)); }
+
   // --- Ziehen zum Aktualisieren -------------------------------------------
   //
   // Am oberen Rand nach unten ziehen laedt neu. Das kennt man von jeder
@@ -1462,7 +1537,7 @@ class Oberflaeche extends React.Component {
   // --- Posteingang -------------------------------------------------
   // Posteingang: Zaehler auf der Startseite, Liste und der Pruefbildschirm.
   valsPosteingang(k) {
-    const { top, inbox, rev, revF } = k;
+    const { s, top, inbox, rev, revF } = k;
     return {
       inboxHasNew: inbox.length > 0, inboxEmpty: inbox.length === 0, inboxAllDone: inbox.length === 0,
       inboxBadge: String(inbox.length), inboxCountLabel: inbox.length === 0 ? 'Keine neuen Dokumente' : inbox.length === 1 ? '1 neues Dokument' : inbox.length + ' neue Dokumente',
@@ -1475,6 +1550,17 @@ class Oberflaeche extends React.Component {
       // meisten: man entscheidet gerade, was das Dokument ist.
       revBild: rev ? this.bildFuer(rev.id) : '', revQuelle: rev ? rev.quelle + ' · ' + rev.hinzugefuegt : '', revDup: !!(rev && rev.dup), revDupRef: rev ? (rev.dupRef || '') : '',
       revPos: rev ? (inbox.indexOf(rev) + 1) + ' von ' + inbox.length : '',
+      // Blaettern durch Wischen. Nur sinnvoll, wenn es einen Nachbarn gibt.
+      revMehrere: inbox.length > 1,
+      revDx: s.revZieh ? s.revZieh.dx : 0,
+      revZiehAn: !!(s.revZieh && s.revZieh.drag),
+      revVor: inbox.indexOf(rev) > 0,
+      revZurueck: inbox.indexOf(rev) < inbox.length - 1,
+      revZiehStart: (e) => { if (!e.pointerType || e.pointerType === 'mouse') this.revZiehStart(e.clientX, e.clientY); },
+      revZiehZug: (e) => { if (!e.pointerType || e.pointerType === 'mouse') this.revZiehZug(e.clientX, e.clientY, null); },
+      revZiehEnde: () => this.revZiehEnde(),
+      revZurueckTap: () => { if (inbox.indexOf(rev) > 0) this.setState(st => ({ revIdx: st.revIdx - 1 })); },
+      revVorTap: () => { if (inbox.indexOf(rev) < inbox.length - 1) this.setState(st => ({ revIdx: st.revIdx + 1 })); },
       revFields: revF.map((f, i) => ({ k: f.k, conf: f.conf, vShow: f.v, hasVal: !!f.v, empty: !f.v, ok: !!(f.ok && f.v), notOk: !(f.ok && f.v), toggle: () => this.patchRev(it => ({ ...it, felder: it.felder.map((x, j) => j === i ? { ...x, ok: !x.ok } : x) })), edit: () => this.setState({ pickTarget: 'rev', pickField: f.k, pickNew: '', sheet: 'pick' }) })),
       acceptAll: () => this.patchRev(it => ({ ...it, felder: it.felder.map(x => x.v ? { ...x, ok: true } : x) })),
       revConfirm: () => this.confirmRev(),

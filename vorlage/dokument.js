@@ -99,8 +99,11 @@
   };
 
   V.showRev = function (v, html, stil) {
-    return v.showRev ? html`<div data-screen-label="Posteingang prüfen" style=${stil(`${v.paneL}background:var(--bg);${v.paneAnim}z-index:40`)}>
-  <div style=${stil('position:absolute;inset:0;overflow-y:auto;padding:110px 0 130px')}>
+    return v.showRev ? html`<div data-screen-label="Posteingang prüfen" data-rev="1" onPointerDown=${v.revZiehStart} onPointerMove=${v.revZiehZug} onPointerUp=${v.revZiehEnde} onPointerCancel=${v.revZiehEnde} style=${stil(`${v.paneL}background:var(--bg);${v.paneAnim}z-index:40`)}>
+  ${''/* Der Inhalt folgt dem Finger. Die Kopfleiste bleibt stehen: sie
+       traegt die Zaehlung, und die soll waehrend des Wischens lesbar
+       bleiben. */}
+  <div style=${stil(`position:absolute;inset:0;overflow-y:auto;padding:110px 0 130px;transform:translateX(${Math.round(v.revDx)}px);transition:${v.revZiehAn ? 'none' : 'transform .22s cubic-bezier(.3,.7,.4,1)'};${v.revZiehAn ? 'user-select:none;-webkit-user-select:none;' : ''}`)}>
     <div style=${stil('margin:0 26px;background:var(--pg);border:0.5px solid var(--sep);border-radius:6px;box-shadow:0 8px 22px rgba(0,0,0,0.09);height:180px;overflow:hidden;position:relative')}>
       <div style=${stil('padding:20px 18px')}><div style=${stil('font-size:11px;font-weight:700')}>${v.revTitel}</div>
       <div style=${stil('margin-top:14px;display:flex;flex-direction:column;gap:5px')}><div style=${stil('height:3.5px;width:90%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3.5px;width:100%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3.5px;width:84%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3.5px;width:94%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3.5px;width:70%;background:var(--pgl);border-radius:2px')}></div></div></div>
@@ -134,7 +137,16 @@
   </div>
   <div style=${stil(S.kopf)}>
     <div onClick=${v.popPush} style=${stil(S.kopfKnopf)}><svg width="10" height="17" viewBox="0 0 10 17" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 1.5L1.5 8.5l7 7"></path></svg></div>
-    <div style=${stil(S.kopfTitel)}>${v.revPos}</div>
+    ${''/* Die Pfeile zeigen, dass es Nachbarn gibt - eine Geste, die
+         niemand vermutet, ist keine Bedienung. Sie sind zugleich der
+         Weg fuer alle, die nicht wischen koennen oder wollen. */}
+    <div style=${stil('flex:1;display:flex;align-items:center;justify-content:center;gap:10px')}>
+      ${v.revMehrere ? html`<div onClick=${v.revZurueckTap} style=${stil('width:26px;height:26px;border-radius:999px;display:flex;align-items:center;justify-content:center;'
+        + (v.revVor ? 'cursor:pointer;background:var(--fill)' : 'opacity:0.28'))}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--lab2)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></div>` : null}
+      <span style=${stil(S.kopfTitel)}>${v.revPos}</span>
+      ${v.revMehrere ? html`<div onClick=${v.revVorTap} style=${stil('width:26px;height:26px;border-radius:999px;display:flex;align-items:center;justify-content:center;'
+        + (v.revZurueck ? 'cursor:pointer;background:var(--fill)' : 'opacity:0.28'))}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--lab2)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></div>` : null}
+    </div>
     <div onClick=${v.revDelete} style=${stil(S.kopfKnopf)}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.5h15"></path><path d="M8.5 6.2V4.5h7v1.7"></path><path d="M6.5 6.5l1 14h9l1-14"></path></svg></div>
   </div>
   <div style=${stil('position:absolute;left:16px;right:16px;bottom:24px;z-index:30;display:flex;flex-direction:column;gap:8px')}>

@@ -381,6 +381,67 @@ def main():
                 assert bild.count() > 0, "kein Vorschaubild im Dokument"
                 return "Vorschau geladen und angezeigt"
 
+            # --- Blaettern im Posteingang ------------------------------------
+            # Waagerecht wischen wechselt das Dokument. Der heikle Teil ist
+            # nicht das Blaettern, sondern die Koexistenz: senkrecht muss
+            # weiterhin gescrollt werden. Die Achse wird beim ersten Zug
+            # entschieden.
+
+            def t_posteingang_blaettern():
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(3800)
+                seite.locator('text="Posteingang"').last.click()
+                seite.wait_for_timeout(2600)
+                zeilen = seite.locator("[data-screen-label='Posteingang'] [data-seite], "
+                                       "[data-screen-label='Posteingang'] img")
+                seite.locator("[data-screen-label='Posteingang'] img").first.click()
+                seite.wait_for_timeout(2400)
+
+                stand = lambda: seite.evaluate(
+                    "() => { const e = [...document.querySelectorAll('span')]"
+                    ".find(s => /^\\d+ von \\d+$/.test((s.textContent || '').trim()));"
+                    " return e ? e.textContent.trim() : null; }")
+                anfang = stand()
+                assert anfang, "keine Zaehlung in der Pruefansicht"
+                gesamt = int(anfang.split(" von ")[1])
+                if gesamt < 2:
+                    return "nur ein Dokument im Posteingang – nichts zu blaettern"
+
+                def wisch(punkte):
+                    cdp.send("Input.dispatchTouchEvent",
+                             {"type": "touchStart", "touchPoints": [punkte[0]]})
+                    for q in punkte[1:]:
+                        cdp.send("Input.dispatchTouchEvent",
+                                 {"type": "touchMove", "touchPoints": [q]})
+                        seite.wait_for_timeout(40)
+                    cdp.send("Input.dispatchTouchEvent",
+                             {"type": "touchEnd", "touchPoints": []})
+                    seite.wait_for_timeout(900)
+
+                wisch([{"x": x, "y": 430} for x in (330, 290, 240, 180, 110, 60)])
+                assert stand() == f"2 von {gesamt}", f"nach links: {stand()}"
+                wisch([{"x": x, "y": 430} for x in (60, 110, 180, 240, 290, 330)])
+                assert stand() == f"1 von {gesamt}", f"zurueck: {stand()}"
+                # Am Anfang gibt es keinen Nachbarn - dort federt es nur.
+                wisch([{"x": x, "y": 430} for x in (60, 110, 180, 240, 290, 330)])
+                assert stand() == f"1 von {gesamt}", "blaettert ueber den Anfang hinaus"
+                # Zu kurz gewischt heisst: nicht gemeint.
+                wisch([{"x": x, "y": 430} for x in (200, 190, 178)])
+                assert stand() == f"1 von {gesamt}", "kurzes Wischen blaettert"
+
+                # Und senkrecht muss weiterhin gescrollt werden.
+                scroll = lambda: seite.evaluate(
+                    "() => { const e = [...document.querySelectorAll('[data-rev] *')]"
+                    ".find(x => /auto|scroll/.test(getComputedStyle(x).overflowY)"
+                    " && x.scrollHeight > x.clientHeight + 4);"
+                    " return e ? e.scrollTop : null; }")
+                if scroll() is not None:
+                    wisch([{"x": 200, "y": y} for y in (380, 340, 290, 240, 190)])
+                    assert (scroll() or 0) > 20, \
+                        f"senkrecht wird nicht mehr gescrollt (scrollTop {scroll()})"
+                    assert stand() == f"1 von {gesamt}", "senkrechtes Wischen blaettert"
+                return f"blaettert durch {gesamt}, scrollt weiterhin senkrecht"
+
             # --- Bedienbarkeit der Kopfzeile ---------------------------------
             # Der Umschalter der Ansicht lag in der Filterzeile, und die
             # scrollt waagerecht. Bei vier Filtern stand er bei x=700 in einem
@@ -1076,6 +1137,7 @@ def main():
                 ("Filter laedt neu", t_filter_laedt_neu),
                 ("Suche geht an den Server", t_suche_serverseitig),
                 ("Treffer oeffnet mit Vorschau", t_treffer_oeffnet_mit_vorschau),
+                ("Posteingang blaettern", t_posteingang_blaettern),
                 ("Umschalter ist sichtbar", t_umschalter_ist_sichtbar),
                 ("Ziehen laedt neu", t_ziehen_laedt_neu),
                 ("Kurzes Ziehen laedt nicht", t_kurzes_ziehen_laedt_nicht),
