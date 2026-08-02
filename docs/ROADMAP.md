@@ -540,3 +540,7 @@ Unit-Tests machen die Lage nur schlechter.
 - ADR `docs/adr/0004-accessibility-semantics.md` dokumentiert die Migrationsstrategie.
 - Zweite Batch: Auswahlleiste fuer Mehrfachauswahl nutzt native Buttons mit sprechenden Namen fuer Verschlagworten, Export, Loeschen und Fertig.
 - Restschuld: 175 klickbare div/span; manuelle Screenreader-/Geraetetests stehen aus.
+- Dritte Batch: vorlage/ordnung.js (Dokumentliste, Organisation, Papierkorb) komplett auf native Buttons
+  umgestellt (10 -> 0 klickbare div/span, 10 neue Button-Elemente mit aria-label). Volle Suite (7 statische
+  Stufen + 24 API + 36 Browser) danach gruen, Huellenversion neu gesetzt.
+- Restschuld: 165 klickbare div/span in dokument.js, erfassen.js, sheets.js, tabs.js, verwaltung.js.
