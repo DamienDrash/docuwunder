@@ -32,6 +32,8 @@ jobs:
         run: python3 tests/aufrufe_check.py
       - name: Huellenversion
         run: python3 tests/huelle_check.py
+      - name: Geheimnisse
+        run: python3 tests/geheim_check.py
       - name: PWA
         run: python3 tests/pwa_check.py
 
