@@ -195,6 +195,13 @@ class Oberflaeche extends React.Component {
     this._t.forEach(clearTimeout);
     if (this._rs) window.removeEventListener('resize', this._rs);
     if (this._esc) window.removeEventListener('keydown', this._esc);
+    // Die Gestenzuhoerer haengen am Dokument, nicht an einem Element, das
+    // React mit abraeumt - sie muessen von Hand wieder weg.
+    [['touchstart', this._ziehAn], ['touchmove', this._ziehZug],
+     ['touchend', this._ziehAus], ['touchcancel', this._ziehAus],
+     ['touchstart', this._revAn], ['touchmove', this._revZug],
+     ['touchend', this._revAus], ['touchcancel', this._revAus]]
+      .forEach(([art, fn]) => { if (fn) document.removeEventListener(art, fn); });
     this.sucheAbbrechen();
     this.vorschauFrei();
   }

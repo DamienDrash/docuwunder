@@ -142,10 +142,20 @@
 
     // Auszeichnungen entfernen und Entities aufloesen: der Ausschnitt wird als
     // Text eingesetzt, nicht als HTML.
+    //
+    // Ueber DOMParser, nicht ueber innerHTML. Der Unterschied ist kein
+    // Stilfrage: ein losgeloestes Element ist NICHT inert. Nachgemessen -
+    // `el.innerHTML = '<img src=x onerror=...>'` fuehrt den Handler aus,
+    // auch wenn das Element nie im Dokument haengt (Chromium; <video> ebenso,
+    // <svg onload> nicht). Und der Text hier kommt vom Server: Paperless
+    // bildet den Ausschnitt aus dem Dokumentinhalt, also aus der
+    // Texterkennung. Wer ein Dokument in das Archiv bekommt - per
+    // E-Mail-Import, ueber den consume-Ordner, als Mitglied - bestimmt damit
+    // diesen String. Ein von DOMParser erzeugtes Dokument fuehrt nichts aus
+    // und laedt nichts nach.
     nurText(t) {
-      const el = document.createElement('div');
-      el.innerHTML = String(t || '');
-      return (el.textContent || '').replace(/\s+/g, ' ').trim();
+      const doc = new DOMParser().parseFromString(String(t || ''), 'text/html');
+      return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
     },
 
     // Volltextregel einer gespeicherten Ansicht, sofern sie nur aus einer

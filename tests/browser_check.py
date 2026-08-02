@@ -381,6 +381,44 @@ def main():
                 assert bild.count() > 0, "kein Vorschaubild im Dokument"
                 return "Vorschau geladen und angezeigt"
 
+            # --- Sicherheit --------------------------------------------------
+
+            def t_suchausschnitt_fuehrt_nichts_aus():
+                """Der Ausschnitt eines Suchtreffers darf keinen Code ausfuehren.
+
+                Paperless bildet ihn aus dem Dokumentinhalt, also aus der
+                Texterkennung. Wer ein Dokument ins Archiv bekommt - per
+                E-Mail-Import, ueber den consume-Ordner, als Mitglied -
+                bestimmt damit diesen String.
+
+                Die frueherere Fassung strippte die Auszeichnungen ueber
+                `el.innerHTML` an einem losgeloesten <div>. Ein losgeloestes
+                Element ist aber NICHT inert: nachgemessen fuehrt
+                `<img src=x onerror=...>` den Handler aus, auch wenn das
+                Element nie im Dokument haengt.
+                """
+                # Roh-Zeichenkette: die Nutzlasten enthalten Rueckschraege
+                # (`<\/script>`), die JavaScript braucht und Python sonst als
+                # ungueltige Escape-Folge anmahnt.
+                ergebnis = seite.evaluate(
+                    r"""() => { globalThis.__xss = 0;
+                      const proben = [
+                        'Rechnung <img src=x onerror="globalThis.__xss=1"> Musterbau',
+                        '<video src=x onerror="globalThis.__xss=1">Vertrag',
+                        '<svg onload="globalThis.__xss=1">Beleg',
+                        '<script>globalThis.__xss=1<\/script>Mahnung',
+                      ];
+                      const o = Object.create(DWSuche.methoden);
+                      const texte = proben.map(x => DWSuche.methoden.nurText.call(o, x));
+                      return new Promise(f => setTimeout(
+                        () => f({ texte, gelaufen: !!globalThis.__xss }), 900)); }""")
+                assert not ergebnis["gelaufen"], \
+                    "der Suchausschnitt fuehrt Code aus dem Dokumentinhalt aus"
+                # Und der Text muss weiterhin lesbar herauskommen.
+                assert ergebnis["texte"][0] == "Rechnung Musterbau", \
+                    f"Text falsch zerlegt: {ergebnis['texte'][0]!r}"
+                return "vier Nutzlasten, keine ausgefuehrt"
+
             # --- Blaettern im Posteingang ------------------------------------
             # Waagerecht wischen wechselt das Dokument. Der heikle Teil ist
             # nicht das Blaettern, sondern die Koexistenz: senkrecht muss
@@ -1137,6 +1175,7 @@ def main():
                 ("Filter laedt neu", t_filter_laedt_neu),
                 ("Suche geht an den Server", t_suche_serverseitig),
                 ("Treffer oeffnet mit Vorschau", t_treffer_oeffnet_mit_vorschau),
+                ("Suchausschnitt fuehrt nichts aus", t_suchausschnitt_fuehrt_nichts_aus),
                 ("Posteingang blaettern", t_posteingang_blaettern),
                 ("Umschalter ist sichtbar", t_umschalter_ist_sichtbar),
                 ("Ziehen laedt neu", t_ziehen_laedt_neu),
