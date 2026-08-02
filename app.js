@@ -32,6 +32,10 @@
   // Verarbeitungsaufgaben und Systemstatus - Serverobjekte neben dem Archiv,
   // die keine Dokumentliste lesen und in keine schreiben.
   const DWBetrieb = global.DWBetrieb;
+  // Und die Ordnung in ordnung.js: die Stammdaten (Absender, Dokumentarten,
+  // Schlagwoerter, Ablageorte) und der Ordnerbaum, den die App aus den Namen
+  // der Ablageorte ableitet.
+  const DWOrdnung = global.DWOrdnung;
 
 // Der Rahmen, in dem die ganze Oberflaeche sitzt.
 //
@@ -66,9 +70,9 @@ const SICHER = {
 const WIDE_MIN = 900;
 // Breite der Listenspalte im Split-View.
 const PANE_W = 380;
-// Paperless kennt keine Favoriten. Die App bildet sie auf dieses Schlagwort ab;
-// es wird in der Schlagwortliste ausgeblendet und bei Bedarf angelegt.
-const FAV_TAG = 'Favorit';
+// Paperless kennt keine Favoriten. Die App bildet sie auf ein Schlagwort ab;
+// wie es heisst, entscheidet ordnung.js - dort stehen die Stammdaten.
+const FAV_TAG = DWOrdnung.FAV_TAG;
 // Standardansicht der Dokumentliste. Sie ueberlebt jetzt den Neustart - vorher
 // stand beim Start immer wieder 'liste', die Einstellung war also folgenlos.
 const DEFVIEW_KEY = 'docuwunder.defaultAnsicht';
@@ -113,7 +117,7 @@ class Oberflaeche extends React.Component {
       // nichts geaendert werden.
       screenSet: null, onbStep: 0,
       onbServer: window.PaperlessAPI ? window.PaperlessAPI.getBase().replace(/\/api$/, '') : '',
-      onbUser: '', onbPass: '', onbToken: '', onbErr: '', onbChecking: false, onbAdv: false, onbTok: false, pickNew: '', shAblauf: '7 Tage', shRecht: 'Kann ansehen',
+      onbUser: '', onbPass: '', onbToken: '', onbErr: '', onbChecking: false, onbAdv: false, onbTok: false, shAblauf: '7 Tage', shRecht: 'Kann ansehen',
       mode: 'system', ...this.startZiel(), sheet: null, pickTarget: null, pickField: null, pendingDel: null,
       view: DEFVIEW_START, sort: 'neu', selMode: false, sel: [],
       fArt: null, fFav: false, fAbs: [], fTags: [], fZeit: 'alle',
@@ -126,7 +130,11 @@ class Oberflaeche extends React.Component {
       ...DWErfassen.start(),
       zieh: null,
       toast: null, undoFn: null, undoLabel: 'Widerrufen', swipe: null,
-      editDraft: null, orgDraft: null,
+      editDraft: null,
+      // Stammdaten und Ordner: der Entwurf des Bearbeiten-Blattes, das Feld
+      // "Neu erstellen ..." und die beiden Ordnerstellen. Was dazugehoert,
+      // steht in ordnung.js.
+      ...DWOrdnung.start(),
       // --- Daten aus der API -------------------------------------------
       // Alles hier wird beim Start aus Paperless geladen (siehe loadAll).
       // Die Oberflaeche arbeitet weiterhin mit der bisherigen internen
@@ -155,8 +163,6 @@ class Oberflaeche extends React.Component {
       // Automatisierungen, E-Mail-Import, Verarbeitungsaufgaben und
       // Systemstatus. Was dazugehoert, steht in betrieb.js.
       ...DWBetrieb.start(),
-      // Dokumente des gerade geoeffneten Ordners (eigene Serverabfrage).
-      ordnerDocs: [], ordnerLaden: false, ordnerTabPfad: '', ordnerTabDocs: [], ordnerTabLaden: false,
       // Team fuer die Zuweisung und deren Laufzustand.
       gruppen: [], zuweisenBusy: false,
       // Mitgliederverwaltung: Entwurf, einmalig gezeigte Zugangsdaten,
@@ -225,7 +231,7 @@ class Oberflaeche extends React.Component {
     this._esc = (e) => {
       if (e.key !== 'Escape') return;
       const s = this.state;
-      if (s.sheet) { this.setState({ sheet: null, editDraft: null, orgDraft: null, pendingDel: null, ...DWMitglieder.beimSchliessen() }); return; }
+      if (s.sheet) { this.setState({ sheet: null, editDraft: null, pendingDel: null, ...DWOrdnung.beimSchliessen(), ...DWMitglieder.beimSchliessen() }); return; }
       if (s.scan) { this.setState({ scan: null }); return; }
       if (s.selMode) { this.setState({ selMode: false, sel: [] }); return; }
       if (s.stack.length) this.pop();
@@ -640,85 +646,9 @@ class Oberflaeche extends React.Component {
       .catch(() => null);
   }
 
-  // --- Ordner -------------------------------------------------------------
-  // Paperless kennt keine Ordner. Die Hierarchie wird aus den Namen der
-  // Ablageorte abgeleitet, die per '/' geschachtelt sind:
-  //   "Privat", "Privat/Versicherungen", "Privat/Steuern"
-  // ergibt den Ordner "Privat" mit zwei Unterordnern.
-  //
-  // Ein Zwischenordner muss dabei nicht als eigener Ablageort existieren:
-  // "Privat" taucht auch dann als Ordner auf, wenn es nur
-  // "Privat/Versicherungen" gibt. Er ist dann ein reiner Durchgang ohne
-  // eigene Dokumente.
-  ordnerKinder(pfad) { return DWLogik.ordnerKinder(this.state.orteRaw, pfad); }
-
-
-  // ids der Ablageorte, die genau diesem Ordner entsprechen (nicht den Unterordnern).
-  ordnerIds(pfad) {
-    return (this.state.orteRaw || []).filter(o => o.name === pfad).map(o => o.id);
-  }
-
-  // Dokumente eines Ordners kommen vom Server, nicht aus der geladenen Seite -
-  // sonst waere die Anzeige eine Aussage ueber den Gesamtbestand, die die App
-  // nicht treffen kann.
-  //
-  // Zwei Stellen zeigen Ordner: der Bildschirm unter "Mehr" und die
-  // Ordneransicht im Reiter Dokumente. Sie haben getrennte Zustaende, damit
-  // ein Wechsel an der einen Stelle die andere nicht mitzieht - dasselbe
-  // Laden benutzen aber beide.
-  ladeOrdner(pfad, ziel) {
-    const A = this.api();
-    const wo = ziel || 'ordner';
-    const docs = wo + 'Docs', laden = wo + 'Laden';
-    const ids = this.ordnerIds(pfad);
-    if (!A || !A.hasToken() || !ids.length) {
-      this.setState({ [docs]: [], [laden]: false });
-      return Promise.resolve();
-    }
-    this.setState({ [laden]: true });
-    return A.documents.list({ storage_path__id__in: ids, ordering: '-created', page_size: DOC_PAGE })
-      .then(r => this.setState({
-        [docs]: (r.results || []).map(d => this.mapDoc(d, this.lookups(), this.state.shares)),
-        [laden]: false
-      }))
-      .catch(() => this.setState({ [docs]: [], [laden]: false }));
-  }
-
-  // Ordneransicht im Reiter Dokumente: ein Schritt tiefer oder zurueck.
-  // Anders als der Bildschirm unter "Mehr" legt sie nichts auf den Stapel -
-  // die Ansicht bleibt der Reiter, es wechselt nur der Ort darin.
-  ordnerTabGehe(pfad) {
-    this.setState({ ordnerTabPfad: pfad || '', ordnerTabDocs: [] });
-    return this.ladeOrdner(pfad || '', 'ordnerTab');
-  }
-
-  oeffneOrdner(pfad) {
-    this.setState(s => ({ stack: [...s.stack, { t: 'org', kind: 'ort', pfad: pfad || '' }], ordnerDocs: [], ordnerLaden: !!pfad }));
-    this.ladeOrdner(pfad || '');
-  }
-
-  // Legt einen Unterordner im aktuellen Ordner an. Der Ablageort bekommt den
-  // vollen Pfad als Namen, damit die Hierarchie erhalten bleibt.
-  neuerOrdner(elternPfad, name) {
-    const A = this.api();
-    const sauber = String(name || '').replace(/\//g, ' ').trim();
-    if (!sauber) return Promise.resolve();
-    const voll = elternPfad ? elternPfad + '/' + sauber : sauber;
-    if ((this.state.orteRaw || []).some(o => o.name === voll)) {
-      this.note('„' + sauber + '“ gibt es hier schon');
-      return Promise.resolve();
-    }
-    return A.storagePaths.create(voll)
-      .then(neu => {
-        this.setState(s => ({
-          orteRaw: [...s.orteRaw, neu],
-          orteM: [...s.orteM, neu.name].sort((a, b) => a.localeCompare(b, 'de')),
-          sheet: null, orgDraft: null
-        }));
-        this.note('Ordner „' + sauber + '“ erstellt');
-      })
-      .catch(e => this.note('Ordner nicht erstellt: ' + e.message));
-  }
+  // Die Ordner stehen in ordnung.js. Sie sind keine eigene Serverart: die
+  // Hierarchie wird aus den Namen der Ablageorte abgeleitet, und was dabei zu
+  // beachten ist, steht dort.
 
   ladeNeben() {
     const A = this.api();
@@ -886,23 +816,11 @@ class Oberflaeche extends React.Component {
   // (loadAll benennt damit die gespeicherten Ansichten) und sucheAbbrechen()
   // hinaus (Abmelden und Abbau der Oberflaeche).
 
-  orgData(kind) {
-    // Die Zahl neben einem Eintrag meint alle zugehoerigen Dokumente, nicht
-    // die der gerade geladenen Seite. Paperless liefert sie als
-    // document_count direkt an den Stammdaten mit.
-    const s = this.state;
-    const aus = (roh) => [...(roh || [])]
-      .sort((a, b) => a.name.localeCompare(b.name, 'de'))
-      .map(x => ({ name: x.name, count: x.document_count || 0 }));
-    if (kind === 'abs') return { title: 'Absender', hint: 'In Paperless: Korrespondent', rows: aus(s.absRaw) };
-    if (kind === 'art') return { title: 'Dokumentarten', hint: 'In Paperless: Dokumenttyp', rows: aus(s.artenRaw) };
-    if (kind === 'tag') return { title: 'Schlagwörter', hint: 'In Paperless: Tags', rows: aus((s.tagsRaw || []).filter(t => t.name !== FAV_TAG)) };
-    // 'ort' wird nicht flach dargestellt, sondern als Ordnerbaum - siehe
-    // ordnerKinder() und die Ordnerzweige in renderVals.
-    if (kind === 'ort') return { title: 'Ordner', hint: '', rows: [] };
-    if (kind === 'feld') return { title: 'Eigene Felder', hint: 'In Paperless: benutzerdefinierte Felder', rows: s.felderM.map(f => ({ name: f.name, count: f.n, typ: f.typ })) };
-    return { title: 'Gespeicherte Suchen', hint: 'In Paperless: gespeicherte Ansichten', rows: s.suchenM.map(f => ({ name: f.name, text: f.q ? 'Sucht nach „' + f.q + '“' : 'Gespeicherte Ansicht' })) };
-  }
+  // --- Ordnung ------------------------------------------------------------
+  // Die Stammdaten stehen in ordnung.js: was eine Liste zeigt (orgData), wie
+  // ein Name zur id wird und bei Bedarf entsteht (idFuer), und was Anlegen,
+  // Umbenennen und Loeschen tun.
+
   tg(on) { return { bg: 'width:51px;height:31px;border-radius:999px;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s;background:' + (on ? 'var(--grn)' : 'var(--fill2)'), knob: 'position:absolute;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.3);transition:left .2s;left:' + (on ? '22px' : '2px') }; }
   seg(on) { return 'flex:1;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:600;cursor:pointer;' + (on ? 'background:var(--card);box-shadow:0 1px 4px rgba(0,0,0,0.12);color:var(--lab)' : 'color:var(--lab2)'); }
   dTs(d) { const m = { Januar: 1, Februar: 2, 'März': 3, April: 4, Mai: 5, Juni: 6, Juli: 7, August: 8, September: 9, Oktober: 10, November: 11, Dezember: 12 }; const p = /(\d+)\.\s*([A-Za-zäöüÄÖÜß]+)\s*(\d{4})/.exec(d || ''); return p ? (+p[3]) * 10000 + (m[p[2]] || 0) * 100 + (+p[1]) : 0; }
@@ -911,21 +829,9 @@ class Oberflaeche extends React.Component {
   // Schlaegt der Server fehl, wird der vorherige Stand wiederhergestellt und
   // die Meldung angezeigt - kein stilles Auseinanderlaufen von App und Server.
 
-  // Liefert die id zu einem Namen; legt den Eintrag bei Bedarf an.
-  idFuer(art, name) {
-    const A = this.api();
-    if (!name) return Promise.resolve(null);
-    const topf = { absender: 'absRaw', dokumentart: 'artenRaw', tag: 'tagsRaw', ablageort: 'orteRaw' }[art];
-    const dienst = { absender: A.correspondents, dokumentart: A.documentTypes, tag: A.tags, ablageort: A.storagePaths }[art];
-    const da = (this.state[topf] || []).find(x => x.name === name);
-    if (da) return Promise.resolve(da.id);
-    return dienst.create(name).then(neu => {
-      this.setState(st => ({ [topf]: [...st[topf], neu] }));
-      return neu.id;
-    });
-  }
-
-  favTagId() { return this.idFuer('tag', FAV_TAG); }
+  // idFuer() und favTagId() loesen einen Namen zur id auf und legen den
+  // Eintrag bei Bedarf an. Beide stehen in ordnung.js, weil dabei ein
+  // Stammdatum entsteht.
 
   // Uebersetzt eine Aenderung der Oberflaechenform in das API-Format.
   // Namen werden dabei zu ids aufgeloest, fehlende Eintraege angelegt.
@@ -1294,74 +1200,10 @@ class Oberflaeche extends React.Component {
   revItem() { const ib = this.inboxEff(); return ib[Math.min(this.state.revIdx, ib.length - 1)]; }
   patchRev(fn) { const it = this.revItem(); if (!it) return; this.setState(s => ({ inbox: s.inbox.map(x => x.id === it.id ? fn(x) : x) })); }
   choosePick(v) { const s = this.state; if (s.pickTarget === 'rev') { const k = s.pickField; this.patchRev(it => ({ ...it, felder: it.felder.map(f => f.k === k ? { ...f, v, ok: true, conf: 'von dir gewählt' } : f) })); this.setState({ sheet: null }); } else { const map = { 'Absender': 'abs', 'Dokumentart': 'art', 'Ablageort': 'ort', 'Datum': 'datum' }; const key = map[s.pickField] || 'abs'; this.setState(st => ({ editDraft: { ...st.editDraft, [key]: v }, sheet: 'edit' })); } }
-  // Neuen Eintrag aus dem Auswahl-Sheet anlegen (Absender, Dokumentart, Schlagwort).
-  pickCreateGo() {
-    const s = this.state, v = s.pickNew.trim();
-    if (!v) return;
-    const art = { 'Absender': 'abs', 'Dokumentart': 'art', 'Schlagwörter': 'tag', 'Ablageort': 'ort' }[s.pickField];
-    if (!art) { this.setState({ pickNew: '' }); this.choosePick(v); return; }
-    this.setState({ pickBusy: true });
-    this.idFuer(art, v).then(() => {
-      const topf = { absender: 'absM', dokumentart: 'artenM', tag: 'tagsM', ablageort: 'orteM' }[art];
-      this.setState(st => ({
-        pickBusy: false, pickNew: '',
-        [topf]: st[topf].includes(v) ? st[topf] : [...st[topf], v].sort((x, y) => x.localeCompare(y, 'de'))
-      }));
-      this.choosePick(v);
-    }).catch(e => { this.setState({ pickBusy: false }); this.note('Nicht angelegt: ' + e.message); });
-  }
+  // Das Anlegen aus dem Auswahl-Sheet (pickCreateGo) und das Anlegen,
+  // Umbenennen und Loeschen eines Stammdatums (orgSaveGo, orgDeleteGo) stehen
+  // in ordnung.js. Zurueck fuehrt von dort nur choosePick().
 
-  // Organisationseintrag anlegen oder umbenennen.
-  orgSaveGo() {
-    const A = this.api(), d = this.state.orgDraft;
-    if (!d) return;
-    const name = d.name.trim();
-    // Ordner: der Ablageort bekommt den vollen Pfad als Namen, damit die
-    // Hierarchie erhalten bleibt (siehe ordnerKinder).
-    if (d.kind === 'ort' && !d.alt) {
-      if (!name) { this.setState(s => ({ orgDraft: Object.assign({}, s.orgDraft, { err: 'Bitte gib einen Namen ein.' }) })); return; }
-      this.neuerOrdner(d.pfad || '', name).then(() => this.ladeOrdner(d.pfad || ''));
-      return;
-    }
-    if (!name) { this.setState(s => ({ orgDraft: Object.assign({}, s.orgDraft, { err: 'Bitte gib einen Namen ein.' }) })); return; }
-
-    const dienst = { absender: A.correspondents, dokumentart: A.documentTypes, tag: A.tags, ablageort: A.storagePaths }[d.kind];
-    const topfRaw = { absender: 'absRaw', dokumentart: 'artenRaw', tag: 'tagsRaw', ablageort: 'orteRaw' }[d.kind];
-    if (!dienst) {
-      // Eigene Felder und gespeicherte Suchen werden hier (noch) nicht verwaltet.
-      this.setState({ sheet: null, orgDraft: null });
-      this.note('Diese Art von Eintrag lässt sich hier nicht ändern.');
-      return;
-    }
-
-    this.setState(s => ({ orgDraft: Object.assign({}, s.orgDraft, { busy: true, err: '' }) }));
-    const vorhandener = d.alt ? (this.state[topfRaw] || []).find(x => x.name === d.alt) : null;
-    const aktion = vorhandener ? dienst.update(vorhandener.id, { name }) : dienst.create(name);
-
-    aktion
-      .then(() => this.loadAll())
-      .then(() => { this.setState({ sheet: null, orgDraft: null }); this.note(d.alt ? 'Änderungen gesichert' : '„' + name + '“ erstellt'); })
-      .catch(e => this.setState(s => ({ orgDraft: Object.assign({}, s.orgDraft, { busy: false, err: e.message }) })));
-  }
-
-  // Organisationseintrag loeschen. Bei zugeordneten Dokumenten wird vorher
-  // gewarnt; die Dokumente selbst bleiben erhalten.
-  orgDeleteGo(force) {
-    const A = this.api(), d = this.state.orgDraft;
-    if (!d || !d.alt) { this.setState({ sheet: null, orgDraft: null }); return; }
-    if (d.count > 0 && !force) { this.setState(s => ({ orgDraft: Object.assign({}, s.orgDraft, { warn: true }) })); return; }
-
-    const dienst = { absender: A.correspondents, dokumentart: A.documentTypes, tag: A.tags, ablageort: A.storagePaths }[d.kind];
-    const topfRaw = { absender: 'absRaw', dokumentart: 'artenRaw', tag: 'tagsRaw', ablageort: 'orteRaw' }[d.kind];
-    const eintrag = (this.state[topfRaw] || []).find(x => x.name === d.alt);
-    if (!dienst || !eintrag) { this.setState({ sheet: null, orgDraft: null }); return; }
-
-    this.setState(s => ({ orgDraft: Object.assign({}, s.orgDraft, { busy: true }) }));
-    dienst.remove(eintrag.id)
-      .then(() => this.loadAll())
-      .then(() => { this.setState({ sheet: null, orgDraft: null }); this.note('„' + d.alt + '“ gelöscht'); })
-      .catch(e => this.setState(s => ({ orgDraft: Object.assign({}, s.orgDraft, { busy: false, warn: false, err: e.message }) })));
-  }
   // Schritt 1: prueft, ob unter der angegebenen Adresse eine Paperless-API
   // antwortet. Die Adresse ist mit der eigenen Origin vorbelegt, weil App und
   // Server hier gemeinsam ausgeliefert werden.
@@ -1429,7 +1271,8 @@ class Oberflaeche extends React.Component {
       ...DWSuche.beimAbmelden(), opened: [],
       tagsM: [], absM: [], artenM: [], orteM: [],
       tagsRaw: [], absRaw: [], artenRaw: [], orteRaw: [], shares: {}, me: null,
-      felderM: [], suchenM: [], users: [], ordnerDocs: [], ordnerLaden: false, ordnerTabPfad: '', ordnerTabDocs: [], ordnerTabLaden: false,
+      felderM: [], suchenM: [], users: [],
+      ...DWOrdnung.beimAbmelden(),
       ...DWBetrieb.beimAbmelden(),
       loading: false, loadErr: null
     });
@@ -1967,7 +1810,7 @@ class Oberflaeche extends React.Component {
             : 'Die Gruppe hat keine Mitglieder.')
         : '',
       gwGo: () => this.gruppeEntfernen(s.gruppeSel),
-      sheetOn: !!s.sheet, closeSheet: () => this.setState({ sheet: null, editDraft: null, orgDraft: null, pendingDel: null }),
+      sheetOn: !!s.sheet, closeSheet: () => this.setState({ sheet: null, editDraft: null, pendingDel: null, ...DWOrdnung.beimSchliessen() }),
       // --- Zuweisen -------------------------------------------------------
       dmZuweisen: () => this.setState({ sheet: 'zuweisen' }),
       shZuweisen: s.sheet === 'zuweisen',
@@ -2183,8 +2026,9 @@ class Oberflaeche extends React.Component {
 // this.drucken() und this.autoSchalten() dasselbe wie zuvor - die Aufrufer in
 // valsVerwaltung, valsSheets, valsNavigation, valsErfassen, valsSuche,
 // valsDokument und valsMehr merken nichts davon, dass die Bodies in
-// mitglieder.js, erfassen.js, suche.js, vorschau.js und betrieb.js stehen.
-Object.assign(Oberflaeche.prototype, DWMitglieder.methoden, DWErfassen.methoden, DWSuche.methoden, DWVorschau.methoden, DWBetrieb.methoden);
+// mitglieder.js, erfassen.js, suche.js, vorschau.js, betrieb.js und
+// ordnung.js stehen.
+Object.assign(Oberflaeche.prototype, DWMitglieder.methoden, DWErfassen.methoden, DWSuche.methoden, DWVorschau.methoden, DWBetrieb.methoden, DWOrdnung.methoden);
 
 
   // Wurzel: loest 'System' zum tatsaechlichen Schema auf, damit die

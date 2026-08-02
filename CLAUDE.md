@@ -38,7 +38,8 @@ Dieses Projekt dient dem Aufbau und der Wartung einer modernen, performanten, be
   `scan.js` (JPEGs zu einem PDF), `stile.js`, `mitglieder.js` (Mitglieder und Gruppen),
   `erfassen.js` (Scannen und Hochladen), `suche.js` (Volltextindex, Verlauf, gespeicherte
   Ansichten), `vorschau.js` (Vorschaubilder, Vorschau, Herunterladen, Drucken),
-  `betrieb.js` (Automatisierungen, E-Mail-Import, Verarbeitungsaufgaben, Systemstatus).
+  `betrieb.js` (Automatisierungen, E-Mail-Import, Verarbeitungsaufgaben, Systemstatus),
+  `ordnung.js` (Stammdaten und Ordner).
   Sie liefern `start()` (Zustandswerte für den Konstruktor), teils `beimSchliessen()`, und
   `methoden`; `app.js` hängt letztere mit `Object.assign(Oberflaeche.prototype, …)` an —
   `this.mitgliedAnlegen()` und `this.scanOeffnen()` bleiben also unverändert aufrufbar. Ein
@@ -69,6 +70,18 @@ Dieses Projekt dient dem Aufbau und der Wartung einer modernen, performanten, be
   `AKTION`) und werden von `tests/api_check.py` gegen den Server geprüft. Aus `app.js` führt
   nur `betriebAus()` hinein — `loadAll()` formt damit die Rohantworten für `autos`,
   `mailRules`, `mailKonten` und `sysStatus` in einem Zug.
+  `ordnung.js` hält die **Namen, nach denen sortiert wird**: die vier Stammdatenarten
+  (Absender, Dokumentarten, Schlagwörter, Ablageorte) samt Anlegen, Umbenennen und Löschen —
+  und den Ordnerbaum, der nichts anderes ist als eine Lesart derselben Ablageorte. Ein
+  Stammdatum zu löschen entfernt kein Dokument, es verliert nur seinen Absender; deshalb liegt
+  das zusammen. Anders als `betrieb.js` zeigt dieses Modul auch Dokumente — die eines
+  geöffneten Ordners —, holt sie aber in einer **eigenen** Serverabfrage in eine eigene Liste
+  (`ordnerDocs`, `ordnerTabDocs`) und fasst weder die Listen des Dokumente-Tabs noch deren
+  Filter, den Cache oder die Suche an. Zwei Stellen zeigen Ordner (unter „Mehr“ und im Reiter
+  Dokumente) mit getrenntem Zustand, aber demselben `ladeOrdner()`. Der Name des
+  Favoriten-Schlagworts steht dort (`DWOrdnung.FAV_TAG`), weil er ein Stammdatum ist; `app.js`
+  liest ihn von dort, damit es ihn nur einmal gibt. Aus `app.js` führt nur `choosePick()`
+  zurück heraus.
 - `tools/konvert.py` — hat die frühere DC-Vorlage nach htm übersetzt. **Kein laufendes
   Werkzeug**: Änderungen gehören in `vorlage/`, nicht in eine erneute Übersetzung. Steht im
   Repository, weil er die Herkunft der Dateien belegt.
@@ -105,7 +118,7 @@ Gefiltert, sortiert und gesucht wird **auf dem Server**, nicht lokal: die App h�
 - Suche: `/documents/?query=` (Volltextindex, Hervorhebung aus `__search_hit__.highlights`), bei Syntaxfehler Rückfall auf `title_content=`.
 - Upload: `post_document` liefert eine Aufgaben-UUID, verfolgt über `/tasks/?task_id=`.
 - Favoriten kennt Paperless nicht — abgebildet auf das Schlagwort `Favorit`.
-- Ordner kennt Paperless nicht. Die Hierarchie wird aus den **Namen der Ablageorte** abgeleitet, die per `/`
+- Ordner kennt Paperless nicht (Code in `ordnung.js`). Die Hierarchie wird aus den **Namen der Ablageorte** abgeleitet, die per `/`
   geschachtelt sind: `Privat` + `Privat/Steuern` ergibt einen Ordner mit Unterordner. Ein Zwischenordner muss
   nicht selbst als Ablageort existieren — er erscheint dann als reiner Durchgang („nur Unterordner"). Beim
   Anlegen wird das `path`-Template aus dem Namen abgeleitet (`Privat/Steuern/{{ title }}`), damit Ordnername
