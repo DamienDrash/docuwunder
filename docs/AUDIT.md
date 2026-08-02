@@ -562,3 +562,9 @@ näher.
 - ADR `docs/adr/0004-accessibility-semantics.md` dokumentiert die Migrationsstrategie.
 - Zweite Batch: Auswahlleiste fuer Mehrfachauswahl nutzt native Buttons mit sprechenden Namen fuer Verschlagworten, Export, Loeschen und Fertig.
 - Restschuld: 175 klickbare div/span; manuelle Screenreader-/Geraetetests stehen aus.
+- Vierte Batch: vorlage/erfassen.js (Scan-Bildschirm, Zuschnitt, Werkzeugleiste) komplett auf
+  native Buttons umgestellt (14 -> 1 klickbare div/span, 13 neue Button-Elemente mit aria-label
+  und title). Nur der Undo-Link im Toast bleibt bewusst offen. Nummern-Badge auf Seitenkacheln
+  erhielt pointer-events:none, da es sonst Klicks auf die darunterliegenden Werkzeuge abfing.
+  Volle Suite (60 Unit + 24 API + 37 Browser) danach gruen, Huellenversion neu gesetzt.
+- Restschuld: 147 klickbare div/span in dokument.js, sheets.js, tabs.js, verwaltung.js.

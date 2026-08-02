@@ -11,6 +11,7 @@
 (function (global) {
   'use strict';
   const V = global.DWVorlage = global.DWVorlage || {};
+  const S = global.DWStile;
 
   const KNOPF = 'height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);'
               + 'display:flex;align-items:center;justify-content:center;font-size:16.5px;'
@@ -23,9 +24,9 @@
     if (!v.scanOn) return null;
     return html`<div data-screen-label="Scannen" style=${stil('position:absolute;inset:0;background:#0B0B0D;z-index:80;display:flex;flex-direction:column')}>
   <div style=${stil('display:flex;align-items:center;justify-content:space-between;padding:62px 16px 10px;flex-shrink:0')}>
-    <div onClick=${v.scanCancel} style=${stil('width:36px;height:36px;border-radius:50%;background:rgba(120,120,128,0.32);display:flex;align-items:center;justify-content:center;cursor:pointer')}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></div>
-    <span style=${stil('font-size:16px;font-weight:600;color:#fff')}>${v.scanStepTitle}</span>
-    <div style=${stil('width:36px')}></div>
+  <button type="button" aria-label="Abbrechen" onClick=${v.scanCancel} style=${stil(S.buttonReset + 'width:36px;height:36px;border-radius:50%;background:rgba(120,120,128,0.32);display:flex;align-items:center;justify-content:center;cursor:pointer')}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+  <span style=${stil('font-size:16px;font-weight:600;color:#fff')}>${v.scanStepTitle}</span>
+  <div style=${stil('width:36px')}></div>
   </div>
 
   ${v.scanSeiten ? html`<div style=${stil('flex:1;overflow-y:auto;padding:16px 20px;width:100%;max-width:840px;margin:0 auto')}>
@@ -36,27 +37,27 @@
       <div style=${stil('display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:12px;align-items:start')}>
         ${(v.scanPagesArr || []).map((pg) => html`<div key=${pg.id} data-seite=${pg.nr} style=${stil('position:relative')}>
             <img src=${pg.url} alt=${'Seite ' + pg.nr} style=${stil('width:100%;aspect-ratio:3/4;object-fit:cover;background:#E9E7E2;border-radius:6px;display:block' + (pg.busy ? ';opacity:0.4' : ''))} />
-            <div style=${stil('position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.55);border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;color:#fff')}>${pg.nr}</div>
+            <div style=${stil('position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.55);border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;color:#fff;pointer-events:none')}>${pg.nr}</div>
             <div style=${stil('position:absolute;bottom:5px;right:5px;display:flex;gap:5px')}>
-              <div onClick=${pg.crop} title="Zuschneiden" style=${stil(WERKZEUG)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v15.5H22"></path><path d="M2 6.5h15.5V22"></path></svg></div>
-              <div onClick=${pg.dreh} title="Drehen" style=${stil(WERKZEUG)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 10-2.3 5.7"></path><path d="M20 4v7h-7"></path></svg></div>
+              <button type="button" aria-label="Zuschneiden" title="Zuschneiden" onClick=${pg.crop} style=${stil(S.buttonReset + WERKZEUG)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 2v15.5H22"></path><path d="M2 6.5h15.5V22"></path></svg></button>
+              <button type="button" aria-label="Drehen" title="Drehen" onClick=${pg.dreh} style=${stil(S.buttonReset + WERKZEUG)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 10-2.3 5.7"></path><path d="M20 4v7h-7"></path></svg></button>
             </div>
             <div style=${stil('position:absolute;top:5px;left:5px;display:flex;gap:5px')}>
-              ${pg.hoch ? html`<div onClick=${pg.hoch} title="Nach vorn" style=${stil(WERKZEUG)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></div>` : null}
-              ${pg.runter ? html`<div onClick=${pg.runter} title="Nach hinten" style=${stil(WERKZEUG)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></div>` : null}
+              ${pg.hoch ? html`<button type="button" aria-label="Nach vorn" title="Nach vorn" onClick=${pg.hoch} style=${stil(S.buttonReset + WERKZEUG)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>` : null}
+              ${pg.runter ? html`<button type="button" aria-label="Nach hinten" title="Nach hinten" onClick=${pg.runter} style=${stil(S.buttonReset + WERKZEUG)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></button>` : null}
             </div>
-            <div onClick=${pg.del} title="Entfernen" style=${stil('position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;background:rgba(60,60,64,0.95);display:flex;align-items:center;justify-content:center;cursor:pointer')}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></div>
+            <button type="button" aria-label="Entfernen" title="Entfernen" onClick=${pg.del} style=${stil(S.buttonReset + 'position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;background:rgba(60,60,64,0.95);display:flex;align-items:center;justify-content:center;cursor:pointer')}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
           </div>`)}
-        <div onClick=${v.addPage} data-neue-seite="1" style=${stil('aspect-ratio:3/4;border:1.5px dashed rgba(255,255,255,0.35);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer')}>
+        <button type="button" aria-label="Seite hinzufügen" onClick=${v.addPage} data-neue-seite="1" style=${stil(S.buttonReset + 'aspect-ratio:3/4;border:1.5px dashed rgba(255,255,255,0.35);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer')}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
           <span style=${stil('font-size:11.5px;color:rgba(255,255,255,0.7)')}>Seite</span>
-        </div>
+        </button>
       </div>
       ${v.scanBusy ? html`<div style=${stil('text-align:center;font-size:13px;color:rgba(235,235,245,0.6);margin-top:16px')}>Aufnahme wird verarbeitet …</div>` : null}
       ${v.scanHasPages ? html`<div style=${stil('font-size:13px;color:rgba(235,235,245,0.5);text-align:center;margin-top:16px;line-height:1.5')}>Die Pfeile ordnen die Seiten, die Symbole unten schneiden zu und drehen.</div>` : null}
     </div>
     <div style=${stil('padding:0 20px 46px;flex-shrink:0;width:100%;max-width:840px;margin:0 auto')}>
-      <div onClick=${v.scanHasPages ? v.toMeta : v.addPage} style=${stil(KNOPF + (v.scanHasPages ? '' : ';opacity:0.55'))}>${v.scanHasPages ? 'Weiter' : 'Seite aufnehmen'}</div>
+      <button type="button" onClick=${v.scanHasPages ? v.toMeta : v.addPage} style=${stil(S.buttonReset + KNOPF + (v.scanHasPages ? '' : ';opacity:0.55'))}>${v.scanHasPages ? 'Weiter' : 'Seite aufnehmen'}</button>
     </div>` : null}
 
   ${v.scanZuschnitt ? html`<div style=${stil('flex:1;display:flex;align-items:center;justify-content:center;padding:12px 20px;overflow:hidden')}>
@@ -70,9 +71,9 @@
       </div>
     </div>
     <div style=${stil('display:flex;gap:10px;padding:0 20px 46px;flex-shrink:0;width:100%;max-width:840px;margin:0 auto')}>
-      <div onClick=${v.zAbbrechen} style=${stil('flex:1 1 0;min-width:0;height:50px;border-radius:14px;background:rgba(120,120,128,0.28);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;cursor:pointer')}>Abbrechen</div>
-      <div onClick=${v.zZuruecksetzen} style=${stil('flex:0 0 auto;padding:0 18px;height:50px;border-radius:14px;background:rgba(120,120,128,0.28);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;cursor:pointer')}>Ganz</div>
-      <div onClick=${v.zSichern} style=${stil('flex:1.3 1 0;min-width:0;white-space:nowrap;' + KNOPF)}>Übernehmen</div>
+      <button type="button" onClick=${v.zAbbrechen} style=${stil(S.buttonReset + 'flex:1 1 0;min-width:0;height:50px;border-radius:14px;background:rgba(120,120,128,0.28);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;cursor:pointer')}>Abbrechen</button>
+      <button type="button" onClick=${v.zZuruecksetzen} style=${stil(S.buttonReset + 'flex:0 0 auto;padding:0 18px;height:50px;border-radius:14px;background:rgba(120,120,128,0.28);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;cursor:pointer')}>Ganz</button>
+      <button type="button" onClick=${v.zSichern} style=${stil(S.buttonReset + 'flex:1.3 1 0;min-width:0;white-space:nowrap;' + KNOPF)}>Übernehmen</button>
     </div>` : null}
 
   ${v.scanMeta ? html`<div style=${stil('flex:1;overflow-y:auto;padding:16px 20px;width:100%;max-width:840px;margin:0 auto')}>
@@ -83,11 +84,11 @@
       </div>
       <div style=${stil('display:flex;align-items:center;gap:10px;background:#1C1C1E;border-radius:16px;padding:13px 16px;margin-top:10px')}>
         <span style=${stil('font-size:14.5px;color:rgba(235,235,245,0.85);flex:1')}>${v.scanPagesLabel}</span>
-        <span onClick=${v.backToSeiten} style=${stil('font-size:14px;font-weight:600;color:var(--acc);cursor:pointer')}>Ändern</span>
+        <button type="button" onClick=${v.backToSeiten} style=${stil(S.buttonReset + 'font-size:14px;font-weight:600;color:var(--acc);cursor:pointer')}>Ändern</button>
       </div>
     </div>
     <div style=${stil('padding:0 20px 46px;flex-shrink:0;width:100%;max-width:840px;margin:0 auto')}>
-      <div onClick=${v.doUpload} style=${stil(KNOPF)}>Hochladen</div>
+      <button type="button" onClick=${v.doUpload} style=${stil(S.buttonReset + KNOPF)}>Hochladen</button>
     </div>` : null}
 
   ${v.scanUp ? html`<div style=${stil('flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 44px')}>
