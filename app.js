@@ -28,6 +28,10 @@
   // geoeffneten Dokuments, Herunterladen und Drucken - alles, was als Blob
   // kommt und eine Object-URL hinterlaesst, die wieder freigehoert.
   const DWVorschau = global.DWVorschau;
+  // Und der Betrieb in betrieb.js: Automatisierungen, E-Mail-Import,
+  // Verarbeitungsaufgaben und Systemstatus - Serverobjekte neben dem Archiv,
+  // die keine Dokumentliste lesen und in keine schreiben.
+  const DWBetrieb = global.DWBetrieb;
 
 // Der Rahmen, in dem die ganze Oberflaeche sitzt.
 //
@@ -146,9 +150,11 @@ class Oberflaeche extends React.Component {
       // Rohdaten und Nachschlagetabellen (Name <-> id), von mapDoc gebraucht.
       tagsRaw: [], absRaw: [], artenRaw: [], orteRaw: [],
       users: [],
-      // Automatisierungen (in Paperless: Workflows), eigene Felder,
-      // gespeicherte Ansichten und E-Mail-Regeln.
-      autos: [], felderM: [], suchenM: [], mailRules: [], mailKonten: [],
+      // Eigene Felder und gespeicherte Ansichten.
+      felderM: [], suchenM: [],
+      // Automatisierungen, E-Mail-Import, Verarbeitungsaufgaben und
+      // Systemstatus. Was dazugehoert, steht in betrieb.js.
+      ...DWBetrieb.start(),
       // Dokumente des gerade geoeffneten Ordners (eigene Serverabfrage).
       ordnerDocs: [], ordnerLaden: false, ordnerTabPfad: '', ordnerTabDocs: [], ordnerTabLaden: false,
       // Team fuer die Zuweisung und deren Laufzustand.
@@ -156,8 +162,9 @@ class Oberflaeche extends React.Component {
       // Mitgliederverwaltung: Entwurf, einmalig gezeigte Zugangsdaten,
       // Gruppen- und Personenauswahl. Was dazugehoert, steht in mitglieder.js.
       ...DWMitglieder.start(),
-      // Systemstatus und laufende Serveraufgaben.
-      sysStatus: null, tasksRaw: [], tasksFehler: '', docsTotal: 0,
+      // Wie viele Dokumente der aktuelle Filter serverseitig umfasst - nicht,
+      // wie viele geladen sind.
+      docsTotal: 0,
       // Freigaben je Dokument-id, aus /api/share_links/.
       shares: {},
       // Ladezustand der Erstbefuellung und Fehler daraus.
@@ -368,17 +375,13 @@ class Oberflaeche extends React.Component {
       weich(A.workflows.all()), weich(A.customFields.all()), weich(A.savedViews.all()), weich(A.groups.all()),
       weich(A.mailRules.all()), weich(A.mailKonten.all()), A.statistics().catch(() => null), A.remoteVersion().catch(() => null)
     ]).then(([tags, corr, typ, ort, ui, links, users, flows, felder, sichten, gruppen, regeln, mailKonten, stats, ver]) => {
-      this.setState({
-        autos: flows.map(w => this.mapWorkflow(w)),
+      // Automatisierungen, E-Mail-Import und Systemstatus formt betrieb.js aus
+      // denselben Rohantworten - was davon wie aussieht, entscheidet sich dort.
+      this.setState(Object.assign({
         felderM: felder.map(f => ({ name: f.name, typ: this.feldTyp(f.data_type), n: f.document_count || 0 })),
         suchenM: sichten.map(v => ({ id: v.id, name: v.name, q: this.sichtQuery(v) })),
-        mailRules: regeln.map(r => ({ id: r.id, name: r.name, desc: this.regelText(r), on: r.enabled !== false })),
-        // Die Konten braucht nur der Abruf: die Regeln sagen, was geholt
-        // wird, angestossen wird aber ein Konto.
-        mailKonten: mailKonten.map(k => ({ id: k.id, name: k.name })),
-        sysStatus: this.statusZeilen(stats, ver, ui),
         gruppen: gruppen.map(g => ({ id: g.id, name: g.name }))
-      });
+      }, this.betriebAus({ flows, regeln, konten: mailKonten, stats, ver, ui })));
       const shares = {};
       links.forEach(l => {
         shares[l.document] = {
@@ -420,77 +423,11 @@ class Oberflaeche extends React.Component {
     });
   }
 
-  // Paperless nennt Automatisierungen "Workflows". Sie werden hier nur
-  // angezeigt und aktiviert/pausiert; das Bearbeiten der Regeln selbst bleibt
-  // der Paperless-Oberflaeche vorbehalten, weil die Datenstruktur dort
-  // deutlich reicher ist als dieser Bildschirm abbilden kann.
-  mapWorkflow(w) {
-    // Die Zahlen stammen aus der API (OPTIONS auf /workflows/). Sie waren hier
-    // durchgehend um eine Position verschoben, wodurch jeder Workflow den
-    // falschen Ausloeser anzeigte. tests/api_check.py prueft die Zuordnung
-    // jetzt gegen den Server, damit das nicht wieder abdriftet.
-    const TRIGGER = {
-      1: 'Aufnahme begonnen',      // Consumption Started
-      2: 'Dokument hinzugefügt',   // Document Added
-      3: 'Dokument aktualisiert',  // Document Updated
-      4: 'Geplanter Zeitpunkt'     // Scheduled
-    };
-    const AKTION = {
-      1: 'Angaben zuweisen',       // Assignment
-      2: 'Angaben entfernen',      // Removal
-      3: 'E-Mail senden',          // Email
-      4: 'Webhook auslösen',       // Webhook
-      5: 'Passwort entfernen',     // Password removal
-      6: 'In den Papierkorb'       // Move to trash
-    };
-    return {
-      id: w.id,
-      name: w.name,
-      on: w.enabled !== false,
-      ausl: (w.triggers || []).map(t => TRIGGER[t.type] || 'Auslöser').join(', ') || 'Kein Auslöser',
-      bed: (w.triggers || []).map(t => this.triggerText(t)).filter(Boolean),
-      akt: (w.actions || []).map(a => AKTION[a.type] || 'Aktion'),
-      // Der urspruengliche Datensatz. Beim Aendern des Ausloesers ersetzt
-      // Paperless das ganze Feld - die uebrigen Angaben des vorhandenen
-      // Ausloesers (Quellen, Filter) muessen deshalb mitgeschickt werden.
-      raw: w
-    };
-  }
-  triggerText(t) {
-    const teile = [];
-    if (t.filter_filename) teile.push('Dateiname wie „' + t.filter_filename + '“');
-    if (t.filter_path) teile.push('Pfad wie „' + t.filter_path + '“');
-    if (t.filter_has_tags && t.filter_has_tags.length) {
-      const lk = this.lookups();
-      teile.push('Schlagwort ' + t.filter_has_tags.map(id => (lk.tag[id] || {}).name || id).join(', '));
-    }
-    if (t.filter_has_correspondent) {
-      const lk = this.lookups();
-      teile.push('Absender ' + ((lk.corr[t.filter_has_correspondent] || {}).name || t.filter_has_correspondent));
-    }
-    return teile.join(' · ');
-  }
   feldTyp(t) { return DWLogik.feldTyp(t); }
 
-  regelText(r) { return DWLogik.regelText(r); }
-
-
-  // Zeilen des Systemstatus aus echten Serverwerten.
-  statusZeilen(stats, ver, ui) {
-    const A = this.api();
-    const zeilen = [
-      { k: 'Verbindung', v: 'Verbunden', grn: true },
-      { k: 'Server', v: (A.getBase() || '').replace(/^https?:\/\//, '').replace(/\/api$/, '') }
-    ];
-    if (ver && ver.version) zeilen.push({ k: 'Version', v: 'Paperless-ngx ' + ver.version });
-    if (stats) {
-      zeilen.push({ k: 'Dokumente', v: String(stats.documents_total != null ? stats.documents_total : '—') });
-      if (stats.documents_inbox != null) zeilen.push({ k: 'Im Posteingang', v: String(stats.documents_inbox) });
-      if (stats.character_count) zeilen.push({ k: 'Erkannte Zeichen', v: stats.character_count.toLocaleString('de-DE') });
-    }
-    if (ui && ui.user && ui.user.username) zeilen.push({ k: 'Angemeldet als', v: ui.user.username });
-    return zeilen;
-  }
+  // Automatisierungen, E-Mail-Regeln, Aufgaben und Systemstatus stehen in
+  // betrieb.js. Von hier aus fuehrt nur betriebAus() hinein (loadAll formt
+  // damit die Rohantworten) und beimAbmelden() hinaus.
 
   // Oeffentliche Adresse eines Freigabelinks. Die API liefert nur den slug.
   shareHref(slug) {
@@ -590,64 +527,6 @@ class Oberflaeche extends React.Component {
   // des Benutzernamens - eine Regel fuer die ganze App.
   initialen(vor, nach, benutzername) { return DWLogik.initialen(vor, nach, benutzername); }
 
-
-  // --- Automatisierungen ---------------------------------------------------
-  // Bearbeitbar sind Name, Zustand und Ausloeser - das, was man im Alltag
-  // aendert. Bedingungen und Aktionen bleiben in Paperless: dort haengen 27
-  // Filter- und 14 Aktionsfelder dran, die dieser Bildschirm nicht sinnvoll
-  // abbilden kann, ohne selbst zur Verwaltungsoberflaeche zu werden.
-  autoNameSichern(id, name) {
-    const A = this.api(), sauber = String(name || '').trim();
-    if (!sauber) { this.note('Der Name darf nicht leer sein.'); return; }
-    this.setState(s => ({ autos: s.autos.map(a => a.id === id ? Object.assign({}, a, { name: sauber }) : a) }));
-    A.workflows.update(id, { name: sauber })
-      .then(() => this.note('Gesichert'))
-      .catch(e => { this.loadAll(); this.note('Nicht gesichert: ' + e.message); });
-  }
-
-  // Der Untertitel zum Schalter. Er kommt aus dem Zustand, damit er dem
-  // Umschalten sofort folgt und nicht bis zum naechsten Laden hinterherhinkt.
-  autoLage(on) { return on ? 'Läuft automatisch' : 'Pausiert'; }
-
-  autoAusloeser(id, typ) {
-    const A = this.api();
-    const auto = (this.state.autos || []).find(a => a.id === id);
-    if (!auto || !auto.raw) return;
-    // Paperless ersetzt das ganze Ausloeser-Feld; die uebrigen Angaben des
-    // vorhandenen Ausloesers bleiben deshalb erhalten.
-    const alt = (auto.raw.triggers || [])[0] || { sources: [1] };
-    const neu = Object.assign({}, alt, { type: typ });
-    delete neu.id;
-    A.workflows.update(id, { triggers: [neu] })
-      .then(() => this.loadAll())
-      .then(() => { this.setState({ sheet: null }); this.note('Auslöser geändert'); })
-      .catch(e => this.note('Nicht geändert: ' + e.message));
-  }
-
-  autoEntfernen(id) {
-    const A = this.api();
-    const auto = (this.state.autos || []).find(a => a.id === id);
-    A.workflows.remove(id)
-      .then(() => this.loadAll())
-      // Nur den Detailbildschirm schliessen: die Liste dahinter bleibt stehen,
-      // sonst landet man nach dem Loeschen unvermittelt am Anfang.
-      .then(() => { this.setState(st => ({ stack: st.stack.slice(0, -1), sheet: null })); this.note('„' + (auto ? auto.name : 'Automatisierung') + '“ gelöscht'); })
-      .catch(e => this.note('Nicht gelöscht: ' + e.message));
-  }
-
-  autoAnlegen() {
-    const A = this.api();
-    A.workflows.create({
-      name: 'Neue Automatisierung',
-      order: (this.state.autos || []).length + 1,
-      enabled: false,
-      // Ein Ausloeser ist Pflicht; "Dokument hinzugefuegt" ist der haeufigste.
-      triggers: [{ type: 2, sources: [1] }],
-      actions: [{ type: 1 }],
-    }).then(() => this.loadAll())
-      .then(() => this.note('Angelegt — Bedingungen und Aktionen legst du in Paperless fest'))
-      .catch(e => this.note('Nicht angelegt: ' + e.message));
-  }
 
   // --- Sperre --------------------------------------------------------------
   entsperrenGo() {
@@ -896,41 +775,8 @@ class Oberflaeche extends React.Component {
     return Promise.all([this.ladeDocs(false), this.ladeNeben()]).then(() => undefined);
   }
 
-  // --- Verarbeitungsaufgaben ---------------------------------------------
-  ladeAufgaben() {
-    const A = this.api();
-    if (!A || !A.hasToken()) return Promise.resolve();
-    this.setState({ tasksFehler: '' });
-    return A.tasks({ page_size: 25 }).then(d => {
-      const roh = Array.isArray(d) ? d : (d.results || []);
-      this.setState({ tasksRaw: roh.map(t => this.mapTask(t)) });
-    }).catch(e => {
-      // Nebenliste: der Bildschirm bleibt bedienbar, aber der Fehler darf
-      // nicht spurlos verschwinden.
-      console.warn('[Verarbeitung] Aufgaben konnten nicht geladen werden:', e && e.message);
-      this.setState({ tasksFehler: (e && e.message) || 'Aufgaben konnten nicht geladen werden.' });
-    });
-  }
-  mapTask(t) {
-    const A = this.api();
-    const st = String(t.status || '').toLowerCase();
-    const datei = (t.input_data && t.input_data.filename) || t.task_file_name || '';
-    const zeit = A.util.relDE(t.date_done || t.date_started || t.date_created);
-    const fehler = typeof t.result === 'string' ? t.result
-                 : (t.result_data && (t.result_data.error || t.result_data.result)) || '';
-    return {
-      id: t.id,
-      name: datei || t.task_type_display || t.task_type || 'Aufgabe',
-      st: st === 'success' ? ('Fertig' + (zeit ? ' · ' + zeit : ''))
-        : st === 'failure' ? (String(fehler).split('\n')[0].slice(0, 120) || 'Fehlgeschlagen')
-        : st === 'started' ? 'Wird verarbeitet …'
-        : (t.status_display || 'Wartet …'),
-      run: st === 'started' || st === 'pending' || st === 'retry',
-      ok: st === 'success',
-      err: st === 'failure',
-      hasRetry: false
-    };
-  }
+  // Die Verarbeitungsaufgaben stehen in betrieb.js - sie sagen etwas ueber die
+  // Warteschlange des Servers, nicht ueber den Bestand.
 
   // Vorschlaege des Servers fuer einen Posteingang-Eintrag nachladen.
   ladeVorschlag(id) {
@@ -1360,38 +1206,6 @@ class Oberflaeche extends React.Component {
     nein();
   }
 
-  // --- Automatisierungen und E-Mail-Regeln --------------------------------
-  // Beides sind Serverobjekte; der Schalter muss dort ankommen, sonst steht
-  // er nach dem naechsten Laden wieder auf dem alten Wert.
-  autoSchalten(id, on) {
-    const A = this.api();
-    this.setState(s => ({ autos: s.autos.map(x => x.id === id ? Object.assign({}, x, { on }) : x) }));
-    A.workflows.setEnabled(id, on).catch(e => {
-      this.setState(s => ({ autos: s.autos.map(x => x.id === id ? Object.assign({}, x, { on: !on }) : x) }));
-      this.note('Nicht geändert: ' + e.message);
-    });
-  }
-  // Den Abruf sofort anstossen, statt auf den Zeitplan zu warten.
-  //
-  // Angestossen wird je Konto, nicht je Regel: Paperless holt die Post eines
-  // Kontos und laesst danach alle Regeln darauf los.
-  mailAbrufen() {
-    const A = this.api();
-    const konten = this.state.mailKonten || [];
-    if (!konten.length) {
-      this.note('Kein E-Mail-Konto eingerichtet – das legst du in Paperless an.');
-      return Promise.resolve();
-    }
-    return Promise.all(konten.map(k => A.mailKonten.abrufen(k.id)))
-      .then(() => {
-        this.note(konten.length === 1
-          ? 'Abruf gestartet – der Verlauf steht unter Verarbeitung.'
-          : konten.length + ' Konten werden abgerufen – Verlauf unter Verarbeitung.');
-        this.ladeAufgaben();
-      })
-      .catch(e => this.note('Abruf nicht gestartet: ' + e.message));
-  }
-
   // Hilfe heisst hier: der Quelltext. Es gibt keine gehostete Hilfeseite, und
   // eine zu behaupten waere schlimmer, als keine zu haben.
   hilfeOeffnen() {
@@ -1411,15 +1225,6 @@ class Oberflaeche extends React.Component {
       // Bleibt die Adresse wenigstens lesbar, statt dass gar nichts geschieht.
       this.note(PROJEKT_URL);
     }
-  }
-
-  regelSchalten(id, on) {
-    const A = this.api();
-    this.setState(s => ({ mailRules: s.mailRules.map(x => x.id === id ? Object.assign({}, x, { on }) : x) }));
-    A.mailRules.setEnabled(id, on).catch(e => {
-      this.setState(s => ({ mailRules: s.mailRules.map(x => x.id === id ? Object.assign({}, x, { on: !on }) : x) }));
-      this.note('Nicht geändert: ' + e.message);
-    });
   }
 
   // Posteingang-Eintrag verwerfen: das Dokument wandert in den Papierkorb.
@@ -1604,7 +1409,8 @@ class Oberflaeche extends React.Component {
       ...DWSuche.beimAbmelden(), opened: [],
       tagsM: [], absM: [], artenM: [], orteM: [],
       tagsRaw: [], absRaw: [], artenRaw: [], orteRaw: [], shares: {}, me: null,
-      autos: [], felderM: [], suchenM: [], mailRules: [], mailKonten: [], users: [], tasksRaw: [], sysStatus: null, ordnerDocs: [], ordnerLaden: false, ordnerTabPfad: '', ordnerTabDocs: [], ordnerTabLaden: false,
+      felderM: [], suchenM: [], users: [], ordnerDocs: [], ordnerLaden: false, ordnerTabPfad: '', ordnerTabDocs: [], ordnerTabLaden: false,
+      ...DWBetrieb.beimAbmelden(),
       loading: false, loadErr: null
     });
   }
@@ -2350,12 +2156,12 @@ class Oberflaeche extends React.Component {
 }
 
 // Die Methoden der ausgelagerten Sachgebiete an den Prototyp haengen. Danach
-// sind this.mitgliedAnlegen(), this.scanOeffnen(), this.sucheSetzen() und
-// this.drucken() dasselbe wie zuvor - die Aufrufer in valsVerwaltung,
-// valsSheets, valsNavigation, valsErfassen, valsSuche und valsDokument merken
-// nichts davon, dass die Bodies in mitglieder.js, erfassen.js, suche.js und
-// vorschau.js stehen.
-Object.assign(Oberflaeche.prototype, DWMitglieder.methoden, DWErfassen.methoden, DWSuche.methoden, DWVorschau.methoden);
+// sind this.mitgliedAnlegen(), this.scanOeffnen(), this.sucheSetzen(),
+// this.drucken() und this.autoSchalten() dasselbe wie zuvor - die Aufrufer in
+// valsVerwaltung, valsSheets, valsNavigation, valsErfassen, valsSuche,
+// valsDokument und valsMehr merken nichts davon, dass die Bodies in
+// mitglieder.js, erfassen.js, suche.js, vorschau.js und betrieb.js stehen.
+Object.assign(Oberflaeche.prototype, DWMitglieder.methoden, DWErfassen.methoden, DWSuche.methoden, DWVorschau.methoden, DWBetrieb.methoden);
 
 
   // Wurzel: loest 'System' zum tatsaechlichen Schema auf, damit die

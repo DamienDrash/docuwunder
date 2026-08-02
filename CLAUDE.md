@@ -37,7 +37,8 @@ Dieses Projekt dient dem Aufbau und der Wartung einer modernen, performanten, be
 - Eigenständige Module neben `app.js`, je ein Sachgebiet: `sperre.js` (WebAuthn/PRF),
   `scan.js` (JPEGs zu einem PDF), `stile.js`, `mitglieder.js` (Mitglieder und Gruppen),
   `erfassen.js` (Scannen und Hochladen), `suche.js` (Volltextindex, Verlauf, gespeicherte
-  Ansichten), `vorschau.js` (Vorschaubilder, Vorschau, Herunterladen, Drucken).
+  Ansichten), `vorschau.js` (Vorschaubilder, Vorschau, Herunterladen, Drucken),
+  `betrieb.js` (Automatisierungen, E-Mail-Import, Verarbeitungsaufgaben, Systemstatus).
   Sie liefern `start()` (Zustandswerte für den Konstruktor), teils `beimSchliessen()`, und
   `methoden`; `app.js` hängt letztere mit `Object.assign(Oberflaeche.prototype, …)` an —
   `this.mitgliedAnlegen()` und `this.scanOeffnen()` bleiben also unverändert aufrufbar. Ein
@@ -58,6 +59,16 @@ Dieses Projekt dient dem Aufbau und der Wartung einer modernen, performanten, be
   den Baum neu zu zeichnen; dafür zählt `bildStand` hoch. `componentDidUpdate` treibt beides
   an (`bilderNachladen()`, `vorschauFolgen()`), Abmelden und „Lokale Daten löschen“ rufen
   `alleBilderFreigeben()`.
+  `betrieb.js` hält die **Serverobjekte neben dem Archiv**: Automatisierungen (in Paperless:
+  Workflows), E-Mail-Import (Regeln und Konten), die Verarbeitungsaufgaben der Warteschlange
+  und den Systemstatus. Keines davon liest eine Dokumentliste, einen Filter oder den Cache und
+  keines schreibt hinein — wer hier einen Schalter umlegt, ändert nichts an dem, was auf den
+  Dokumentbildschirmen steht. Die Schalter melden optimistisch, nehmen die Anzeige bei einem
+  Fehlschlag aber zurück: ein Schalter auf „an“, den der Server nicht kennt, verspricht etwas,
+  das nicht geschieht. Die Auslöser-/Aktionsnummern der Workflows stehen dort (`TRIGGER`,
+  `AKTION`) und werden von `tests/api_check.py` gegen den Server geprüft. Aus `app.js` führt
+  nur `betriebAus()` hinein — `loadAll()` formt damit die Rohantworten für `autos`,
+  `mailRules`, `mailKonten` und `sysStatus` in einem Zug.
 - `tools/konvert.py` — hat die frühere DC-Vorlage nach htm übersetzt. **Kein laufendes
   Werkzeug**: Änderungen gehören in `vorlage/`, nicht in eine erneute Übersetzung. Steht im
   Repository, weil er die Herkunft der Dateien belegt.
