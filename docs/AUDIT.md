@@ -578,3 +578,11 @@ näher.
 - Neu: VERSION-Datei als Versions-Ursprung angelegt (semantische Versionierung ab jetzt).
   Zustand vor diesem Batch war unversioniert; erste Fassung 0.1.0, mit dieser Batch 0.1.1
   (PATCH: A11y-Batch, keine oeffentliche Aenderung).
+
+- Sicherheits-/CI-Batch: Neue Stufe `tests/geheim_check.py` durchsucht versionierte Dateien
+  nach Paperless-Token-Mustern, Zugangsdaten in URLs und langen Secret-Zuweisungen; `.env`
+  und `tests/.token` werden als nie zu versionierende Dateien kontrolliert. Zwei Testwerte
+  wurden so umgebaut, dass sie keinen Secret-Scanner-Fehlalarm mehr ausloesen. Die GitHub-
+  Pruefung und `tests/run_e2e.py` fuehren die Stufe jetzt mit aus. Version 0.1.1 -> 0.1.2
+  (PATCH: Sicherheits-/Release-Gate, keine neue Benutzerfunktion).
+

@@ -563,3 +563,14 @@ Unit-Tests machen die Lage nur schlechter.
   pruefungen) danach gruen.
 - Restschuld: 115 klickbare div/span in sheets.js (50), tabs.js (34), verwaltung.js (30),
   erfassen.js (1 bewusst offen gelassener Undo-Link).
+
+
+## Sicherheits-/CI-Fortschritt 2026-08-02
+
+- Neue Pflichtstufe `tests/geheim_check.py`: versionierte Dateien werden auf Paperless-Token-
+  Muster, Zugangsdaten in URLs und direkte Secret-Zuweisungen geprueft; `.env` und
+  `tests/.token` duerfen nicht versioniert sein. Die Stufe ist in `tests/run_e2e.py` und
+  `.github/workflows/pruefung.yml` eingebunden.
+- Bestehende Testwerte fuer Zugangstext und URL-Credentials werden aus Teilen gebaut, damit
+  externe Secret-Scanner keine harmlosen, aber erziehungsgefaehrlichen Fehlalarme melden.
+- Version: 0.1.1 -> 0.1.2 (PATCH: Sicherheits-/Release-Gate).
