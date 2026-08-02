@@ -1,6 +1,6 @@
 # DocuWunder — Production Readiness Audit v1.0
 
-Stand: 2. August 2026 · Codestand `7a08656` + 2 Sofortkorrekturen · Paperless-ngx 3.0.4
+Stand: 2. August 2026 · Codestand `67e4aec` + Onboarding-A11y-Batch · Paperless-ngx 3.0.4
 
 ---
 
@@ -15,7 +15,7 @@ kritisch waren — beide mit Gegenprobe, dass die Prüfung den Fehler wirklich f
 
 ## 1. Gesamtergebnis
 
-### Produktionsreife: **54 %**
+### Produktionsreife: **55 %**
 
 | Bereich | Reife | Begründung |
 |---|---:|---|
@@ -25,7 +25,7 @@ kritisch waren — beide mit Gegenprobe, dass die Prüfung den Fehler wirklich f
 | Sicherheit | 55 % | Ein XSS gefunden und behoben; keine CSP, API-Adresse ungeprüft |
 | Performance | 45 % | Harte Decke bei ~2.000 Dokumenten in einer Liste (gemessen) |
 | PWA | 75 % | Offline und Selbstaktualisierung belegt; Cache-Version von Hand |
-| **Barrierefreiheit** | **10 %** | 0 `<button>`, 0 `aria-*`, 0 `tabindex` bei 190 klickbaren `<div>` |
+| **Barrierefreiheit** | **14 %** | Erste semantische Migration: Onboarding und Sperrdialog nutzen 11 native Buttons; A11y-Leitplanke prueft Rueckschritte, 179 klickbare `<div>/<span>` verbleiben |
 | Dokumentation | 30 % | README + Roadmap; 7 von 9 geforderten Dokumenten fehlen |
 | CI/Release | 0 % | Kein `.github/`, keine `package.json`, keine Versionierung |
 | Store-Reife | 15 % | Siehe K-1 — als PWA **nicht** App-Store-fähig |
@@ -106,6 +106,8 @@ verständlich**. Ein Screenreader liest 190 unbeschriftete Gruppierungen.
 **Teststrategie.** Neue Stufe `tests/a11y_check.py`: Tastaturdurchlauf über alle Bildschirme
 (Tab bis zum Ende, kein Element ohne erreichbaren Namen), plus statische Prüfung „kein
 `onClick` an einem nicht-fokussierbaren Element".
+
+**Fortschritt 2026-08-02.** Onboarding ist als erster abgeschlossener Bereich migriert: alle 9 klickbaren `div`/`span` wurden native `button type="button"`, relevante Eingaben haben `aria-label`, die A11y-Stufe ist im vollständigen Runner aktiv und verhindert steigende nicht-semantische Klickziele. Offen: 179 klickbare `div`/`span` in Dokument-, Erfassungs-, Ordnungs-, Sheet-, Tab- und Verwaltungsbereich; automatisierte Checks ersetzen keine spätere manuelle Screenreader-/Geräteprüfung.
 
 ---
 

@@ -143,6 +143,16 @@ Repository-Einstellungen gesetzt werden — dafür gibt es keine API.
 
 ---
 
+
+---
+
+## Milestone B — Barrierefreiheit
+
+- ✅ **A11y-Leitplanke im Testlauf aktiv.** `tests/a11y_check.py` zählt nicht-semantische Klickziele pro Vorlage, verlangt `type="button"` bei nativen Buttons und schlägt fehl, wenn die Onboarding-Migration zurückfällt.
+- ✅ **Onboarding semantisch migriert.** Start, Zurück, Verbindung, Anmeldung, SSO, Token-Umschaltung und Abschluss sind native Buttons; Server-, Benutzer-, Passwort- und Tokenfelder haben zugängliche Namen.
+- 🟠 **Verbleibende Migration:** 179 klickbare `div`/`span` in Dokumenten, Erfassung, Ordnung, Sheets, Tabs und Verwaltung systematisch in Bereichs-Batches ersetzen.
+- 🟠 **Noch nötig:** echte Keyboard-Flows, Fokus-Rückgabe bei Sheets/Dialogen, Fokusfalle wo modal, Live-Regionen für dynamische Fehler/Laden, reduzierte Bewegung und spätere manuelle Tests mit VoiceOver/TalkBack/NVDA.
+
 ## Phase 3 — Was die App noch nicht kann
 
 ### 🟠 3.1 Einladungen

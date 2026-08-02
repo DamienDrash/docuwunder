@@ -152,7 +152,7 @@ Das eigene Konto lässt sich weder herabstufen noch entfernen — das wäre die 
 ## Build- & Testkommandos
 - **Alle Tests:** `python3 /opt/paperless-app/tests/run_e2e.py`
 - **Nur ohne Server:** `python3 tests/run_e2e.py --statisch`
-- Stufen: `syntax_check` → `logik_check` (Unit-Tests ohne Browser) → `template_check` (jeder gelesene Wert kommt aus `renderVals`) → `pwa_check` → `api_check` → `browser_check`.
+- Stufen: `syntax_check` → `logik_check` (Unit-Tests ohne Browser) → `template_check` (jeder gelesene Wert kommt aus `renderVals`) → `a11y_check` (semantische Leitplanken) → `version_check` (Hüllen-Hash) → `pwa_check` → `api_check` → `browser_check`.
 - Token für die letzten beiden Stufen: `PAPERLESS_TOKEN=…` oder `tests/.token` (nicht versioniert).
 
 ## Roadmap & Status
