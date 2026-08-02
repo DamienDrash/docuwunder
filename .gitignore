@@ -21,3 +21,9 @@ Thumbs.db
 
 # Nichts aus Paketmanagern - dieses Projekt kommt ohne Build-Schritt aus.
 node_modules/
+
+# Native Huellen: Abhaengigkeiten und die kopierte Weboberflaeche.
+# Die Plattformprojekte selbst bleiben eingecheckt - ohne SDK lassen sie
+# sich nicht reproduzierbar erzeugen (siehe docs/MOBILE_ARCHITECTURE.md).
+native/node_modules/
+native/web/

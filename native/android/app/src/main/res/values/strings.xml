@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DocuWunder</string>
+    <string name="title_activity_main">DocuWunder</string>
+    <string name="package_name">ski.frigew.docuwunder</string>
+    <string name="custom_url_scheme">ski.frigew.docuwunder</string>
+</resources>

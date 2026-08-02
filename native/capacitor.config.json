@@ -1,0 +1,8 @@
+{
+  "appId": "ski.frigew.docuwunder",
+  "appName": "DocuWunder",
+  "webDir": "web",
+  "android": { "scheme": "https" },
+  "ios": { "scheme": "https" },
+  "server": { "androidScheme": "https", "iosScheme": "https" }
+}
