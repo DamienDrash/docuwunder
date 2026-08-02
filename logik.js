@@ -274,7 +274,59 @@
     return ids.slice(0, ids.length - max);
   }
 
+  // Ist diese API-Adresse zulaessig?
+  //
+  // Bis hierher nahm setBase() jede Zeichenkette an und legte sie im Browser
+  // ab. Das ist aus zwei Gruenden gefaehrlich:
+  //
+  //   1. Ein Tippfehler in der Einrichtung schickt den Zugangsschluessel an
+  //      einen fremden Rechner - im Authorization-Kopf, im Klartext.
+  //   2. Schwerer wiegt: jede Luecke, die localStorage schreiben kann, wird
+  //      damit zum Schluesseldiebstahl. Wer die Adresse umbiegt, bekommt den
+  //      Schluessel bei der naechsten Anfrage frei Haus geliefert. Genau so
+  //      ein Weg war der XSS im Suchausschnitt (siehe docs/AUDIT.md, H-1).
+  //
+  // Regeln, absteigend nach Strenge:
+  //   - Muss eine absolute http- oder https-Adresse sein.
+  //   - https ist Pflicht. Ausnahme: der eigene Rechner, wo es kein
+  //     Zertifikat gibt und niemand mithoert - und die eigene Herkunft,
+  //     falls die App selbst ueber http ausgeliefert wird.
+  //   - Fremde Herkunft nur, wenn der Aufrufer sie ausdruecklich zulaesst.
+  //     Die Voreinstellung ist die eigene: App und Server werden im Regelfall
+  //     gemeinsam ausgeliefert.
+  //
+  // `eigene` ist die Herkunft der Seite (location.origin); im Test wird sie
+  // uebergeben, damit die Funktion ohne Browser laeuft.
+  function basisPruefen(roh, eigene, opt) {
+    opt = opt || {};
+    var text = String(roh == null ? '' : roh).trim();
+    if (!text) return { ok: false, grund: 'Gib die Adresse deines Servers ein.' };
+
+    var u;
+    try { u = new URL(text); } catch (e) {
+      return { ok: false, grund: 'Das ist keine vollständige Adresse. Sie muss mit https:// beginnen.' };
+    }
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') {
+      return { ok: false, grund: 'Nur https-Adressen sind zulässig.' };
+    }
+
+    var lokal = u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '[::1]';
+    var gleicheHerkunft = !!eigene && u.origin === eigene;
+    if (u.protocol === 'http:' && !lokal && !gleicheHerkunft) {
+      return { ok: false, grund: 'Über http wäre dein Zugangsschlüssel unterwegs mitlesbar. Bitte https verwenden.' };
+    }
+    if (!gleicheHerkunft && !opt.fremdErlauben) {
+      return { ok: false, fremd: true, grund: 'Diese Adresse gehört nicht zu dieser App.' };
+    }
+
+    // Endstand vereinheitlichen: ohne Schraegstrich am Ende, mit /api.
+    var glatt = (u.origin + u.pathname).replace(/\/+$/, '');
+    if (!/\/api$/.test(glatt)) glatt = glatt + '/api';
+    return { ok: true, url: glatt, fremd: !gleicheHerkunft };
+  }
+
   return {
+    basisPruefen: basisPruefen,
     bilderUeberzaehlig: bilderUeberzaehlig,
     dateDE: dateDE,
     kurzDatum: kurzDatum,

@@ -383,6 +383,50 @@ def main():
 
             # --- Sicherheit --------------------------------------------------
 
+            def t_api_adresse_wird_geprueft():
+                """Die API-Adresse darf nicht beliebig sein.
+
+                Sie entscheidet, wohin der Zugangsschluessel im
+                Authorization-Kopf geht. Frueher nahm setBase() jede
+                Zeichenkette; damit wurde jede Luecke, die localStorage
+                schreiben kann, zum Schluesseldiebstahl.
+
+                Grenze dieser Pruefung, damit niemand mehr hineinliest: der
+                Zustimmungs-Merker ist eine Huerde, kein Schutz. Wer
+                localStorage schreiben kann, schreibt ihn mit. Der wirksame
+                Schutz ist connect-src in der CSP.
+                """
+                abgewiesen = seite.evaluate(
+                    """() => {
+                      const eigen = PaperlessAPI.getBase();
+                      const raus = {};
+                      for (const b of ['https://boese.example/api', 'javascript:alert(1)',
+                                       'data:text/html,x', 'http://boese.example/api',
+                                       '//boese.example/api', '']) {
+                        raus[b] = PaperlessAPI.setBase(b).ok;
+                      }
+                      raus['__eigen__'] = PaperlessAPI.setBase(eigen).ok;
+                      raus['__jetzt__'] = PaperlessAPI.getBase();
+                      return raus;
+                    }""")
+                for adresse, angenommen in abgewiesen.items():
+                    if adresse.startswith("__"):
+                        continue
+                    assert angenommen is False, f"{adresse} wurde angenommen"
+                assert abgewiesen["__eigen__"] is True, "die eigene Adresse wird abgelehnt"
+                assert "boese.example" not in abgewiesen["__jetzt__"]
+
+                # Untergeschobene Adresse ohne Zustimmung wird beim Start verworfen.
+                seite.evaluate(
+                    "() => localStorage.setItem('paperless.base',"
+                    " JSON.stringify({url:'https://boese.example/api'}))")
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2200)
+                jetzt = seite.evaluate("() => PaperlessAPI.getBase()")
+                assert "boese.example" not in jetzt, \
+                    f"untergeschobene Adresse ueberlebt den Start: {jetzt}"
+                return "sechs Adressen abgewiesen, untergeschobene beim Start verworfen"
+
             def t_suchausschnitt_fuehrt_nichts_aus():
                 """Der Ausschnitt eines Suchtreffers darf keinen Code ausfuehren.
 
@@ -1175,6 +1219,7 @@ def main():
                 ("Filter laedt neu", t_filter_laedt_neu),
                 ("Suche geht an den Server", t_suche_serverseitig),
                 ("Treffer oeffnet mit Vorschau", t_treffer_oeffnet_mit_vorschau),
+                ("API-Adresse wird geprueft", t_api_adresse_wird_geprueft),
                 ("Suchausschnitt fuehrt nichts aus", t_suchausschnitt_fuehrt_nichts_aus),
                 ("Posteingang blaettern", t_posteingang_blaettern),
                 ("Umschalter ist sichtbar", t_umschalter_ist_sichtbar),

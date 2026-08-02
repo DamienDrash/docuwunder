@@ -86,7 +86,37 @@ window.PaperlessAPI = (function () {
     }
   }
 
-  var base = localStorage.getItem(BASE_KEY) || defaultBase();
+  // Die abgelegte Adresse wird beim Start ebenso geprueft wie eine neu
+  // gesetzte. Sonst genuegte ein einziger Schreibzugriff auf localStorage,
+  // und die Pruefung beim Setzen waere umgangen.
+  var base = (function () {
+    var roh = null;
+    try { roh = localStorage.getItem(BASE_KEY); } catch (e) { /* Privatmodus */ }
+    if (!roh) return defaultBase();
+    var eigene = (typeof location !== 'undefined' && location.origin) || '';
+    var pruefer = (typeof DWLogik !== 'undefined' && DWLogik.basisPruefen) || null;
+    if (!pruefer) return defaultBase();
+
+    // Seit der Herkunftspruefung liegt hier ein Datensatz, kein blanker Text.
+    // `zugestimmt` haelt fest, dass jemand eine fremde Herkunft ausdruecklich
+    // bestaetigt hat.
+    //
+    // WICHTIG, damit niemand mehr hineinliest, als drinsteht: dieser Merker
+    // ist KEIN Schutz gegen eine eingeschleuste Adresse. Wer localStorage
+    // schreiben kann, schreibt ihn mit. Er ist eine Huerde gegen die naive
+    // Fassung des Angriffs - "URL ueberschreiben und fertig" - und nichts
+    // weiter. Der wirksame Schutz ist connect-src in der CSP (siehe
+    // docs/SECURITY.md); der liegt beim Browser, nicht bei uns.
+    var satz = null;
+    try { satz = JSON.parse(roh); } catch (e) { satz = null; }
+    var text = satz && satz.url ? satz.url : roh;
+    var zugestimmt = !!(satz && satz.zugestimmt);
+
+    var r = pruefer(text, eigene, { fremdErlauben: zugestimmt });
+    if (r.ok) return r.url;
+    try { localStorage.removeItem(BASE_KEY); } catch (e) { /* egal */ }
+    return defaultBase();
+  })();
   var token = schluesselLesen();
 
   // Wird gesetzt, wenn ein Aufruf 401 liefert - die App kann sich daran
@@ -354,9 +384,35 @@ window.PaperlessAPI = (function () {
   return {
     // --- Konfiguration ----------------------------------------------------
     getBase: function () { return base; },
-    setBase: function (b) {
-      base = String(b || '').replace(/\/+$/, '') || defaultBase();
-      localStorage.setItem(BASE_KEY, base);
+    // Setzt die API-Adresse - aber nur eine, die die Pruefung besteht.
+    //
+    // Frueher nahm diese Funktion jede Zeichenkette. Damit wurde jede Luecke,
+    // die localStorage schreiben kann, zum Schluesseldiebstahl: Adresse
+    // umbiegen, und die naechste Anfrage liefert den Schluessel im
+    // Authorization-Kopf an einen fremden Rechner. Die Regeln stehen in
+    // DWLogik.basisPruefen.
+    //
+    // Gibt { ok, url, grund, fremd } zurueck. Der Aufrufer entscheidet, ob er
+    // eine fremde Herkunft zulaesst - stillschweigend passiert es nicht.
+    setBase: function (b, opt) {
+      var eigene = (typeof location !== 'undefined' && location.origin) || '';
+      var pruefer = (typeof DWLogik !== 'undefined' && DWLogik.basisPruefen) || null;
+      if (!pruefer) return { ok: false, grund: 'Die Prüfung der Adresse steht nicht bereit.' };
+      var r = pruefer(b, eigene, opt);
+      if (!r.ok) return r;
+      base = r.url;
+      try {
+        localStorage.setItem(BASE_KEY, JSON.stringify({ url: base, zugestimmt: !!r.fremd }));
+      } catch (e) { /* Privatmodus */ }
+      return r;
+    },
+
+    // Dieselbe Pruefung, ohne etwas zu setzen - fuer das Onboarding, das
+    // fragen will, bevor es uebernimmt.
+    basisPruefen: function (b, opt) {
+      var eigene = (typeof location !== 'undefined' && location.origin) || '';
+      var pruefer = (typeof DWLogik !== 'undefined' && DWLogik.basisPruefen) || null;
+      return pruefer ? pruefer(b, eigene, opt) : { ok: false, grund: 'Prüfung nicht bereit.' };
     },
     resetBase: function () { base = defaultBase(); localStorage.removeItem(BASE_KEY); },
     defaultBase: defaultBase,

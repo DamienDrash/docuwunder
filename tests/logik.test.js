@@ -406,3 +406,59 @@ test('bilderUeberzaehlig: die Grenze wird wirklich eingehalten', () => {
   assert.strictEqual(ids.length - weg.length, 120);
   assert.strictEqual(weg[0], 0, 'das aelteste muss zuerst weichen');
 });
+
+// --- API-Adresse ------------------------------------------------------------
+//
+// setBase() nahm bis hierher jede Zeichenkette. Der Punkt ist nicht der
+// Tippfehler, sondern die Folge: wer localStorage schreiben kann, biegt die
+// Adresse um und bekommt den Zugangsschluessel bei der naechsten Anfrage
+// geliefert. Damit wird jede XSS-Luecke zum Schluesseldiebstahl.
+
+const EIGEN = 'https://services.beispiel.de';
+
+test('basisPruefen: eigene Herkunft ist die Voreinstellung', () => {
+  const r = L.basisPruefen('https://services.beispiel.de/paperless', EIGEN);
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.url, 'https://services.beispiel.de/paperless/api');
+  assert.strictEqual(r.fremd, false);
+});
+
+test('basisPruefen: /api wird nicht doppelt angehaengt', () => {
+  assert.strictEqual(L.basisPruefen('https://services.beispiel.de/paperless/api/', EIGEN).url,
+                     'https://services.beispiel.de/paperless/api');
+});
+
+test('basisPruefen: fremde Herkunft nur nach ausdruecklicher Erlaubnis', () => {
+  const ohne = L.basisPruefen('https://fremd.example/paperless', EIGEN);
+  assert.strictEqual(ohne.ok, false);
+  assert.strictEqual(ohne.fremd, true);
+  const mit = L.basisPruefen('https://fremd.example/paperless', EIGEN, { fremdErlauben: true });
+  assert.strictEqual(mit.ok, true);
+  assert.strictEqual(mit.fremd, true);
+});
+
+test('basisPruefen: http nur lokal', () => {
+  assert.strictEqual(L.basisPruefen('http://fremd.example/api', EIGEN, { fremdErlauben: true }).ok, false);
+  assert.strictEqual(L.basisPruefen('http://localhost:8000/api', EIGEN, { fremdErlauben: true }).ok, true);
+  assert.strictEqual(L.basisPruefen('http://127.0.0.1:8000/api', EIGEN, { fremdErlauben: true }).ok, true);
+});
+
+test('basisPruefen: fremde Schemata werden abgewiesen', () => {
+  for (const boese of ['javascript:alert(1)', 'data:text/html,x', 'file:///etc/passwd',
+                       'ftp://server/api', 'capacitor://localhost/api']) {
+    assert.strictEqual(L.basisPruefen(boese, EIGEN, { fremdErlauben: true }).ok, false, boese);
+  }
+});
+
+test('basisPruefen: unvollstaendige Eingaben werden abgewiesen', () => {
+  for (const halb of ['', '   ', null, undefined, 'paperless.beispiel.de', '//fremd.example', '/api']) {
+    assert.strictEqual(L.basisPruefen(halb, EIGEN, { fremdErlauben: true }).ok, false, String(halb));
+  }
+});
+
+test('basisPruefen: Regression - eine Adresse mit Zugangsdaten wird nicht stillschweigend uebernommen', () => {
+  // https://opfer:geheim@fremd.example/api - die Zugangsdaten faenden sich
+  // sonst im gespeicherten Wert wieder.
+  const r = L.basisPruefen('https://opfer:geheim@fremd.example/api', EIGEN, { fremdErlauben: true });
+  assert.ok(!r.url || !r.url.includes('geheim'), 'Zugangsdaten duerfen nicht in der Basis landen');
+});

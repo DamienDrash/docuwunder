@@ -120,7 +120,7 @@ class Oberflaeche extends React.Component {
       // nichts geaendert werden.
       screenSet: null, onbStep: 0,
       onbServer: window.PaperlessAPI ? window.PaperlessAPI.getBase().replace(/\/api$/, '') : '',
-      onbUser: '', onbPass: '', onbToken: '', onbErr: '', onbChecking: false, onbAdv: false, onbTok: false, shAblauf: '7 Tage', shRecht: 'Kann ansehen',
+      onbUser: '', onbPass: '', onbToken: '', onbErr: '', onbChecking: false, onbFremdOk: null, onbAdv: false, onbTok: false, shAblauf: '7 Tage', shRecht: 'Kann ansehen',
       mode: 'system', ...this.startZiel(), sheet: null, pickTarget: null, pickField: null, pendingDel: null,
       view: DEFVIEW_START, sort: 'neu', selMode: false, sel: [],
       fArt: null, fFav: false, fAbs: [], fTags: [], fZeit: 'alle',
@@ -1292,14 +1292,24 @@ class Oberflaeche extends React.Component {
   obConnectGo() {
     const A = this.api(), v = this.state.onbServer.trim();
     if (!v) { this.setState({ onbErr: 'Gib die Adresse deines Servers ein – zum Beispiel https://paperless.beispiel.de.' }); return; }
-    // Eingaben ohne Schema und ohne /api-Pfad bequem ergaenzen.
-    let basis = /^https?:\/\//i.test(v) ? v : 'https://' + v;
-    basis = basis.replace(/\/+$/, '');
-    if (!/\/api$/.test(basis)) basis = basis + '/api';
+    // Eingaben ohne Schema bequem ergaenzen; alles Weitere macht die Pruefung.
+    const roh = /^[a-z][a-z0-9+.-]*:/i.test(v) ? v : 'https://' + v;
+    // Fremde Herkunft ist erlaubt, aber nur bewusst: beim ersten Versuch
+    // fragt die App nach, statt sie stillschweigend zu uebernehmen.
+    const fremdOk = this.state.onbFremdOk === roh;
+    const r = A.basisPruefen(roh, { fremdErlauben: fremdOk });
+    if (!r.ok && r.fremd) {
+      this.setState({ onbFremdOk: roh, onbErr:
+        'Diese Adresse gehört nicht zu dieser App. Dein Zugangsschlüssel ginge dorthin. '
+        + 'Tippe erneut auf Verbinden, wenn das dein Server ist.' });
+      return;
+    }
+    if (!r.ok) { this.setState({ onbErr: r.grund }); return; }
     this.setState({ onbErr: '', onbChecking: true });
-    A.ping(basis).then(() => {
-      A.setBase(basis);
-      this.setState({ onbChecking: false, onbStep: 2, serverUrl: basis });
+    A.ping(r.url).then(() => {
+      const gesetzt = A.setBase(r.url, { fremdErlauben: true });
+      if (!gesetzt.ok) { this.setState({ onbChecking: false, onbErr: gesetzt.grund }); return; }
+      this.setState({ onbChecking: false, onbStep: 2, serverUrl: gesetzt.url });
     }).catch(e => {
       this.setState({ onbChecking: false, onbErr: e.message });
     });
