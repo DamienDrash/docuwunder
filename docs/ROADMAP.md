@@ -538,4 +538,5 @@ Unit-Tests machen die Lage nur schlechter.
 - Neue Teststufe `tests/a11y_check.py` mit Baseline fuer klickbare div/span und Button-Type-Regel.
 - Erste Batch: Entsperr-Dialog nutzt native Buttons mit `DWStile.buttonReset`.
 - ADR `docs/adr/0004-accessibility-semantics.md` dokumentiert die Migrationsstrategie.
-- Restschuld: 188 klickbare div/span; manuelle Screenreader-/Geraetetests stehen aus.
+- Zweite Batch: Auswahlleiste fuer Mehrfachauswahl nutzt native Buttons mit sprechenden Namen fuer Verschlagworten, Export, Loeschen und Fertig.
+- Restschuld: 175 klickbare div/span; manuelle Screenreader-/Geraetetests stehen aus.

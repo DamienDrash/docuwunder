@@ -25,7 +25,7 @@ kritisch waren — beide mit Gegenprobe, dass die Prüfung den Fehler wirklich f
 | Sicherheit | 55 % | Ein XSS gefunden und behoben; keine CSP, API-Adresse ungeprüft |
 | Performance | 45 % | Harte Decke bei ~2.000 Dokumenten in einer Liste (gemessen) |
 | PWA | 75 % | Offline und Selbstaktualisierung belegt; Cache-Version von Hand |
-| **Barrierefreiheit** | **14 %** | Erste semantische Migration: Onboarding und Sperrdialog nutzen 11 native Buttons; A11y-Leitplanke prueft Rueckschritte, 179 klickbare `<div>/<span>` verbleiben |
+| **Barrierefreiheit** | **14 %** | Semantische Migration laeuft: Onboarding, Sperrdialog und Auswahlleiste nutzen 15 native Buttons; A11y-Leitplanke prueft Rueckschritte, 175 klickbare `<div>/<span>` verbleiben |
 | Dokumentation | 30 % | README + Roadmap; 7 von 9 geforderten Dokumenten fehlen |
 | CI/Release | 0 % | Kein `.github/`, keine `package.json`, keine Versionierung |
 | Store-Reife | 15 % | Siehe K-1 — als PWA **nicht** App-Store-fähig |
@@ -107,7 +107,7 @@ verständlich**. Ein Screenreader liest 190 unbeschriftete Gruppierungen.
 (Tab bis zum Ende, kein Element ohne erreichbaren Namen), plus statische Prüfung „kein
 `onClick` an einem nicht-fokussierbaren Element".
 
-**Fortschritt 2026-08-02.** Onboarding ist als erster abgeschlossener Bereich migriert: alle 9 klickbaren `div`/`span` wurden native `button type="button"`, relevante Eingaben haben `aria-label`, die A11y-Stufe ist im vollständigen Runner aktiv und verhindert steigende nicht-semantische Klickziele. Offen: 179 klickbare `div`/`span` in Dokument-, Erfassungs-, Ordnungs-, Sheet-, Tab- und Verwaltungsbereich; automatisierte Checks ersetzen keine spätere manuelle Screenreader-/Geräteprüfung.
+**Fortschritt 2026-08-02.** Onboarding, Sperrdialog und Auswahlleiste sind migriert: 15 native `button type=\"button\"` ersetzen bisherige Klick-Flaechen, relevante Icon-Aktionen haben sprechende `aria-label`, die A11y-Stufe ist im vollständigen Runner aktiv und verhindert steigende nicht-semantische Klickziele. Offen: 175 klickbare `div`/`span` in Dokument-, Erfassungs-, Ordnungs-, Sheet-, Tab- und Verwaltungsbereich; automatisierte Checks ersetzen keine spätere manuelle Screenreader-/Geräteprüfung.
 
 ---
 
@@ -539,4 +539,5 @@ näher.
 - Neue Teststufe `tests/a11y_check.py` mit Baseline fuer klickbare div/span und Button-Type-Regel.
 - Erste Batch: Entsperr-Dialog nutzt native Buttons mit `DWStile.buttonReset`.
 - ADR `docs/adr/0004-accessibility-semantics.md` dokumentiert die Migrationsstrategie.
-- Restschuld: 188 klickbare div/span; manuelle Screenreader-/Geraetetests stehen aus.
+- Zweite Batch: Auswahlleiste fuer Mehrfachauswahl nutzt native Buttons mit sprechenden Namen fuer Verschlagworten, Export, Loeschen und Fertig.
+- Restschuld: 175 klickbare div/span; manuelle Screenreader-/Geraetetests stehen aus.
