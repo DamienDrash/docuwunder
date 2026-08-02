@@ -740,12 +740,32 @@ class Oberflaeche extends React.Component {
       geteiltIds.length
         ? weich(A.documents.list({ id__in: geteiltIds, ordering: '-created', page_size: DOC_PAGE }))
         : Promise.resolve(leer),
+      // Der eigene Posteingang: was mir gehoert ODER noch niemandem.
+      //
+      // Der Eigentuemer entscheidet, wessen Posteingang es ist - nach der
+      // Uebergabe an eine Person soll nur sie es sehen. Herrenlose Dokumente
+      // gehoeren aber allen: was ueber den consume-Ordner oder per E-Mail
+      // hereinkommt, hat keinen Eigentuemer. Nur auf owner__id zu filtern
+      // hiess deshalb, dass genau diese Dokumente nie irgendwo auftauchten -
+      // der Posteingang blieb leer, obwohl der Server ein Dokument darin
+      // hatte. Paperless zieht dieselbe Grenze (siehe documents/filters.py:
+      // objects_owned und objects_unowned).
+      //
+      // Zwei Abfragen, weil Filter serverseitig mit UND verknuepft werden.
       inbox.length
-        ? weich(A.documents.list(Object.assign(
-            { tags__id__in: inbox, ordering: '-added', page_size: DOC_PAGE },
-            // Nur der eigene Posteingang: nach der Uebergabe an eine Person
-            // gehoert das Dokument ihr, und nur sie soll es hier sehen.
-            this.state.me ? { owner__id: this.state.me.id } : {})))
+        ? Promise.all([
+            weich(A.documents.list(Object.assign(
+              { tags__id__in: inbox, ordering: '-added', page_size: DOC_PAGE },
+              this.state.me ? { owner__id: this.state.me.id } : {}))),
+            weich(A.documents.list({ tags__id__in: inbox, owner__isnull: true, ordering: '-added', page_size: DOC_PAGE })),
+          ]).then(([meine, herrenlos]) => {
+            const zusammen = (meine.results || []).concat(herrenlos.results || []);
+            const gesehen = new Set();
+            return { results: zusammen
+              .filter(d => (gesehen.has(d.id) ? false : gesehen.add(d.id)))
+              .sort((a, b) => String(b.added || '').localeCompare(String(a.added || '')))
+              .slice(0, DOC_PAGE) };
+          })
         : Promise.resolve(leer),
       weich(A.trash.list({ page_size: DOC_PAGE }))
     ]).then(([neu, fav, geteilt, post, papier]) => {
@@ -1607,7 +1627,10 @@ class Oberflaeche extends React.Component {
       missOn: inbox.some(i => i.felder[0].v === ''), openMissing: () => { this.setState({ tab: 'inbox', revIdx: inbox.findIndex(i => i.felder[0].v === '') }); this.pushV({ t: 'rev' }); },
       inboxList: inbox.map((it, i) => ({ ...it, bild: this.bildFuer(it.id), nSug: it.felder.filter(f => f.v).length + ' Vorschläge', review: () => { this.setState({ revIdx: i }); this.pushV({ t: 'rev' }); } })),
       showRev: top.t === 'rev' && !!rev,
-      revTitel: rev ? rev.titel : '', revQuelle: rev ? rev.quelle + ' · ' + rev.hinzugefuegt : '', revDup: !!(rev && rev.dup), revDupRef: rev ? (rev.dupRef || '') : '',
+      revTitel: rev ? rev.titel : '',
+      // Das Vorschaubild der zu pruefenden Seite. Hier hilft es am
+      // meisten: man entscheidet gerade, was das Dokument ist.
+      revBild: rev ? this.bildFuer(rev.id) : '', revQuelle: rev ? rev.quelle + ' · ' + rev.hinzugefuegt : '', revDup: !!(rev && rev.dup), revDupRef: rev ? (rev.dupRef || '') : '',
       revPos: rev ? (inbox.indexOf(rev) + 1) + ' von ' + inbox.length : '',
       revFields: revF.map((f, i) => ({ k: f.k, conf: f.conf, vShow: f.v, hasVal: !!f.v, empty: !f.v, ok: !!(f.ok && f.v), notOk: !(f.ok && f.v), toggle: () => this.patchRev(it => ({ ...it, felder: it.felder.map((x, j) => j === i ? { ...x, ok: !x.ok } : x) })), edit: () => this.setState({ pickTarget: 'rev', pickField: f.k, pickNew: '', sheet: 'pick' }) })),
       acceptAll: () => this.patchRev(it => ({ ...it, felder: it.felder.map(x => x.v ? { ...x, ok: true } : x) })),

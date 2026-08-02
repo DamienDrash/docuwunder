@@ -101,9 +101,10 @@
   V.showRev = function (v, html, stil) {
     return v.showRev ? html`<div data-screen-label="Posteingang prüfen" style=${stil(`${v.paneL}background:var(--bg);${v.paneAnim}z-index:40`)}>
   <div style=${stil('position:absolute;inset:0;overflow-y:auto;padding:110px 0 130px')}>
-    <div style=${stil('margin:0 26px;background:var(--pg);border:0.5px solid var(--sep);border-radius:6px;box-shadow:0 8px 22px rgba(0,0,0,0.09);padding:20px 18px;height:180px;overflow:hidden')}>
-      <div style=${stil('font-size:11px;font-weight:700')}>${v.revTitel}</div>
-      <div style=${stil('margin-top:14px;display:flex;flex-direction:column;gap:5px')}><div style=${stil('height:3.5px;width:90%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3.5px;width:100%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3.5px;width:84%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3.5px;width:94%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3.5px;width:70%;background:var(--pgl);border-radius:2px')}></div></div>
+    <div style=${stil('margin:0 26px;background:var(--pg);border:0.5px solid var(--sep);border-radius:6px;box-shadow:0 8px 22px rgba(0,0,0,0.09);height:180px;overflow:hidden;position:relative')}>
+      <div style=${stil('padding:20px 18px')}><div style=${stil('font-size:11px;font-weight:700')}>${v.revTitel}</div>
+      <div style=${stil('margin-top:14px;display:flex;flex-direction:column;gap:5px')}><div style=${stil('height:3.5px;width:90%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3.5px;width:100%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3.5px;width:84%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3.5px;width:94%;background:var(--pgl);border-radius:2px')}></div><div style=${stil('height:3.5px;width:70%;background:var(--pgl);border-radius:2px')}></div></div></div>
+      ${v.revBild ? html`<img src=${v.revBild} alt="" style=${stil('position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top')} />` : null}
     </div>
     <div style=${stil('text-align:center;font-size:12.5px;color:var(--lab3);padding:8px 0 0')}>${v.revQuelle}</div>
     ${v.revDup ? html`<div style=${stil('margin:12px 16px 0;background:rgba(255,149,0,0.13);border-radius:14px;padding:12px 14px;display:flex;gap:10px')}>

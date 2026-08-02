@@ -392,6 +392,24 @@ Drei Details, die den Unterschied machen:
 - **Kein Markieren.** Mit der Maus gezogen markierte der Browser sonst den Text unter dem
   Zeiger. Auf dem Telefon fällt das nicht an, am Rechner schon.
 
+### ✅ 3.12 Der Posteingang blieb leer, obwohl etwas darin lag
+
+Beim Anlegen eines Testdokuments aufgefallen: Der Server hatte ein Dokument mit dem
+Posteingangs-Schlagwort, die App zeigte „Keine neuen Dokumente".
+
+Grund: die Abfrage filterte auf `owner__id=<ich>`. Das stammt aus der Zuweisung an
+Teammitglieder — nach der Übergabe soll nur die betreffende Person das Dokument sehen. Nur:
+**alles, was über den `consume/`-Ordner, einen Scanner oder den E-Mail-Import hereinkommt, hat
+gar keinen Eigentümer.** Genau die Dokumente, für die der Posteingang da ist, waren damit für
+niemanden sichtbar.
+
+Richtig ist „mir gehörend **oder** herrenlos" — dieselbe Grenze zieht Paperless selbst
+(`documents/filters.py`, `objects_owned` und `objects_unowned`). Weil Filter serverseitig mit
+UND verknüpft werden, sind es zwei Abfragen, die zusammengeführt werden.
+
+Dazu: die Prüfansicht des Posteingangs zeigte noch das gemalte Blatt statt der echten Seite —
+ausgerechnet dort, wo man gerade entscheidet, was das Dokument ist.
+
 ---
 
 ## Phase 4 — Aufräumen
