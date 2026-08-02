@@ -34,6 +34,7 @@ STATISCH = [
     # Server und sagen am genauesten, wo ein Fehler sitzt.
     ("Logik", "logik_check.py"),
     ("Template-Bindungen", "template_check.py"),
+    ("Barrierefreiheit", "a11y_check.py"),
     ("Aufrufe im Zustand", "aufrufe_check.py"),
     ("Huellenversion", "huelle_check.py"),
     ("PWA", "pwa_check.py"),

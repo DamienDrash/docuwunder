@@ -11,8 +11,8 @@
       <div style=${stil('font-size:15px;color:var(--lab2);margin-top:8px;line-height:1.5;max-width:290px')}>Dein Zugang ist verschlüsselt. Bestätige kurz, dass du es bist.</div>
       ${v.sperreFehler ? html`<div style=${stil('font-size:13.5px;color:var(--red);margin-top:14px;max-width:290px;line-height:1.45')}>${v.sperreFehler}</div>` : null}
       <div style=${stil('flex:1')}></div>
-      <div onClick=${v.entsperren} style=${stil(S.knopf + ';width:100%')}>${v.sperreLabel}</div>
-      <div onClick=${v.sperreAbmelden} style=${stil('margin-top:14px;font-size:15px;color:var(--lab2);cursor:pointer;padding:8px')}>Stattdessen abmelden</div>
+      <button type="button" onClick=${v.entsperren} style=${stil(S.buttonReset + ';' + S.knopf + ';width:100%')}>${v.sperreLabel}</button>
+      <button type="button" onClick=${v.sperreAbmelden} style=${stil(S.buttonReset + ';margin-top:14px;font-size:15px;color:var(--lab2);cursor:pointer;padding:8px')}>Stattdessen abmelden</button>
     </div>` : null;
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

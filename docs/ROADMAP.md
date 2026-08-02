@@ -521,3 +521,11 @@ die größte Einzelentscheidung.
 
 Alles in Phase 3 wartet auf Phase 1 — neue Funktionen in einer 3.600-Zeilen-Datei ohne
 Unit-Tests machen die Lage nur schlechter.
+
+
+## Meilenstein B — Accessibility-Fortschritt 2026-08-02
+
+- Neue Teststufe `tests/a11y_check.py` mit Baseline fuer klickbare div/span und Button-Type-Regel.
+- Erste Batch: Entsperr-Dialog nutzt native Buttons mit `DWStile.buttonReset`.
+- ADR `docs/adr/0004-accessibility-semantics.md` dokumentiert die Migrationsstrategie.
+- Restschuld: 188 klickbare div/span; manuelle Screenreader-/Geraetetests stehen aus.

@@ -530,3 +530,11 @@ Entwicklerkonten und bei jeder Version eine Abnahme.
 Wenn die Antwort ja lautet, gehört K-1 an den Anfang, weil es die Reihenfolge aller anderen
 Arbeiten bestimmt. Wenn nein, fällt Meilenstein E weg und v1.0 rückt um anderthalb Wochen
 näher.
+
+
+## Meilenstein B — Accessibility-Fortschritt 2026-08-02
+
+- Neue Teststufe `tests/a11y_check.py` mit Baseline fuer klickbare div/span und Button-Type-Regel.
+- Erste Batch: Entsperr-Dialog nutzt native Buttons mit `DWStile.buttonReset`.
+- ADR `docs/adr/0004-accessibility-semantics.md` dokumentiert die Migrationsstrategie.
+- Restschuld: 188 klickbare div/span; manuelle Screenreader-/Geraetetests stehen aus.

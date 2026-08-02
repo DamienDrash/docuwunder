@@ -61,6 +61,11 @@
          + 'display:flex;align-items:center;justify-content:center;font-size:16.5px;'
          + 'font-weight:600;cursor:pointer',
 
+    // Setzt native Buttons optisch auf die bisherige flache Flaeche zurueck.
+    // Semantik, Fokus, Enter und Leertaste kommen vom Browser.
+    buttonReset: 'appearance:none;-webkit-appearance:none;border:0;margin:0;padding:0;'
+               + 'font:inherit;color:inherit;background:transparent;text-align:inherit',
+
     // Eingabefeld in einem Sheet.
     feld: 'width:100%;height:46px;border-radius:12px;border:1px solid var(--sep);'
         + 'background:var(--fill);padding:0 14px;font-size:16px;color:var(--lab);outline:none',
