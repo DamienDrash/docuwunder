@@ -551,3 +551,15 @@ Unit-Tests machen die Lage nur schlechter.
   14 -> 1 klickbare div/span, 13 neue Button-Elemente. title-Attribute neben aria-label
   beibehalten, da die Browser-E2E-Tests per title selektieren.
 - Restschuld: 147 klickbare div/span in dokument.js, sheets.js, tabs.js, verwaltung.js.
+
+## Meilenstein B — Accessibility-Fortschritt 2026-08-02 (Fuenfte Batch)
+
+- Fuenfte Batch: vorlage/dokument.js (Dokument-Detail, Posteingang-Pruefung, Suche)
+  komplett auf native Buttons umgestellt: 33 -> 0 klickbare div/span, 26 neue
+  Button-Elemente. Segment-Umschalter (Vorschau/Text/Info) und Favorit-Knopf erhielten
+  aria-pressed; die Vor/Zurueck-Pfeile im Posteingang nutzen disabled statt nur
+  optischem opacity. Suchfeld bekam ein verknuepftes (visuell verstecktes) Label.
+  Huellenversion neu berechnet (4fe11d3e5ea2). Volle Suite (9 Stufen, 37 Browser-
+  pruefungen) danach gruen.
+- Restschuld: 115 klickbare div/span in sheets.js (50), tabs.js (34), verwaltung.js (30),
+  erfassen.js (1 bewusst offen gelassener Undo-Link).

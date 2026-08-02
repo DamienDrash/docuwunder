@@ -567,4 +567,14 @@ näher.
   und title). Nur der Undo-Link im Toast bleibt bewusst offen. Nummern-Badge auf Seitenkacheln
   erhielt pointer-events:none, da es sonst Klicks auf die darunterliegenden Werkzeuge abfing.
   Volle Suite (60 Unit + 24 API + 37 Browser) danach gruen, Huellenversion neu gesetzt.
-- Restschuld: 147 klickbare div/span in dokument.js, sheets.js, tabs.js, verwaltung.js.
+- Restschuld nach Batch 4: 147 klickbare div/span in dokument.js, sheets.js, tabs.js, verwaltung.js.
+- Fuenfte Batch: vorlage/dokument.js (Dokument-Detail, Posteingang-Pruefung, Suche) komplett auf
+  native Buttons umgestellt (33 -> 0 klickbare div/span, 26 neue Button-Elemente). Segment-
+  Umschalter und Favorit-Knopf mit aria-pressed, Vor/Zurueck-Pfeile im Posteingang mit disabled
+  statt reiner Opazitaet, Suchfeld mit verknuepftem (visuell verstecktem) Label. Volle Suite
+  (9 Stufen, 37 Browserpruefungen) danach gruen, Huellenversion neu gesetzt (4fe11d3e5ea2).
+- Restschuld nach Batch 5: 115 klickbare div/span in sheets.js (50), tabs.js (34),
+  verwaltung.js (30), erfassen.js (1 bewusst offen gelassener Undo-Link).
+- Neu: VERSION-Datei als Versions-Ursprung angelegt (semantische Versionierung ab jetzt).
+  Zustand vor diesem Batch war unversioniert; erste Fassung 0.1.0, mit dieser Batch 0.1.1
+  (PATCH: A11y-Batch, keine oeffentliche Aenderung).
