@@ -574,3 +574,16 @@ Unit-Tests machen die Lage nur schlechter.
 - Bestehende Testwerte fuer Zugangstext und URL-Credentials werden aus Teilen gebaut, damit
   externe Secret-Scanner keine harmlosen, aber erziehungsgefaehrlichen Fehlalarme melden.
 - Version: 0.1.1 -> 0.1.2 (PATCH: Sicherheits-/Release-Gate).
+
+
+## Meilenstein B, Batch 6 (2026-08-03)
+
+- vorlage/sheets.js: 50 klickbare div/span -> 1 (Sheet-Hintergrund, schliesst per Escape).
+  45 native Buttons mit aria-label, Umschalter (Filter-Chips, Auswahl-Zeilen) nutzen
+  aria-pressed. Eingabefelder (Titel, Notiz, Name, E-Mail, Suche-nach-neu) erhielten
+  verknuepfte aria-label.
+- Restschuld: 65 klickbare div/span in tabs.js (34) und verwaltung.js (31), plus 1
+  bewusst offen gelassener Undo-Link in erfassen.js.
+- Naechster Schritt: tabs.js und verwaltung.js in derselben Systematik migrieren, danach
+  Meilenstein C (Virtualisierung) und der Goldstandard-Scanner-Meilenstein.
+- Version: 0.1.2 -> 0.2.0 (MINOR).

@@ -586,3 +586,11 @@ näher.
   Pruefung und `tests/run_e2e.py` fuehren die Stufe jetzt mit aus. Version 0.1.1 -> 0.1.2
   (PATCH: Sicherheits-/Release-Gate, keine neue Benutzerfunktion).
 
+
+- Meilenstein B, Batch 6: vorlage/sheets.js - 45 neue native Buttons mit aria-label/
+  aria-pressed statt klickbarer div/span (50 -> 1 verbleibend: der Sheet-Hintergrund
+  bleibt eine reine Dekorationsflaeche, schliesst aber weiterhin per Escape - global in
+  app.js verdrahtet). tests/a11y_check.py-Baseline entsprechend gesenkt. Huellenversion
+  neu berechnet. Volle Suite (10 Stufen, 37 Browserpruefungen) danach gruen.
+  Restschuld jetzt: 34 in tabs.js, 31 in verwaltung.js, 1 bewusst offen (erfassen.js).
+  Version 0.1.2 -> 0.2.0 (MINOR: sichtbarer A11y-Fortschritt, kein Verhaltensbruch).
