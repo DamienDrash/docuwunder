@@ -1451,6 +1451,10 @@ class Oberflaeche extends React.Component {
     return {
       tabHome: s.tab === 'home' && !nav.length, tabDocs: s.tab === 'docs' && !nav.length, tabInbox: s.tab === 'inbox' && !nav.length, tabMore: s.tab === 'more' && !nav.length,
       goHome: () => this.setState({ tab: 'home', stack: [], selMode: false, sel: [] }), goDocs: () => this.setState({ tab: 'docs', stack: [], selMode: false, sel: [] }), goInbox: () => this.setState({ tab: 'inbox', stack: [], selMode: false, sel: [] }), goMore: () => this.setState({ tab: 'more', stack: [], selMode: false, sel: [] }),
+      // Welcher Reiter gerade gilt - fuer aria-current, damit ein
+      // Screenreader nicht nur die vier Namen liest, sondern auch, wo man ist.
+      cHomeAktiv: s.tab === 'home', cDocsAktiv: s.tab === 'docs',
+      cInboxAktiv: s.tab === 'inbox', cMoreAktiv: s.tab === 'more',
       cHome: s.tab === 'home' ? 'var(--acc)' : 'var(--lab2)', cDocs: s.tab === 'docs' ? 'var(--acc)' : 'var(--lab2)', cInbox: s.tab === 'inbox' ? 'var(--acc)' : 'var(--lab2)', cMore: s.tab === 'more' ? 'var(--acc)' : 'var(--lab2)',
       tabbarOn: !nav.length && !s.selMode && !s.scan, selbarOn: s.selMode && s.tab === 'docs' && !nav.length,
       openSettings: () => this.pushV({ t: 'set' }), openSearch: () => this.setState(st => ({ stack: [...st.stack, { t: 'search' }], q: '', qRes: [], qErr: '', qBusy: false, qEinfach: false })), openAdd: () => this.setState({ sheet: 'add' }),

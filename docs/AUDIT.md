@@ -25,7 +25,7 @@ kritisch waren — beide mit Gegenprobe, dass die Prüfung den Fehler wirklich f
 | Sicherheit | 55 % | Ein XSS gefunden und behoben; keine CSP, API-Adresse ungeprüft |
 | Performance | 45 % | Harte Decke bei ~2.000 Dokumenten in einer Liste (gemessen) |
 | PWA | 75 % | Offline und Selbstaktualisierung belegt; Cache-Version von Hand |
-| **Barrierefreiheit** | **14 %** | Semantische Migration laeuft: Onboarding, Sperrdialog und Auswahlleiste nutzen 15 native Buttons; A11y-Leitplanke prueft Rueckschritte, 175 klickbare `<div>/<span>` verbleiben |
+| **Barrierefreiheit** | **18 %** | Tableiste, Onboarding, Sperrdialog, Auswahlleiste und Ordnung migriert (29 Buttons). Gemessen erreichbar per Tastatur: 4–5 Bedienelemente je Reiter (vorher 0–1). 161 klickbare `<div>/<span>` verbleiben |
 | Dokumentation | 30 % | README + Roadmap; 7 von 9 geforderten Dokumenten fehlen |
 | CI/Release | 0 % | Kein `.github/`, keine `package.json`, keine Versionierung |
 | Store-Reife | 15 % | Siehe K-1 — als PWA **nicht** App-Store-fähig |
@@ -107,7 +107,28 @@ verständlich**. Ein Screenreader liest 190 unbeschriftete Gruppierungen.
 (Tab bis zum Ende, kein Element ohne erreichbaren Namen), plus statische Prüfung „kein
 `onClick` an einem nicht-fokussierbaren Element".
 
-**Fortschritt 2026-08-02.** Onboarding, Sperrdialog und Auswahlleiste sind migriert: 15 native `button type=\"button\"` ersetzen bisherige Klick-Flaechen, relevante Icon-Aktionen haben sprechende `aria-label`, die A11y-Stufe ist im vollständigen Runner aktiv und verhindert steigende nicht-semantische Klickziele. Offen: 175 klickbare `div`/`span` in Dokument-, Erfassungs-, Ordnungs-, Sheet-, Tab- und Verwaltungsbereich; automatisierte Checks ersetzen keine spätere manuelle Screenreader-/Geräteprüfung.
+**Fortschritt 2026-08-02.** Migriert sind Onboarding, Sperrdialog, Auswahlleiste, die
+Ordnung-Bildschirme und die **Tableiste** — 29 native `button type="button"`, Icon-Aktionen mit
+`aria-label`, der aktive Reiter mit `aria-current="page"`.
+
+**Wichtige Einordnung, damit die Zahl nicht mehr verspricht, als sie hält.** `tests/a11y_check.py`
+zählt Buttons in den Vorlagen. Das ist eine Leitplanke gegen Rückschritte und **misst nicht, ob
+man die App bedienen kann**. Gemessen am 2. August, nach den ersten vier Migrations-Commits:
+
+| Reiter | vorher erreichbar | nach der Tableiste |
+|---|---:|---:|
+| Übersicht | 1 | 5 |
+| Dokumente | 1 | 5 |
+| Posteingang | 0 | 4 |
+| Mehr | 1 | 5 |
+
+Vorher waren auf allen vier Hauptreitern **0 fokussierbare Elemente** — trotz 25 Buttons in den
+Vorlagen. Die migrierten Bildschirme waren durchweg solche, die man selten sieht. Seitdem misst
+die Browserprüfung „Tastatur erreicht die Bedienung" die **Wirkung** und hebt ihre Schwelle mit
+jedem migrierten Bildschirm.
+
+Offen: 161 klickbare `div`/`span` in Dokument-, Erfassungs-, Sheet-, Tab- und Verwaltungsbereich.
+Nicht ersetzt durch Automatik: Screenreader- und Geräteprüfung.
 
 ---
 

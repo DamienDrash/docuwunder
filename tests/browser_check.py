@@ -381,6 +381,65 @@ def main():
                 assert bild.count() > 0, "kein Vorschaubild im Dokument"
                 return "Vorschau geladen und angezeigt"
 
+            # --- Barrierefreiheit: Wirkung, nicht Anwesenheit ----------------
+            # tests/a11y_check.py zaehlt Buttons in den Vorlagen. Das ist eine
+            # Leitplanke gegen Rueckschritte und misst NICHT, ob man die App
+            # bedienen kann - gemessen am 2. August: 25 Buttons in den
+            # Vorlagen, aber auf den vier Hauptreitern 0 fokussierbare
+            # Elemente und Tab erreichte genau eines.
+            #
+            # Diese Pruefung misst die Wirkung: wie viele Bedienelemente ein
+            # Mensch mit der Tastatur tatsaechlich erreicht. Die Schwellen
+            # steigen mit der Migration - sie sind Sollwerte, keine Messwerte.
+
+            # Mindestzahl der per Tab erreichbaren Bedienelemente je Reiter.
+            # Wird mit jedem migrierten Bildschirm angehoben.
+            # Nach der Migration der Tableiste: vier Reiter plus was der
+            # Bildschirm selbst schon hergibt.
+            TASTATUR_SOLL = {"Übersicht": 5, "Dokumente": 4, "Posteingang": 4, "Mehr": 4}
+
+            def erreichbar(reiter):
+                """Wie weit kommt man mit der Tabulatortaste?"""
+                seite.locator(f'text="{reiter}"').last.click()
+                seite.wait_for_timeout(1700)
+                # Von vorn zaehlen. Nach einem Mausklick steht der Fokus
+                # mitten in der Reihenfolge - ohne Zuruecksetzen misst man,
+                # was nach dem Geklickten kommt, nicht was erreichbar ist.
+                seite.evaluate(
+                    """() => { if (document.activeElement) document.activeElement.blur();
+                      document.body.setAttribute('tabindex', '-1');
+                      document.body.focus(); }""")
+                gesehen = []
+                for _ in range(80):
+                    seite.keyboard.press("Tab")
+                    wer = seite.evaluate(
+                        """() => { const a = document.activeElement;
+                          if (!a || a === document.body) return null;
+                          const name = a.getAttribute('aria-label')
+                            || (a.textContent || '').trim().slice(0, 24)
+                            || a.getAttribute('title') || '';
+                          return a.tagName + ':' + name; }""")
+                    if not wer or wer in gesehen:
+                        break
+                    gesehen.append(wer)
+                return gesehen
+
+            def t_tastatur_erreicht_die_bedienung():
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(3200)
+                stand, zu_wenig, namenlos = {}, [], []
+                for reiter, soll in TASTATUR_SOLL.items():
+                    kette = erreichbar(reiter)
+                    stand[reiter] = len(kette)
+                    if len(kette) < soll:
+                        zu_wenig.append(f"{reiter}: {len(kette)} statt {soll}")
+                    # Ein Bedienelement ohne erreichbaren Namen ist fuer einen
+                    # Screenreader eine leere Schaltflaeche.
+                    namenlos += [f"{reiter}/{w}" for w in kette if w.endswith(":")]
+                assert not zu_wenig, "Tastaturbedienung verschlechtert – " + "; ".join(zu_wenig)
+                assert not namenlos, "Bedienelemente ohne Namen: " + ", ".join(namenlos[:5])
+                return ", ".join(f"{k} {v}" for k, v in stand.items())
+
             # --- Sicherheit --------------------------------------------------
 
             def t_api_adresse_wird_geprueft():
@@ -1221,6 +1280,7 @@ def main():
                 ("Filter laedt neu", t_filter_laedt_neu),
                 ("Suche geht an den Server", t_suche_serverseitig),
                 ("Treffer oeffnet mit Vorschau", t_treffer_oeffnet_mit_vorschau),
+                ("Tastatur erreicht die Bedienung", t_tastatur_erreicht_die_bedienung),
                 ("API-Adresse wird geprueft", t_api_adresse_wird_geprueft),
                 ("Suchausschnitt fuehrt nichts aus", t_suchausschnitt_fuehrt_nichts_aus),
                 ("Posteingang blaettern", t_posteingang_blaettern),

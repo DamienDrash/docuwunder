@@ -325,23 +325,23 @@
 
   V.tabbarOn = function (v, html, stil) {
     return v.tabbarOn ? html`<div style=${stil(`position:absolute;${v.barPos}bottom:24px;height:60px;border-radius:999px;background:var(--glass);backdrop-filter:blur(18px) saturate(180%);-webkit-backdrop-filter:blur(18px) saturate(180%);border:0.5px solid var(--gbor);box-shadow:0 8px 28px rgba(0,0,0,0.14);display:flex;z-index:30`)}>
-  <div onClick=${v.goHome} style=${stil(`flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:${v.cHome}`)}>
+  <button type="button" aria-label="Übersicht" aria-current=${v.cHomeAktiv ? "page" : undefined} onClick=${v.goHome} style=${stil(`appearance:none;-webkit-appearance:none;border:0;background:none;padding:0;font:inherit;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:${v.cHome}`)}>
     <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7.2L20 11"></path><path d="M6 9.3V20h12V9.3"></path></svg>
     <span style=${stil('font-size:10px;font-weight:600')}>Übersicht</span>
-  </div>
-  <div onClick=${v.goDocs} style=${stil(`flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:${v.cDocs}`)}>
+  </button>
+  <button type="button" aria-label="Dokumente" aria-current=${v.cDocsAktiv ? "page" : undefined} onClick=${v.goDocs} style=${stil(`appearance:none;-webkit-appearance:none;border:0;background:none;padding:0;font:inherit;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:${v.cDocs}`)}>
     <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h6.5L18 8v12.5H7z"></path><path d="M13.5 3.5V8H18"></path><path d="M10 13h5M10 16.5h5"></path></svg>
     <span style=${stil('font-size:10px;font-weight:600')}>Dokumente</span>
-  </div>
-  <div onClick=${v.goInbox} style=${stil(`flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:${v.cInbox};position:relative`)}>
+  </button>
+  <button type="button" aria-label="Posteingang" aria-current=${v.cInboxAktiv ? "page" : undefined} onClick=${v.goInbox} style=${stil(`appearance:none;-webkit-appearance:none;border:0;background:none;padding:0;font:inherit;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:${v.cInbox};position:relative`)}>
     <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5h13l2 8v6h-17v-6z"></path><path d="M3.5 13.5h5l1.6 2.4h3.8l1.6-2.4h5"></path></svg>
     <span style=${stil('font-size:10px;font-weight:600')}>Posteingang</span>
-    ${v.inboxHasNew ? html`<span style=${stil('position:absolute;top:8px;left:calc(50% + 6px);min-width:17px;height:17px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px')}>${v.inboxBadge}</span>` : null}
-  </div>
-  <div onClick=${v.goMore} style=${stil(`flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:${v.cMore}`)}>
+${v.inboxHasNew ? html`<span style=${stil('position:absolute;top:8px;left:calc(50% + 6px);min-width:17px;height:17px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px')}>${v.inboxBadge}</span>` : null}
+      </button>
+  <button type="button" aria-label="Mehr" aria-current=${v.cMoreAktiv ? "page" : undefined} onClick=${v.goMore} style=${stil(`appearance:none;-webkit-appearance:none;border:0;background:none;padding:0;font:inherit;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:${v.cMore}`)}>
     <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg>
     <span style=${stil('font-size:10px;font-weight:600')}>Mehr</span>
-  </div>
+  </button>
 </div>` : null;
   };
 
