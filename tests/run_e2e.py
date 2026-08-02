@@ -9,9 +9,10 @@ Die Stufen bauen aufeinander auf und laufen von schnell nach langsam:
   1. syntax_check    Syntax der Komponenten-Skripte und JS-Dateien
   2. template_check  jede {{ Bindung }} hat einen Wert aus renderVals
   3. aufrufe_check   jedes this.name() trifft eine Methode, die es gibt
-  4. pwa_check       Manifest, Service Worker und Einstiegspunkt passen zusammen
-  5. api_check       die Zusagen der Paperless-API, auf die die App baut
-  6. browser_check   die App im echten Browser gegen den echten Server
+  4. huelle_check    die Cache-Version passt zum Inhalt der Huelle
+  5. pwa_check       Manifest, Service Worker und Einstiegspunkt passen zusammen
+  6. api_check       die Zusagen der Paperless-API, auf die die App baut
+  7. browser_check   die App im echten Browser gegen den echten Server
 
 Fuer 3 und 4 wird ein API-Token gebraucht:
 
@@ -34,6 +35,7 @@ STATISCH = [
     ("Logik", "logik_check.py"),
     ("Template-Bindungen", "template_check.py"),
     ("Aufrufe im Zustand", "aufrufe_check.py"),
+    ("Huellenversion", "huelle_check.py"),
     ("PWA", "pwa_check.py"),
 ]
 GEGEN_SERVER = [

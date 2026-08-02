@@ -265,8 +265,8 @@ def main():
                 # des Schalters, nicht sein Vorhandensein.
                 soll = dict(re.findall(
                     r"const LEISTE_(HELL|DUNKEL) = '(#[0-9A-Fa-f]{6})'",
-                    (ROOT / "index.html").read_text(encoding="utf-8")))
-                assert len(soll) == 2, f"Farben in index.html nicht gefunden: {soll}"
+                    ((ROOT / "index.html").read_text(encoding="utf-8") + (ROOT / "start.js").read_text(encoding="utf-8"))))
+                assert len(soll) == 2, f"Farben im Einstiegspunkt nicht gefunden: {soll}"
 
                 def farben():
                     return seite.eval_on_selector_all(
@@ -1116,7 +1116,9 @@ def main():
                 app = ROOT / "app.js"
                 sw = ROOT / "sw.js"
                 app_alt, sw_alt = app.read_text(), sw.read_text()
-                fassung = re.search(r"const VERSION = '(v\d+)';", sw_alt).group(1)
+                # Die Version ist seit tools/huelle.py eine Pruefsumme, kein
+                # Zaehler - das Muster darf sie nicht vorwegnehmen.
+                fassung = re.search(r"const VERSION = '([^']*)';", sw_alt).group(1)
                 # Die Marke haengt an einer Konstante im Kopf von app.js. Steht
                 # sie dort nicht mehr, weil ein Sachgebiet ausgezogen ist, waere
                 # die geaenderte Datei mit der alten identisch - und die

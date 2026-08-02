@@ -1,0 +1,26 @@
+/* Grundlagen der Seite.
+ *
+ * Stand frueher als <style> in index.html; herausgeloest aus demselben
+ * Grund wie start.js - eine strikte CSP ohne 'unsafe-inline' fuer Stile
+ * scheitert daran. style=-Attribute an Elementen bleiben davon
+ * unberuehrt: sie fallen unter style-src-attr, und darauf baut die
+ * ganze Oberflaeche auf (siehe stil() in ui.js).
+ */
+/* overscroll-behavior:none nimmt dem Fenster das Nachfedern am Rand und das
+   Herunterziehen zum Neuladen. Beides ist im Browser richtig und in einer
+   installierten App falsch: die Listen scrollen selbst, ein Zug daran wuerde
+   sonst die ganze Seite bewegen.
+   touch-action:manipulation streicht die Wartezeit auf einen moeglichen
+   Doppeltipp - Tippen wird dadurch spuerbar direkter. Aufziehen zum
+   Vergroessern bleibt erhalten; die Viewport-Angabe verbietet es bewusst nicht. */
+html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;background:#F7FAFA;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+@media (prefers-color-scheme: dark){html,body{background:#0D1B2A}}
+*{box-sizing:border-box}
+input,textarea,button{font-family:inherit}
+@keyframes pushIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+@keyframes sheetUp{from{transform:translateY(105%)}to{transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes toastIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{display:none}
+a{color:var(--acc);text-decoration:none}

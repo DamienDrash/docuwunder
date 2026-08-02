@@ -29,9 +29,12 @@
  *                     Vortritt, solange es antwortet.
  */
 
-// Aendert sich die Aufteilung oben oder die Liste unten, hochzaehlen: beim
-// naechsten Start wird der alte Cache dann verworfen statt weitergefuehrt.
-const VERSION = 'v13';
+// Die Version ist eine Pruefsumme ueber den Inhalt der Huelle und wird von
+// tools/huelle.py gesetzt - nicht von Hand. Aendert sich eine Datei, aendert
+// sich die Version, und der alte Cache wird verworfen statt weitergefuehrt.
+// Von Hand hochzaehlen hiess: einmal vergessen, und behobene Fehler erreichen
+// niemanden.
+const VERSION = 'ee96b5478d02';
 const CACHE = 'docuwunder-huelle-' + VERSION;
 
 // Wie lange auf das Netz gewartet wird, bevor der Cache einspringt. Kurz
@@ -47,6 +50,8 @@ const FRIST_MS = 3000;
 const HUELLE = [
   './',
   './index.html',
+  './start.js',
+  './basis.css',
   './logik.js',
   './api.js',
   './sperre.js',

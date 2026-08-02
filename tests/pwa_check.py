@@ -163,11 +163,16 @@ else:
 # --- Einstiegspunkt ---------------------------------------------------------
 print("\nEinstiegspunkt")
 index = (ROOT / "index.html").read_text(encoding="utf-8")
+# Seit der CSP-Vorbereitung steht der Startcode in start.js statt inline in
+# index.html. Fuer die Fragen unten zaehlt beides zusammen: sie handeln vom
+# Einstiegspunkt als Ganzem, nicht von einer Datei.
+start = (ROOT / "start.js").read_text(encoding="utf-8")
+einstieg = index + "\n" + start
 pruefe('rel="manifest"' in index, "index.html verweist auf das Manifest")
 pruefe('rel="apple-touch-icon"' in index, "index.html nennt ein Symbol fuer iOS")
 pruefe('name="theme-color"' in index, "index.html nennt eine theme-color")
 pruefe("apple-mobile-web-app-capable" in index, "index.html erlaubt den eigenstaendigen Modus auf iOS")
-pruefe("serviceWorker" in index and "sw.js" in index, "index.html meldet den Service Worker an")
+pruefe("serviceWorker" in einstieg and "sw.js" in einstieg, "der Einstiegspunkt meldet den Service Worker an")
 pruefe("viewport-fit=cover" in index,
        "index.html fordert den ganzen Bildschirm an", grund="sonst meldet das System keine safe-area-Werte")
 
@@ -177,14 +182,14 @@ pruefe("viewport-fit=cover" in index,
 # System passt statt zur Oberflaeche davor.
 # Seit der Migration reicht index.html die Rueckmeldung als Prop weiter, statt
 # sie ueber eine Template-Bindung zu verdrahten.
-pruefe("onDark: leiste" in index and 'meta[name="theme-color"]' in index,
+pruefe("onDark: leiste" in einstieg and 'meta[name="theme-color"]' in einstieg,
        "die Leiste folgt dem Schema der App, nicht dem des Systems",
-       grund="index.html schreibt die theme-color nicht um")
+       grund="der Einstiegspunkt schreibt die theme-color nicht um")
 
 # Die Farben stehen zweimal da: als Angabe im Kopf und als Konstante fuer das
 # Umschreiben. Laufen sie auseinander, springt die Leiste beim Start.
 kopf = set(re.findall(r'<meta name="theme-color" content="(#[0-9A-Fa-f]{6})"', index))
-um = set(re.findall(r"const LEISTE_(?:HELL|DUNKEL) = '(#[0-9A-Fa-f]{6})'", index))
+um = set(re.findall(r"const LEISTE_(?:HELL|DUNKEL) = '(#[0-9A-Fa-f]{6})'", einstieg))
 pruefe(len(kopf) == 2 and kopf == um, "Kopf und Umschaltung nennen dieselben Farben",
        grund=f"Kopf {sorted(kopf)}, Umschaltung {sorted(um)}")
 
@@ -199,6 +204,16 @@ geladen = set(re.findall(r'(?:src|href)="(\./[^"]+)"', index))
 noetig = {p for p in geladen if not p.startswith("./icons/") and p != "./manifest.webmanifest"}
 fehlend = sorted(noetig - set(huelle))
 pruefe(not fehlend, "index.html laedt nichts, was der Huelle fehlt", grund=", ".join(fehlend))
+
+# --- Voraussetzung fuer eine strikte CSP ------------------------------------
+# Eine Policy ohne 'unsafe-inline' scheitert an jedem <script> ohne src und
+# jedem <style>. Deshalb wird hier geprueft, dass keiner zurueckkommt.
+inline_skript = re.findall(r"<script(?![^>]*\ssrc=)[^>]*>", index)
+pruefe(not inline_skript, "index.html enthaelt kein Inline-Skript",
+       grund=f"{len(inline_skript)} gefunden – eine strikte CSP scheitert daran")
+inline_stil = re.findall(r"<style[^>]*>", index)
+pruefe(not inline_stil, "index.html enthaelt kein Inline-Stilblatt",
+       grund=f"{len(inline_stil)} gefunden")
 
 # Die Komponente holt sich das Runtime zur Laufzeit nach (dc-import).
 pruefe("./app.js" in huelle and "./vorlage.js" in huelle,

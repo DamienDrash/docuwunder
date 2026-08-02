@@ -139,6 +139,7 @@
         </div>`)}
     </div>` : null}
   ${v.docsMoreOn ? html`<div onClick=${v.loadMore} style=${stil('margin:14px 16px 0;height:44px;border-radius:14px;background:var(--fill);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--acc);cursor:pointer')}>${v.docsMoreLabel}</div>` : null}
+  ${v.docsGrenzeOn ? html`<div style=${stil('font-size:13px;color:var(--lab2);text-align:center;padding:16px 34px 0;line-height:1.5')}>${v.docsGrenzeText}</div>` : null}
   ${v.docsBusy ? html`<div style=${stil('padding:18px;text-align:center;font-size:13.5px;color:var(--lab3)')}>Wird geladen …</div>` : null}
   ${v.docsErrOn ? html`<div style=${stil('margin:14px 16px 0;background:var(--card);border-radius:14px;padding:14px 16px;text-align:center')}>
       <div style=${stil('font-size:14px;color:var(--lab2);line-height:1.45')}>${v.docsErr}</div>

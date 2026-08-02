@@ -87,6 +87,17 @@ function defViewSichern(wert) {
 // sortiert wird auf dem Server, weitere Seiten holt die Liste beim Blaettern
 // nach. Ein grosser Wert wuerde nur den ersten Aufbau verzoegern.
 const DOC_PAGE = 60;
+// Wie viele Dokumente hoechstens gleichzeitig in einer Liste stehen.
+//
+// Nicht willkuerlich, sondern gemessen (docs/AUDIT.md, K-3): die Liste braucht
+// rund 29 DOM-Knoten je Dokument und rechnet streng linear. 1.200 Dokumente
+// sind knapp 35.000 Knoten und noch bedienbar; 20.000 waeren 580.000 Knoten
+// und zehn Sekunden Rendern.
+//
+// Das ist eine Bremse, keine Loesung - die Loesung ist Fensterung der Liste
+// (Meilenstein C). Bis dahin ist eine ehrliche Grenze besser als eine App,
+// die stehenbleibt.
+const DOC_MAX = 1200;
 // Eintraege der Startseiten-Listen.
 const HOME_N = 8;
 // Sortierung der Oberflaeche -> ordering-Parameter der API.
@@ -1483,7 +1494,12 @@ class Oberflaeche extends React.Component {
         : s.docsMore
         ? (s.docs.length + ' von ' + s.docsTotal + ' Dokumenten geladen')
         : (s.docsTotal === 1 ? '1 Dokument' : s.docsTotal + ' Dokumente'),
-      docsMoreOn: s.docsMore && !s.docsBusy, docsBusy: s.docsBusy,
+      docsMoreOn: s.docsMore && !s.docsBusy && s.docs.length < DOC_MAX, docsBusy: s.docsBusy,
+      // Ist die Grenze erreicht, sagt die App das - statt einen Knopf
+      // anzubieten, der die Oberflaeche anhaelt.
+      docsGrenzeOn: s.docsMore && s.docs.length >= DOC_MAX,
+      docsGrenzeText: 'Mehr als ' + DOC_MAX + ' Dokumente auf einmal werden zäh. '
+        + 'Grenze die Auswahl mit einem Filter oder der Suche ein.',
       docsMoreLabel: 'Weitere ' + Math.min(DOC_PAGE, Math.max(0, s.docsTotal - s.docs.length)) + ' laden',
       loadMore: () => this.mehrDocs(),
       docsErrOn: !!s.loadErr, docsErr: s.loadErr || '',
