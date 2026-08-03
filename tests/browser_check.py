@@ -273,9 +273,8 @@ def main():
                         "meta[name='theme-color']", "ms => ms.map(m => m.content)")
 
                 tab("Mehr")
-                # Die Einstellungen haengen an der Kontokarte - dem ersten
-                # Eintrag des Bildschirms nach seiner Ueberschrift.
-                seite.locator("[data-screen-label='Mehr'] > div").nth(1).click()
+                # Die Einstellungen haengen an der Kontokarte.
+                seite.locator("[data-konto]").last.click()
                 seite.wait_for_selector("[data-screen-label='Einstellungen']", timeout=10000)
                 einst = seite.locator("[data-screen-label='Einstellungen']")
                 try:
@@ -596,8 +595,7 @@ def main():
                 seite.locator('text="Dokumente"').last.click()
                 seite.wait_for_timeout(2200)
                 lage = seite.evaluate(
-                    "() => { const k = [...document.querySelectorAll('div')]"
-                    ".find(d => d.style.borderRadius === '999px' && d.style.width === '32px');"
+                    "() => { const k = document.querySelector(\"button[aria-label='Ansicht wechseln']\");"
                     " if (!k) return null; const r = k.getBoundingClientRect();"
                     " return { links: r.left, rechts: r.right, fenster: innerWidth }; }")
                 assert lage, "Umschalter nicht gefunden"
@@ -703,8 +701,7 @@ def main():
 
             def umschalten():
                 seite.evaluate(
-                    "() => { const b = [...document.querySelectorAll('div')]"
-                    ".find(d => d.style.borderRadius === '999px' && d.style.width === '32px');"
+                    "() => { const b = document.querySelector(\"button[aria-label='Ansicht wechseln']\");"
                     " if (b) b.click(); }")
 
             def t_ordneransicht_im_reiter():
@@ -728,13 +725,13 @@ def main():
                 seite.on("request", lambda r: abfragen.append(r.url)
                          if "storage_path__id__in" in r.url else None)
                 for name in ("Arbeit", "Freelancer", "CycleCoin", "Vertrag"):
-                    seite.locator(f'text="{name}"').last.click()
+                    seite.locator(f"button[aria-label='Ordner „{name}“ öffnen']").click()
                     seite.wait_for_timeout(2300)
                 assert len(abfragen) >= 4, \
                     f"nicht jeder Ordner fragt den Server: {len(abfragen)}"
 
                 weg = seite.evaluate(
-                    "() => [...document.querySelectorAll('span')]"
+                    "() => [...document.querySelectorAll('span,button')]"
                     ".filter(s => s.childElementCount === 0)"
                     ".map(s => s.textContent.trim())"
                     ".filter(t => ['Alle','Arbeit','Freelancer','CycleCoin','Vertrag'].includes(t))")

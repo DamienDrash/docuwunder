@@ -25,7 +25,7 @@ kritisch waren — beide mit Gegenprobe, dass die Prüfung den Fehler wirklich f
 | Sicherheit | 55 % | Ein XSS gefunden und behoben; keine CSP, API-Adresse ungeprüft |
 | Performance | 45 % | Harte Decke bei ~2.000 Dokumenten in einer Liste (gemessen) |
 | PWA | 75 % | Offline und Selbstaktualisierung belegt; Cache-Version von Hand |
-| **Barrierefreiheit** | **18 %** | Tableiste, Onboarding, Sperrdialog, Auswahlleiste und Ordnung migriert (29 Buttons). Gemessen erreichbar per Tastatur: 4–5 Bedienelemente je Reiter (vorher 0–1). 161 klickbare `<div>/<span>` verbleiben |
+| **Barrierefreiheit** | **32 %** | Tableiste, Onboarding, Sperrdialog, Auswahlleiste, Ordnung, Erfassen, Dokument-Detail, Sheets und Tabs migriert (Kernnavigation vollständig, 217 Buttons gesamt). Nur `verwaltung.js` (30 klickbare div/span) und ein bewusst offener Undo-Link verbleiben. Automatisierte a11y-Baseline (`tests/a11y_check.py`) grün; manuelle Screenreader-/Tastatur-Geräteprüfung steht weiterhin aus |
 | Dokumentation | 30 % | README + Roadmap; 7 von 9 geforderten Dokumenten fehlen |
 | CI/Release | 0 % | Kein `.github/`, keine `package.json`, keine Versionierung |
 | Store-Reife | 15 % | Siehe K-1 — als PWA **nicht** App-Store-fähig |
@@ -594,3 +594,14 @@ näher.
   neu berechnet. Volle Suite (10 Stufen, 37 Browserpruefungen) danach gruen.
   Restschuld jetzt: 34 in tabs.js, 31 in verwaltung.js, 1 bewusst offen (erfassen.js).
   Version 0.1.2 -> 0.2.0 (MINOR: sichtbarer A11y-Fortschritt, kein Verhaltensbruch).
+
+
+- Meilenstein B, Batch 7: vorlage/tabs.js - 34 neue native Buttons mit aria-label statt
+  klickbarer div/span (34 -> 0 verbleibend). tests/a11y_check.py-Baseline entsprechend
+  gesenkt. tests/browser_check.py auf die neue Semantik umgestellt (Ansicht-Umschalter,
+  Ordnerklicks und Einstellungen-Einstieg jetzt ueber Button-/Attribut-Selektoren statt
+  CSS-Heuristiken auf ehemaligen div-Elementen). Huellenversion neu berechnet. Volle
+  Suite (10 Stufen, 60 Unit, 24 API/Geheimnis-Checks, 37 Browserpruefungen) danach gruen.
+  Restschuld jetzt: 30 in verwaltung.js, 1 bewusst offen (erfassen.js).
+  Version 0.2.0 -> 0.3.0 (MINOR: sichtbarer A11y-Fortschritt, kein Verhaltensbruch,
+  Testsuite an neue Semantik angepasst).

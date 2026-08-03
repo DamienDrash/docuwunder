@@ -587,3 +587,30 @@ Unit-Tests machen die Lage nur schlechter.
 - Naechster Schritt: tabs.js und verwaltung.js in derselben Systematik migrieren, danach
   Meilenstein C (Virtualisierung) und der Goldstandard-Scanner-Meilenstein.
 - Version: 0.1.2 -> 0.2.0 (MINOR).
+
+
+## Meilenstein B, Batch 7 (2026-08-03)
+
+- vorlage/tabs.js: 34 klickbare div/span -> 0. 34 neue native Buttons mit aria-label
+  fuer Einstellungen-Avatar, Suche, Scannen/Datei-Kacheln, Erledigen-Karten (Posteingang,
+  Duplikat, fehlende Angaben), Zuletzt-hinzugefuegt/-geoeffnet/-Favoriten-Zeilen,
+  Ordner-Navigation (Pfadleiste, Ordner- und Dateizeilen), Raster-Kacheln, Bibliothek/
+  Organisation/Verwaltung-Zeilen in "Mehr" sowie die Kontokarte mit Einstellungen-Zugang.
+  Alle Aktionszeilen nutzen `S.buttonReset` plus `width:100%;text-align:left`, damit sich
+  am sichtbaren Layout nichts aendert.
+- tests/browser_check.py an die neue Semantik angepasst: der Listen/Raster/Ordner-
+  Umschalter wird jetzt ueber `button[aria-label='Ansicht wechseln']` statt einer
+  CSS-Heuristik auf einem `<div>` angesprochen, die Ordner-Klicks in der Reiter-Pruefung
+  ueber `button[aria-label="Ordner „…" öffnen"]`, die Pfadleisten-Pruefung akzeptiert jetzt
+  auch `<button>`-Textknoten (der letzte, aktive Ort bleibt ein `<span>`), und der
+  Einstellungen-Einstieg wird ueber `[data-konto]` statt einer Positions-Heuristik
+  angesprochen.
+- tests/a11y_check.py-Baseline fuer tabs.js auf 0 gesenkt.
+- Huellenversion neu berechnet. Volle Suite (10 Stufen, 60 Unit, 24 API/Geheimnis-Checks,
+  37 Browserpruefungen) danach gruen.
+- Restschuld jetzt: 30 klickbare div/span in verwaltung.js, 1 bewusst offen (erfassen.js,
+  Undo-Link).
+- Naechster Schritt: verwaltung.js migrieren (letzte grosse Restschuld aus Meilenstein B),
+  danach Meilenstein C (Virtualisierung) und der Goldstandard-Scanner-Meilenstein.
+- Version: 0.2.0 -> 0.3.0 (MINOR: sichtbarer A11y-Fortschritt, kein Verhaltensbruch,
+  Testsuite an neue Semantik angepasst).
