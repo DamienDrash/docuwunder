@@ -2061,6 +2061,11 @@ class Oberflaeche extends React.Component {
     const { s } = k;
     return {
       scanOn: !!s.scan,
+      scanKameraOn: !!(s.scan && s.scan.schritt === 'seiten' && s.scan.kamera),
+      scanKameraStream: this._scanStream || null,
+      onScanKameraBereit: (video) => { this._scanVideoEl = video; },
+      scanKameraSchiessen: () => this.scanKameraAufnehmen(this._scanVideoEl),
+      scanKameraZuDatei: () => this.scanZuDatei(),
       scanSeiten: !!(s.scan && s.scan.schritt === 'seiten'),
       scanZuschnitt: !!(s.scan && s.scan.schritt === 'zuschnitt'),
       scanMeta: !!(s.scan && s.scan.schritt === 'meta'),

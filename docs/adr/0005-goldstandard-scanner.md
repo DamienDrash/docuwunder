@@ -35,7 +35,7 @@ Datei-Dialog-Weg zu brechen, bis ein vollwertiger Ersatz verifiziert steht.
 - Diese ADR als verbindliche Leitplanke fuer die folgenden Phasen.
 - Kein Verhaltensbruch, keine neue Abhaengigkeit.
 
-### Phase 1: Live-Kamera-Huelle mit Fallback (naechster Batch)
+### Phase 1: Live-Kamera-Huelle mit Fallback - UMGESETZT (2026-08-03, v0.5.0)
 - Neue Kamera-Ansicht ueber `navigator.mediaDevices.getUserMedia` mit
   `facingMode: 'environment'`, Vollbild-Vorschau via `<video>`.
 - Robuste Fallback-Kette, in dieser Reihenfolge:
@@ -106,3 +106,28 @@ Datei-Dialog-Weg zu brechen, bis ein vollwertiger Ersatz verifiziert steht.
 - "Swift-Paperless-Paritaet" oder "Goldstandard" duerfen erst nach echter
   Geraeteverifikation (Kamera-Berechtigungen, reale Dokumente, Upload zu
   Paperless-ngx) behauptet werden — nicht nach Implementierung allein.
+
+
+## Nachtrag: Umsetzung Phase 1 (2026-08-03)
+
+Wie geplant implementiert, keine Abweichung vom Entwurf:
+- `logik.js:kameraNutzbar(nav, win)` prueft sicheren Kontext + API-Vorhandensein
+  reine Faehigkeitspruefung ohne Berechtigungsdialog.
+- `erfassen.js`: `scanOeffnen()` verzweigt jetzt zwischen `scanKameraOeffnen()`
+  (Live-Vorschau) und dem alten `scanAufnehmen()` (Dateidialog), je nach
+  `kameraNutzbar`. `scanKameraFehler()` faengt jede Ablehnung/jeden Fehler ab
+  und faellt sofort auf den Dateidialog zurueck. `scanKameraSchliessen()` stoppt
+  alle Tracks. `scanKameraAufnehmen()` erzeugt aus dem `<video>` per Canvas
+  einen Snapshot und speist ihn in dieselbe `scanAufnahmen()`-Pipeline wie der
+  Dateidialog - keine zweite Bildverarbeitung.
+- `vorlage/erfassen.js`: neuer Vollbild-`<video>`-Block mit manuellem Ausloeser
+  (grosser runder Knopf) und explizitem "Aus Dateien waehlen"-Knopf, immer
+  parallel erreichbar.
+- Getestet mit drei Playwright-Faellen, die `getUserMedia` mocken: Erfolg (echter
+  `MediaStream` via `canvas.captureStream()`), Verweigerung (`NotAllowedError`),
+  fehlende API. In allen Faellen bleibt der Dateidialog-Weg erreichbar.
+- Ein echter Absturz wurde beim ersten Anlauf gefunden (`srcObject`-Zuweisung
+  bei einem Nicht-MediaStream-Mock) und behoben, siehe docs/AUDIT.md.
+- Kein Auto-Capture, keine Kantenerkennung, keine Bildverstaerkung in dieser
+  Phase - wie geplant. Kein reales Geraet getestet - "Goldstandard" oder
+  "Swift-Paperless-Paritaet" bleiben bis zur Geraeteverifikation unbelegt.

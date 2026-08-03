@@ -1089,6 +1089,68 @@ def main():
                         return "zwei Aufnahmen wurden ein PDF mit zwei Seiten"
                 raise AssertionError("Server hat den Scan nicht verarbeitet")
 
+            # --- Kamera-Fallback-Kette (Goldstandard-Scanner Phase 1) -------
+            # getUserMedia wird per Init-Skript ersetzt, bevor die Seite laedt -
+            # so laesst sich jeder der drei Faelle deterministisch erzwingen,
+            # ohne von einer echten Kamera im Testcontainer abzuhaengen.
+
+            def t_kamera_erfolg_zeigt_vorschau():
+                # Ein echter MediaStream (aus einem Canvas), damit die
+                # srcObject-Zuweisung im Code denselben Pfad nimmt wie mit
+                # einer echten Kamera - kein blosses Mock-Objekt.
+                seite.context.add_init_script("""
+                    Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+                    navigator.mediaDevices = navigator.mediaDevices || {};
+                    navigator.mediaDevices.getUserMedia = () => {
+                        const c = document.createElement('canvas');
+                        c.width = 320; c.height = 240;
+                        const g = c.getContext('2d'); g.fillStyle = '#0a0'; g.fillRect(0, 0, 320, 240);
+                        return Promise.resolve(c.captureStream(5));
+                    };
+                """)
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                seite.locator('text="Scannen"').last.click()
+                seite.wait_for_timeout(700)
+                assert seite.locator('[data-kamera-vorschau]').count() == 1, \
+                    "keine Live-Vorschau bei erlaubter Kamera"
+                assert seite.locator('[data-kamera-vorschau] video').count() == 1
+                seite.locator('[aria-label="Abbrechen"]').click()
+                seite.wait_for_timeout(400)
+                return "Vorschau erscheint, wenn getUserMedia erfolgreich ist"
+
+            def t_kamera_verweigert_faellt_zurueck():
+                seite.context.add_init_script("""
+                    Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+                    navigator.mediaDevices = navigator.mediaDevices || {};
+                    navigator.mediaDevices.getUserMedia = () => {
+                        const e = new Error('verweigert'); e.name = 'NotAllowedError';
+                        return Promise.reject(e);
+                    };
+                """)
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                with seite.expect_file_chooser() as wahl:
+                    seite.locator('text="Scannen"').last.click()
+                    seite.wait_for_timeout(700)
+                assert seite.locator('[data-kamera-vorschau]').count() == 0, \
+                    "Vorschau haette bei Verweigerung nicht erscheinen duerfen"
+                assert wahl.value.is_multiple(), "Dateidialog nicht erreicht"
+                return "Verweigerung faellt sofort auf den Dateidialog zurueck"
+
+            def t_kamera_fehlt_direkt_dateidialog():
+                seite.context.add_init_script("""
+                    Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+                    if (navigator.mediaDevices) delete navigator.mediaDevices.getUserMedia;
+                """)
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                with seite.expect_file_chooser() as wahl:
+                    seite.locator('text="Scannen"').last.click()
+                assert seite.locator('[data-kamera-vorschau]').count() == 0
+                assert wahl.value.is_multiple(), "Dateidialog nicht erreicht ohne getUserMedia"
+                return "ohne getUserMedia geht es direkt zum Dateidialog"
+
             # --- Automatisierungen ------------------------------------------
             # Der Bildschirm legt an, benennt um, wechselt den Ausloeser,
             # schaltet und loescht. Geprueft wird die Wirkung am Server, nicht
@@ -1297,6 +1359,9 @@ def main():
                 ("Mehrseitig scannen", t_scannen_mehrseitig),
                 ("Zuschnitt wirkt auf das Bild", t_zuschnitt_wirkt),
                 ("Scan wird ein mehrseitiges PDF", t_scan_wird_ein_pdf),
+                ("Kamera erlaubt zeigt Live-Vorschau", t_kamera_erfolg_zeigt_vorschau),
+                ("Kamera verweigert faellt zurueck", t_kamera_verweigert_faellt_zurueck),
+                ("Kamera fehlt geht direkt zum Dateidialog", t_kamera_fehlt_direkt_dateidialog),
                 ("Automatisierung bearbeiten", t_automatisierung_bearbeiten),
                 ("Keine Fehler in der Konsole", t_keine_ausnahmen),
                 ("Neue Fassung kommt von selbst an", t_neue_fassung_kommt_an),

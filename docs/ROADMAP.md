@@ -660,6 +660,27 @@ Unit-Tests machen die Lage nur schlechter.
   Behoben durch dieselbe pointerType-Wache wie bei Start/Zug. Volle Suite (10
   Stufen, 37 Browserpruefungen) danach gruen.
 - Version: 0.4.1 -> 0.4.2 (PATCH).
-- Naechster Schritt bleibt: Goldstandard-Scanner Phase 1 (Live-Kamera-Huelle mit
-  Fallback-Kette zu getUserMedia, manueller Ausloeser, kein Auto-Capture) gemaess
-  ADR 0005 - wird im naechsten Lauf begonnen.
+
+
+## Goldstandard-Scanner, Phase 1 (2026-08-03) - Live-Kamera-Huelle mit Fallback
+
+- Umgesetzt gemaess ADR 0005: `getUserMedia`-Faehigkeitspruefung (`logik.js:
+  kameraNutzbar`), Vollbild-`<video>`-Vorschau mit manuellem Ausloeser und
+  "Aus Dateien waehlen" als Parallelweg, robuste dreistufige Fallback-Kette
+  (erlaubt -> Vorschau, verweigert/Fehler -> Hinweis + Dateidialog, API fehlt
+  -> direkt Dateidialog). Snapshot aus dem Video laeuft durch dieselbe
+  Aufnahme-Pipeline (`scanAufnahmen`) wie der Dateidialog - keine zweite
+  Bildverarbeitung, `scan.js`/DWScan unveraendert.
+- Drei neue Playwright-Tests fuer die Fallback-Kette (echter `MediaStream`
+  via Canvas, Verweigerung, fehlende API); ein echter Absturz-Fehler
+  (`srcObject` bei fehlerhaftem Stream-Objekt) wurde dabei gefunden und
+  behoben, nicht nur der Test angepasst. Details: docs/AUDIT.md.
+- Volle Suite (10 Stufen, 60 Unit, 24 API/Geheimnis-Checks, 40
+  Browserpruefungen) danach gruen. Huellenversion neu berechnet.
+- Nicht verifiziert: echtes Kameragerat/echtes Telefon. Keine "Goldstandard"-
+  oder Paritaets-Aussage vor Geraeteverifikation.
+- Naechster Schritt: ADR-0005-Phase 3 (Bildverstaerkung: Graustufe/Kontrast/
+  Helligkeit/Schaerfen, Unschaerfe-/Blend-Warnung) oder Phase 4
+  (Kantenerkennung/Overlay) - Reihenfolge noch offen, beide bauen nicht
+  zwingend aufeinander auf.
+- Version: 0.4.2 -> 0.5.0 (MINOR: erste real nutzbare Kamera-Faehigkeit).

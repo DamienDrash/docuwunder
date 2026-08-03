@@ -29,7 +29,16 @@
   <div style=${stil('width:36px')}></div>
   </div>
 
-  ${v.scanSeiten ? html`<div style=${stil('flex:1;overflow-y:auto;padding:16px 20px;width:100%;max-width:840px;margin:0 auto')}>
+  ${v.scanKameraOn ? html`<div data-kamera-vorschau="1" style=${stil('flex:1;position:relative;overflow:hidden;background:#000')}>
+      <video autoPlay playsInline muted ref=${(el) => { if (el) { if (el.srcObject !== v.scanKameraStream) { try { el.srcObject = v.scanKameraStream; } catch (e) { /* kein echter MediaStream (z.B. Testumgebung) - Vorschau bleibt leer, Ausloeser bleibt bedienbar */ } } v.onScanKameraBereit(el); } }} style=${stil('width:100%;height:100%;object-fit:cover;display:block')}></video>
+      <div style=${stil('position:absolute;left:0;right:0;bottom:38px;display:flex;align-items:center;justify-content:center;gap:28px')}>
+        <button type="button" aria-label="Aus Dateien wählen" title="Aus Dateien wählen" onClick=${v.scanKameraZuDatei} style=${stil(S.buttonReset + 'width:46px;height:46px;border-radius:50%;background:rgba(120,120,128,0.32);display:flex;align-items:center;justify-content:center;cursor:pointer')}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="M21 15l-5-5L5 21"></path></svg></button>
+        <button type="button" aria-label="Foto aufnehmen" onClick=${v.scanKameraSchiessen} style=${stil(S.buttonReset + 'width:72px;height:72px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,0.35);cursor:pointer')}></button>
+        <div style=${stil('width:46px;height:46px')}></div>
+      </div>
+    </div>` : null}
+
+  ${v.scanSeiten && !v.scanKameraOn ? html`<div style=${stil('flex:1;overflow-y:auto;padding:16px 20px;width:100%;max-width:840px;margin:0 auto')}>
       ${v.scanLeer ? html`<div style=${stil('text-align:center;padding:50px 20px 30px;font-size:14.5px;color:rgba(235,235,245,0.55);line-height:1.6')}>Noch keine Seite aufgenommen.</div>` : null}
       ${''/* auto-fill statt drei fester Spalten: auf dem Telefon ergibt das
            dieselben drei, auf einem breiten Fenster mehr - statt drei

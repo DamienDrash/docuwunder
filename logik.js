@@ -325,8 +325,19 @@
     return { ok: true, url: glatt, fremd: !gleicheHerkunft };
   }
 
+  // Ob eine Live-Kamera-Vorschau ueberhaupt versucht werden darf: sicherer
+  // Kontext (https/localhost) und die MediaDevices-API vorhanden. Reine
+  // Faehigkeitspruefung, keine Berechtigungsabfrage - die passiert erst beim
+  // tatsaechlichen Aufruf von getUserMedia, weil nur der einen Dialog zeigt.
+  function kameraNutzbar(nav, win) {
+    if (!win || !win.isSecureContext) return false;
+    if (!nav || !nav.mediaDevices || typeof nav.mediaDevices.getUserMedia !== 'function') return false;
+    return true;
+  }
+
   return {
     basisPruefen: basisPruefen,
+    kameraNutzbar: kameraNutzbar,
     bilderUeberzaehlig: bilderUeberzaehlig,
     dateDE: dateDE,
     kurzDatum: kurzDatum,

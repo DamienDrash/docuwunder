@@ -56,6 +56,9 @@
   function start() {
     return { scan: null, scanTitle: '', uploads: [] };
   }
+  // _scanStream (der aktive MediaStream) liegt bewusst nicht in setState:
+  // ein Stream-Objekt ist kein darstellbarer Zustand, sondern eine
+  // Handle - React soll bei seiner blossen Existenz nicht neu rendern.
 
   // --- Scannen ------------------------------------------------------------
   //
@@ -66,8 +69,79 @@
   // laesst sich zurueckziehen, ohne dass etwas fehlt.
   var methoden = {
 
+    // Live-Kamera-Vorschau versuchen, sonst direkt den Dateidialog.
+    //
+    // Reihenfolge der Faehigkeitspruefung: kein sicherer Kontext/keine API ->
+    // sofort der Dateidialog, kein Zwischenschritt. Ist die API da, wird die
+    // Vorschau geoeffnet; verweigert der Nutzer die Berechtigung oder schlaegt
+    // der Aufruf fehl, faellt scanKameraFehler auf denselben Dateidialog
+    // zurueck. Der Dateidialog bleibt so in jedem Fall erreichbar.
     scanOeffnen() {
       this.setState({ sheet: null, scan: { schritt: 'seiten', seiten: [], zId: null, zRect: null, busy: false } });
+      if (global.DWLogik.kameraNutzbar(global.navigator, global)) {
+        this.scanKameraOeffnen();
+      } else {
+        this.scanAufnehmen();
+      }
+    },
+
+    // Startet die Live-Vorschau. Bei jedem Fehler (Berechtigung verweigert,
+    // keine Kamera gefunden, Geraet belegt …) wird sofort und ohne weitere
+    // Nutzerinteraktion auf den bestehenden Systemdialog zurueckgefallen -
+    // das ist keine Sackgasse, sondern der vorgesehene Normalfall auf dem
+    // Rechner und ein Sicherheitsnetz auf dem Telefon.
+    scanKameraOeffnen() {
+      global.navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      }).then(stream => {
+        this._scanStream = stream;
+        this.setState(st => (st.scan ? { scan: { ...st.scan, kamera: true, kameraFehler: '' } } : {}));
+      }).catch(e => {
+        this.scanKameraFehler(e);
+      });
+    },
+
+    // Kamera meldet einen Fehler oder wurde verweigert: kurzer Hinweis, dann
+    // sofort der bestehende Dateidialog - kein Bedienweg geht verloren.
+    scanKameraFehler(e) {
+      this.scanKameraSchliessen();
+      const grund = e && e.name === 'NotAllowedError'
+        ? 'Kamerazugriff verweigert.'
+        : (e && e.name === 'NotFoundError' ? 'Keine Kamera gefunden.' : 'Kamera nicht verfuegbar.');
+      this.note(grund + ' Dateiauswahl wird geoeffnet.');
+      this.scanAufnehmen();
+    },
+
+    // Stream sauber freigeben - sonst zeigt das System weiter das
+    // Kamera-Aktiv-Symbol an, obwohl die Vorschau laengst geschlossen ist.
+    scanKameraSchliessen() {
+      if (this._scanStream) {
+        this._scanStream.getTracks().forEach(t => { try { t.stop(); } catch (e) { /* bereits beendet */ } });
+        this._scanStream = null;
+      }
+      this.setState(st => (st.scan ? { scan: { ...st.scan, kamera: false } } : {}));
+    },
+
+    // Ein Bild aus dem laufenden <video> in ein Foto verwandeln - dieselbe
+    // Weiterverarbeitung (scanAufnahmen) wie beim Dateidialog, damit keine
+    // zweite Pipeline entsteht.
+    scanKameraAufnehmen(video) {
+      if (!video || !video.videoWidth) return;
+      const c = global.document.createElement('canvas');
+      c.width = video.videoWidth; c.height = video.videoHeight;
+      const g = c.getContext('2d');
+      g.drawImage(video, 0, 0, c.width, c.height);
+      c.toBlob(blob => {
+        if (!blob) { this.note('Aufnahme fehlgeschlagen.'); return; }
+        this.scanAufnahmen([blob]);
+      }, 'image/jpeg', 0.92);
+    },
+
+    // Zum Dateidialog wechseln, ohne den Scan-Vorgang abzubrechen - z. B. der
+    // "Datei"-Weg innerhalb der Live-Vorschau.
+    scanZuDatei() {
+      this.scanKameraSchliessen();
       this.scanAufnehmen();
     },
 
@@ -263,6 +337,7 @@
     },
 
     scanAbbrechen() {
+      this.scanKameraSchliessen();
       const sc = this.state.scan;
       if (sc) sc.seiten.forEach(x => { if (x.url) URL.revokeObjectURL(x.url); });
       this.setState({ scan: null, scanTitle: '' });

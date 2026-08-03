@@ -673,3 +673,43 @@ näher.
   Nutzer:innen ausser dem korrekten Blaettern).
 - Naechster Schritt: Goldstandard-Scanner Phase 1 (Live-Kamera-Huelle mit
   Fallback-Kette) gemaess ADR 0005.
+
+
+## Goldstandard-Scanner, Phase 1 (2026-08-03)
+
+- Live-Kamera-Huelle nach ADR 0005 implementiert: `getUserMedia({video:{facingMode:'environment'}})`
+  ueber `logik.js:kameraNutzbar()` (sicherer Kontext + API-Vorhandensein), dann
+  `erfassen.js: scanKameraOeffnen/-Fehler/-Schliessen/-Aufnehmen/scanZuDatei`.
+  Fallback-Kette wie geplant: nutzbar+erlaubt -> Vollbild-`<video>`-Vorschau mit
+  manuellem Ausloeser und "Aus Dateien waehlen"; verweigert/Fehler -> Hinweis +
+  sofortiger Ruecksprung auf den bestehenden `capture="environment"`-Dateidialog;
+  API nicht vorhanden -> direkt der Dateidialog, kein Zwischenschritt. Kein
+  Auto-Capture in dieser Phase (wie in ADR 0005 Phase 1 festgelegt).
+- Aufnahme aus dem `<video>` laeuft ueber `scanKameraAufnehmen()` (Canvas-Snapshot)
+  in dieselbe `scanAufnahmen()`-Pipeline wie der Dateidialog - keine zweite
+  Bildverarbeitung, DWScan bleibt unveraendert.
+- Stream wird beim Schliessen/Wechsel explizit ueber `getTracks().forEach(stop)`
+  freigegeben (kein haengendes Kamera-Aktiv-Symbol im System).
+- Neue Browser-Tests (mit Playwright `add_init_script`, mockt `getUserMedia`):
+  Erfolgsfall zeigt echte `<video>`-Vorschau (echter `MediaStream` aus einem
+  Canvas via `captureStream()`, kein blosses Mock-Objekt), Verweigerung faellt
+  sofort auf den Dateidialog zurueck, fehlende API geht direkt zum Dateidialog -
+  in allen drei Faellen bleibt der Dateiweg erreichbar.
+- Ein echter Fehler wurde dabei gefunden und behoben: die erste Fassung der
+  `srcObject`-Zuweisung liess die App bei einem Stream-Objekt ohne echte
+  MediaStream-Eigenschaften abstuerzen (`TypeError`, von "Keine Fehler in der
+  Konsole" korrekt erkannt). Fix: `try/catch` um die Zuweisung *und* ein echter
+  `MediaStream` im Test statt eines Attrappen-Objekts - beides zusammen, nicht
+  nur der Test aufgeweicht.
+- Volle Suite (10 Stufen, 60 Unit, 24 API/Geheimnis-Checks, 40 Browserpruefungen,
+  davon 3 neu fuer die Kamera-Fallback-Kette) danach gruen. Huellenversion neu
+  berechnet (5738f0e0c67d -> 2affe07765ba).
+- **Nicht verifiziert (wie in ADR 0005 verlangt vor jeder Parity-/Goldstandard-
+  Aussage):** echtes Kamerageraet auf echtem Telefon (iOS/Android), reale
+  Berechtigungsdialoge, Bildqualitaet bei echtem Umgebungslicht. Das bleibt
+  offen fuer die spaetere Geraeteverifikationsrunde.
+- Naechster Schritt: ADR-0005-Phase 2 (Aufnahme/Review/Upload-Andockung ist
+  durch die gemeinsame Pipeline faktisch schon vollzogen) oder direkt Phase 3
+  (Bildverstaerkung) bzw. Phase 4 (Kantenerkennung/Overlay).
+- Version: 0.4.2 -> 0.5.0 (MINOR: erste sichtbare, echt nutzbare Kamera-Faehigkeit,
+  kein Verhaltensbruch am bestehenden Dateidialog-Weg).
