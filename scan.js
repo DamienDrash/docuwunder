@@ -262,6 +262,82 @@
     });
   }
 
+  // Grobe automatische Randerkennung: schaetzt ein achsenparalleles Rechteck
+  // um das Dokument, als Startvorschlag fuer den manuellen Zuschnitt-Rahmen
+  // (siehe ADR 0005, Phase 4). Kein perspektivisches Viereck, keine
+  // Eckenerkennung, keine externe CV-Bibliothek - nur ein Gradienten-Profil
+  // auf einem stark verkleinerten Graustufenbild:
+  //
+  //   1. Bild auf hoechstens RAND_KANTE Pixel Kantenlaenge verkleinern und in
+  //      Graustufen wandeln (spart Rechenzeit, daempft Rauschen).
+  //   2. Fuer jede Zeile/Spalte die Summe der absoluten Helligkeitsspruenge
+  //      zum jeweiligen Nachbarpixel bilden (ein 1D-Gradientenprofil statt
+  //      eines vollen 2D-Kantenverfahrens).
+  //   3. Die Aussenraender, an denen dieses Profil nahe null ist (gleich-
+  //      foermiger Hintergrund/Tischplatte), werden abgeschnitten - was
+  //      uebrig bleibt, ist der Vorschlag.
+  //
+  // Liefert null, wenn kein sinnvoller Rand gefunden wurde (z. B. das Bild
+  // ist durchgehend texturiert oder durchgehend leer) - der Aufrufer faellt
+  // dann auf den vollen Rahmen zurueck. Das ist bewusst konservativ: ein
+  // falscher Vorschlag, der Dokumentteile abschneidet, waere schlechter als
+  // gar keiner, weil der manuelle Rahmen ohnehin immer verfuegbar bleibt.
+  var RAND_KANTE = 260;
+  var RAND_SCHWELLE = 0.06;   // Anteil des Spitzenwerts, ab dem ein Rand beginnt
+  var RAND_MIN_ANTEIL = 0.55; // ein Vorschlag, der fast das ganze Bild waere, lohnt nicht
+
+  function randSchaetzen(quelle) {
+    return Promise.resolve(
+      quelle instanceof global.ImageBitmap ? quelle
+        : global.createImageBitmap(quelle, { imageOrientation: 'from-image' })
+    ).then(function (bild) {
+      var f = Math.min(1, RAND_KANTE / Math.max(bild.width, bild.height));
+      var w = Math.max(3, Math.round(bild.width * f)), h = Math.max(3, Math.round(bild.height * f));
+      var c = global.document.createElement('canvas');
+      c.width = w; c.height = h;
+      var g = c.getContext('2d');
+      g.drawImage(bild, 0, 0, w, h);
+      var px = g.getImageData(0, 0, w, h).data;
+      var grau = new Float32Array(w * h);
+      for (var i = 0, j = 0; i < px.length; i += 4, j++) {
+        grau[j] = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+      }
+
+      // Profil je Spalte/Zeile: Summe der horizontalen bzw. vertikalen
+      // Helligkeitssprünge in dieser Spalte/Zeile.
+      var profilX = new Float32Array(w), profilY = new Float32Array(h);
+      for (var y = 0; y < h; y++) {
+        for (var x = 1; x < w; x++) {
+          var d = Math.abs(grau[y * w + x] - grau[y * w + x - 1]);
+          profilX[x] += d;
+          profilY[y] += d;
+        }
+      }
+
+      function rand(profil, n) {
+        var spitze = 0;
+        for (var k = 0; k < n; k++) spitze = Math.max(spitze, profil[k]);
+        if (spitze <= 0) return null;
+        var schwelle = spitze * RAND_SCHWELLE;
+        var a = 0; while (a < n && profil[a] < schwelle) a++;
+        var b = n - 1; while (b > a && profil[b] < schwelle) b--;
+        if (a >= b) return null;
+        return { a: a, b: b };
+      }
+
+      var rx = rand(profilX, w), ry = rand(profilY, h);
+      if (!rx || !ry) return null;
+
+      var x0 = rx.a / w, x1 = (rx.b + 1) / w, y0 = ry.a / h, y1 = (ry.b + 1) / h;
+      var anteil = (x1 - x0) * (y1 - y0);
+      // Praktisch das ganze Bild oder ein winziger Fleck: kein brauchbarer
+      // Vorschlag, lieber gar keiner als ein irrefuehrender.
+      if (anteil > RAND_MIN_ANTEIL || anteil < 0.03) return null;
+
+      return { x0: x0, y0: y0, x1: x1, y1: y1 };
+    }).catch(function () { return null; });
+  }
+
   function datei(seiten, name) {
     return new global.File([pdf(seiten)], name || 'Scan.pdf', { type: 'application/pdf' });
   }
@@ -271,6 +347,7 @@
     seiteAus: seiteAus,
     schaerfeMass: schaerfeMass,
     SCHAERFE_SCHWELLE: SCHAERFE_SCHWELLE,
+    randSchaetzen: randSchaetzen,
     datei: datei,
     MAX_KANTE: MAX_KANTE,
   };

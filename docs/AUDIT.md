@@ -797,3 +797,37 @@ näher.
   (Virtualisierung fuer grosse Archive).
 - Version: 0.6.0 -> 0.6.1 (PATCH: UI fuer bereits vorbereitete Backend-
   Parameter, kein neuer Funktionsumfang in scan.js selbst).
+
+
+## Goldstandard-Scanner, Randvorschlag beim Zuschnitt (2026-08-03)
+
+- Neu: `scan.js: randSchaetzen(quelle)` - schaetzt ein achsenparalleles
+  Rechteck um das Dokument als Startvorschlag fuer den manuellen
+  Zuschnitt-Rahmen (ADR 0005, Phase 4, Teilumsetzung). Verfahren: Bild auf
+  260px Kantenlaenge verkleinern, Graustufen, je Zeile/Spalte die Summe der
+  absoluten Helligkeitsspruenge zum Nachbarpixel bilden (1D-Gradienten-
+  profil), Aussenraender mit geringem Wert abschneiden. Liefert `null` bei
+  einem unplausiblen Ergebnis (fast das ganze Bild oder ein winziger
+  Fleck) - der Aufrufer faellt dann auf den vollen Rahmen zurueck.
+- `erfassen.js: scanZuschnittOeffnen` oeffnet weiterhin sofort mit dem
+  vollen Rahmen und ersetzt ihn asynchron, sobald `randSchaetzen` fertig
+  ist und derselbe Zuschnitt-Dialog noch fuer dieselbe Seite offen ist.
+  "Ganz" (voller Rahmen, `zZuruecksetzen`) bleibt unveraendert jederzeit
+  erreichbar - kein Bedienweg geht verloren, keine Sackgasse.
+- Neuer Browser-Test `t_rand_erkennung_schlaegt_vor`: prueft `randSchaetzen`
+  direkt im Browser mit zwei synthetischen Bildern (eindeutiges dunkles
+  Rechteck auf weissem Grund -> plausibler Vorschlag; durchgehend leeres
+  Bild -> `null`). Kein Test mit echten Fotos in diesem Batch.
+- Volle Suite (10 Stufen, 43 Browserpruefungen, davon 1 neu) danach gruen.
+  Huellenversion neu berechnet (e9753b03a535 -> 65fd89b2d544).
+- Nicht verifiziert: echte fotografierte Dokumente unter realem Licht mit
+  Schatten, gemustertem Hintergrund oder Textur - nur mit einem
+  synthetischen Testbild geprueft. Kein Live-Kamera-Overlay in diesem
+  Batch (bewusste Abweichung/Praezisierung der urspruenglichen
+  Phase-4-Beschreibung, siehe ADR 0005). Keine "Goldstandard"- oder
+  Paritaets-Aussage vor Geraeteverifikation.
+- Naechster Schritt: echte Geraeteverifikation der bisherigen
+  Scanner-Phasen (Kamera, Bildmodus, Regler, Randvorschlag) auf einem
+  realen Telefon, oder Meilenstein C (Virtualisierung fuer grosse Archive)
+  gemaess Prioritaetsreihenfolge.
+- Version: 0.6.2 -> 0.7.0 (MINOR: neue, sichtbare Nutzerfaehigkeit).

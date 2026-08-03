@@ -352,6 +352,17 @@
       // zugeschnitten ist. Er startet deshalb immer bei ganz, nicht beim
       // vorherigen Zuschnitt - der steckt bereits im Bild.
       this.setState(st => ({ scan: { ...st.scan, schritt: 'zuschnitt', zId: id, zRect: { x0: 0, y0: 0, x1: 1, y1: 1 } } }));
+      // Automatischer Vorschlag als *Zusatz*, nicht als Ersatz: kommt er
+      // rechtzeitig zurueck und der Zuschnitt-Bildschirm ist noch derselben
+      // Seite geoeffnet, ersetzt er den vollen Rahmen. Jederzeit per "Ganz"
+      // wieder aufhebbar (siehe zZuruecksetzen in der Vorlage), also nie eine
+      // Sackgasse (ADR 0005, Phase 4).
+      global.DWScan.randSchaetzen(sei.datei).then(r => {
+        if (!r) return;
+        this.setState(st => (st.scan && st.scan.zId === id
+          ? { scan: { ...st.scan, zRect: r } }
+          : {}));
+      }).catch(() => { /* Heuristik optional, kein harter Fehler */ });
     },
 
     // Welcher Griff gerade gefasst ist, steht als this.zGriff neben dem Zustand

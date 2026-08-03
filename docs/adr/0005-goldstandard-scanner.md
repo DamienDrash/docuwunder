@@ -158,3 +158,55 @@ Getestet mit einem neuen Browser-Test ("Bildmodus wirkt auf den Scan").
 Nicht verifiziert: reale Unschaerfe-Erkennung mit echten verwackelten Fotos
 (nur mit synthetischen Testbildern geprueft) - das bleibt Teil der spaeteren
 Geraeteverifikationsrunde.
+
+
+## Nachtrag: Teilumsetzung Phase 4 - Randvorschlag im Zuschnitt (2026-08-03)
+
+Umgesetzt ist ein erster, bewusst kleiner Schritt in Richtung Phase 4: eine
+automatische Randerkennung als *Startvorschlag* fuer den bestehenden
+manuellen Zuschnitt-Rahmen, nicht das in der Ursprungsplanung beschriebene
+Echtzeit-Overlay mit gruenem Viereck waehrend der Live-Vorschau. Bewusste
+Abweichung/Praezisierung:
+
+- `scan.js: randSchaetzen` schaetzt ein **achsenparalleles Rechteck**
+  (kein perspektivisches Viereck) ueber ein 1D-Gradientenprofil auf einem
+  auf 260px verkleinerten Graustufenbild: Summe der Helligkeitsspruenge je
+  Zeile/Spalte, die Aussenraender mit geringem Wert werden abgeschnitten.
+  Reines Canvas/JS, keine externe CV-Bibliothek - wie in der ADR als
+  bevorzugter Weg vor OpenCV.js vorgemerkt.
+- Liefert `null`, wenn kein plausibler Rand gefunden wird (Vorschlag waere
+  fast das ganze Bild oder ein winziger Fleck) - der Aufrufer faellt dann
+  auf den vollen Rahmen zurueck. Bewusst konservativ: ein falscher
+  Vorschlag, der Dokumentinhalt abschneidet, waere schlechter als gar
+  keiner.
+- `erfassen.js: scanZuschnittOeffnen` startet weiterhin sofort mit dem
+  vollen Rahmen (damit der Zuschnitt-Bildschirm nie leer/verzoegert
+  aufgeht) und ersetzt ihn asynchron durch den Vorschlag, sobald er
+  vorliegt und derselbe Zuschnitt-Dialog noch offen ist. "Ganz" (voller
+  Rahmen) bleibt jederzeit ein Klick entfernt - keine Sackgasse.
+- Kein Live-Kamera-Overlay, keine Eckenerkennung/Perspektivkorrektur, keine
+  automatische Anwendung ohne Bestaetigung durch "Übernehmen" - das bleibt
+  fuer eine spaetere Ausbaustufe von Phase 4/5 offen, falls der Bedarf nach
+  echter Geraeteverifikation Live-Overlay als notwendig zeigt.
+
+Getestet mit einem neuen Browser-Test ("Randerkennung schlaegt Zuschnitt
+vor"): ein synthetisches Bild mit eindeutigem Rechteck liefert einen
+plausiblen Vorschlag, ein durchgehend leeres Bild liefert bewusst `null`.
+Volle Suite (10 Stufen, 43 Browserpruefungen, davon 1 neu) danach gruen.
+Huellenversion neu berechnet (e9753b03a535 -> 65fd89b2d544).
+
+Nicht verifiziert: echte fotografierte Dokumente unter realem Licht mit
+Schatten, gemustertem Hintergrund oder mehreren Kontrastkanten - die
+Heuristik wurde nur mit einem synthetischen Testbild geprueft. Keine
+"Goldstandard"- oder Paritaets-Aussage vor Geraeteverifikation.
+
+Naechster Schritt: entweder echte Geraeteverifikation der bisherigen
+Scanner-Phasen (Kamera, Bildmodus, Regler, Randvorschlag) auf einem realen
+Telefon, oder Fortsetzung mit Meilenstein C (Virtualisierung fuer grosse
+Archive) gemaess Prioritaetsreihenfolge - da Phase 4 bewusst nur teilweise
+umgesetzt wurde (kein Live-Overlay), bleibt der Rest von Phase 4/5 als
+offener Punkt in dieser ADR stehen statt als "erledigt" markiert zu werden.
+
+Version: 0.6.2 -> 0.7.0 (MINOR: neue, sichtbare Nutzerfaehigkeit - der
+Zuschnitt-Rahmen startet jetzt mit einem automatischen Vorschlag statt
+immer beim vollen Bildrand).

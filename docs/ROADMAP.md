@@ -732,3 +732,25 @@ Unit-Tests machen die Lage nur schlechter.
   Meilenstein C (Virtualisierung fuer grosse Archive) gemaess
   Prioritaetsreihenfolge.
 - Version: 0.6.1 -> 0.6.2 (PATCH).
+
+
+## Goldstandard-Scanner, Randvorschlag beim Zuschnitt (2026-08-03)
+
+- Teilumsetzung von ADR-0005-Phase 4: `scan.js: randSchaetzen` schaetzt ein
+  achsenparalleles Rechteck um das Dokument (Gradientenprofil auf
+  verkleinertem Graustufenbild, keine externe CV-Bibliothek). Der
+  Zuschnitt-Bildschirm startet weiterhin sofort mit dem vollen Rahmen und
+  ersetzt ihn asynchron durch den Vorschlag, sobald er vorliegt - "Ganz"
+  bleibt jederzeit erreichbar. Details und bewusste Abweichungen von der
+  urspruenglichen Phase-4-Beschreibung (kein Live-Overlay, kein
+  perspektivisches Viereck): docs/adr/0005-goldstandard-scanner.md.
+- Ein neuer Browser-Test ("Randerkennung schlaegt Zuschnitt vor") prueft
+  Fund und Nicht-Fund an synthetischen Bildern. Volle Suite (10 Stufen, 43
+  Browserpruefungen, davon 1 neu) danach gruen. Huellenversion neu
+  berechnet.
+- Nicht verifiziert: echte fotografierte Dokumente unter realem Licht.
+  Keine "Goldstandard"- oder Paritaets-Aussage vor Geraeteverifikation.
+- Naechster Schritt: echte Geraeteverifikation der bisherigen
+  Scanner-Phasen oder Meilenstein C (Virtualisierung fuer grosse Archive)
+  gemaess Prioritaetsreihenfolge.
+- Version: 0.6.2 -> 0.7.0 (MINOR).

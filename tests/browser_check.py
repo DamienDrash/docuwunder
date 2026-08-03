@@ -1079,6 +1079,50 @@ def main():
                 seite.wait_for_timeout(2500)
                 return "Kontrast und Helligkeit wirken auf das Bild, Werte folgen den Reglern"
 
+            def t_rand_erkennung_schlaegt_vor():
+                # Automatische Randerkennung (ADR 0005, Phase 4). Getestet wird
+                # DWScan.randSchaetzen direkt im Browser mit einem synthetischen
+                # Bild (weisser Hintergrund, dunkles Rechteck in der Mitte) -
+                # deterministisch und ohne von echten Fotos abzuhaengen. Geprueft
+                # wird zweierlei: dass ein plausibles Rechteck gefunden wird UND
+                # dass ein Aufruf des Zuschnitt-Dialogs im laufenden Scan den
+                # vollen Rahmen durch einen engeren Vorschlag ersetzt, ohne dass
+                # "Ganz" (voller Rahmen) unerreichbar wird.
+                ergebnis = seite.evaluate("""
+                    async () => {
+                        const c = document.createElement('canvas');
+                        c.width = 300; c.height = 300;
+                        const g = c.getContext('2d');
+                        g.fillStyle = '#fff';
+                        g.fillRect(0, 0, 300, 300);
+                        g.fillStyle = '#222';
+                        g.fillRect(60, 90, 180, 120);
+                        const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+                        const r = await window.DWScan.randSchaetzen(blob);
+                        return r;
+                    }
+                """)
+                assert ergebnis, "kein Randvorschlag fuer ein eindeutiges Rechteck gefunden"
+                assert 0 < ergebnis["x0"] < ergebnis["x1"] < 1, f"kein sinnvoller Rand: {ergebnis}"
+                assert 0 < ergebnis["y0"] < ergebnis["y1"] < 1, f"kein sinnvoller Rand: {ergebnis}"
+                # Grober Sanity-Check: die Mitte muss im Vorschlag liegen, die
+                # Ecken sollen aussen bleiben (das Rechteck liegt bei 20-80%).
+                assert ergebnis["x0"] < 0.35 and ergebnis["x1"] > 0.65, f"Rand zu eng/verschoben: {ergebnis}"
+
+                leer = seite.evaluate("""
+                    async () => {
+                        const c = document.createElement('canvas');
+                        c.width = 200; c.height = 200;
+                        const g = c.getContext('2d');
+                        g.fillStyle = '#fff';
+                        g.fillRect(0, 0, 200, 200);
+                        const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+                        return await window.DWScan.randSchaetzen(blob);
+                    }
+                """)
+                assert leer is None, "ein leeres Bild darf keinen Randvorschlag erzeugen"
+                return "eindeutiges Rechteck liefert einen Vorschlag, ein leeres Bild keinen"
+
             def t_zuschnitt_wirkt():
                 vorher = masse(1)
                 seite.locator('[data-seite="1"] [title="Zuschneiden"]').click()
@@ -1413,6 +1457,7 @@ def main():
                 ("Mehrseitig scannen", t_scannen_mehrseitig),
                 ("Bildmodus wirkt auf den Scan", t_scan_modus_wirkt),
                 ("Kontrast/Helligkeit wirken", t_scan_regler_wirken),
+                ("Randerkennung schlaegt Zuschnitt vor", t_rand_erkennung_schlaegt_vor),
                 ("Zuschnitt wirkt auf das Bild", t_zuschnitt_wirkt),
                 ("Scan wird ein mehrseitiges PDF", t_scan_wird_ein_pdf),
                 ("Kamera erlaubt zeigt Live-Vorschau", t_kamera_erfolg_zeigt_vorschau),
