@@ -1025,6 +1025,26 @@ def main():
                 assert masse(1) == zweite, "die falsche Seite entfernt"
                 return "aufnehmen, drehen, ordnen, entfernen"
 
+            def t_scan_modus_wirkt():
+                # Bildmodus (Original/Graustufe) gilt fuer den ganzen Scan
+                # (ADR 0005, Phase 3). Die Seite muss dabei ihre Bildquelle
+                # tatsaechlich wechseln (echte Pixelrechnung, kein CSS-Filter)
+                # und darf nicht verschwinden.
+                vorher_src = seite.locator('[data-seite="1"] img').get_attribute("src")
+                seite.locator('text="Graustufe"').click()
+                seite.wait_for_timeout(2500)
+                assert seite.locator('text="Graustufe"').get_attribute("aria-pressed") == "true", \
+                    "Graustufe nicht als gewaehlt markiert"
+                nachher_src = seite.locator('[data-seite="1"] img').get_attribute("src")
+                assert nachher_src and nachher_src != vorher_src, "Bild hat sich nicht neu gerendert"
+                assert seite.locator("[data-seite]").count() == 1, "Seite ging beim Moduswechsel verloren"
+                # Zurueck auf Original, damit die folgenden Pruefungen (Zuschnitt,
+                # Massvergleich) vom bekannten Ausgangszustand ausgehen koennen.
+                seite.locator('text="Original"').click()
+                seite.wait_for_timeout(2500)
+                assert seite.locator('text="Original"').get_attribute("aria-pressed") == "true"
+                return "Graustufe faerbt um, Original stellt zurueck, keine Seite verloren"
+
             def t_zuschnitt_wirkt():
                 vorher = masse(1)
                 seite.locator('[data-seite="1"] [title="Zuschneiden"]').click()
@@ -1357,6 +1377,7 @@ def main():
                 ("Die Wege sind verschieden", t_die_wege_sind_verschieden),
                 ("Gewaehlte Datei kommt an", t_datei_kommt_beim_server_an),
                 ("Mehrseitig scannen", t_scannen_mehrseitig),
+                ("Bildmodus wirkt auf den Scan", t_scan_modus_wirkt),
                 ("Zuschnitt wirkt auf das Bild", t_zuschnitt_wirkt),
                 ("Scan wird ein mehrseitiges PDF", t_scan_wird_ein_pdf),
                 ("Kamera erlaubt zeigt Live-Vorschau", t_kamera_erfolg_zeigt_vorschau),

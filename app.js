@@ -2076,6 +2076,11 @@ class Oberflaeche extends React.Component {
       scanLeer: !!(s.scan && !s.scan.seiten.length && !s.scan.busy),
       scanHasPages: !!(s.scan && s.scan.seiten.length),
       addPage: () => this.scanAufnehmen(),
+      // Modus (Original/Graustufe) gilt fuer den gesamten Scan, nicht pro
+      // Seite - passend zum Filter-Umschalter aus dem Swift-Paperless-
+      // Referenzvergleich (ADR 0005, Phase 3).
+      scanModus: s.scan ? (s.scan.modus || 'original') : 'original',
+      scanModusSetzen: (m) => this.scanModusSetzen(m),
       scanPagesArr: (s.scan ? s.scan.seiten : []).map((sei, i, alle) => ({
         id: sei.id, nr: String(i + 1), url: sei.url, busy: !!sei.busy,
         del: () => this.scanEntfernen(sei.id),

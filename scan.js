@@ -130,14 +130,25 @@
   var GUETE = 0.82;
 
   // Ein aufgenommenes Foto zu einer Seite machen: drehen, zuschneiden,
-  // verkleinern, als JPEG zurueck.
+  // verkleinern, verstaerken, als JPEG zurueck.
   //
   // zuschnitt ist in Anteilen der Bildkante angegeben (0 bis 1), nicht in
   // Pixeln - so ueberlebt er das Verkleinern und das Drehen.
+  //
+  // opt.modus: 'original' (Voreinstellung, keine Pixelaenderung) oder 'grau'
+  //   (Graustufe - echte Pixelrechnung, kein CSS-Filter, damit der spaeter
+  //   erzeugte JPEG-Bytestrom die Aenderung tatsaechlich enthaelt).
+  // opt.kontrast: Faktor, 1 = unveraendert (wie CSS contrast(), aber echt
+  //   auf den Pixeldaten gerechnet).
+  // opt.helligkeit: additiver Versatz auf 0..255, 0 = unveraendert.
   function seiteAus(quelle, opt) {
     opt = opt || {};
     var dreh = ((opt.dreh || 0) % 360 + 360) % 360;
     var z = opt.zuschnitt;
+    var modus = opt.modus || 'original';
+    var kontrast = typeof opt.kontrast === 'number' ? opt.kontrast : 1;
+    var helligkeit = typeof opt.helligkeit === 'number' ? opt.helligkeit : 0;
+    var verstaerkt = modus === 'grau' || kontrast !== 1 || helligkeit !== 0;
 
     return Promise.resolve(
       quelle instanceof global.ImageBitmap ? quelle
@@ -171,6 +182,32 @@
         -(quer ? zh : zb) / 2, -(quer ? zb : zh) / 2,
         quer ? zh : zb, quer ? zb : zh);
 
+      // Bildverstaerkung: ein einziger Pixel-Durchlauf statt mehrerer, damit
+      // eine zehnseitige Aufnahme auf einem Telefon nicht spuerbar wird.
+      // getImageData/putImageData sind synchron - fuer MAX_KANTE=2200 bleibt
+      // das im Rahmen (< 5 Megapixel).
+      if (verstaerkt) {
+        var bd = g.getImageData(0, 0, zb, zh);
+        var px = bd.data;
+        for (var i = 0; i < px.length; i += 4) {
+          var r = px[i], gr = px[i + 1], b = px[i + 2];
+          if (modus === 'grau') {
+            var y = 0.299 * r + 0.587 * gr + 0.114 * b;
+            r = gr = b = y;
+          }
+          if (kontrast !== 1) {
+            r = (r - 128) * kontrast + 128;
+            gr = (gr - 128) * kontrast + 128;
+            b = (b - 128) * kontrast + 128;
+          }
+          if (helligkeit) { r += helligkeit; gr += helligkeit; b += helligkeit; }
+          px[i] = r < 0 ? 0 : (r > 255 ? 255 : r);
+          px[i + 1] = gr < 0 ? 0 : (gr > 255 ? 255 : gr);
+          px[i + 2] = b < 0 ? 0 : (b > 255 ? 255 : b);
+        }
+        g.putImageData(bd, 0, 0);
+      }
+
       return new Promise(function (fertig, fehler) {
         c.toBlob(function (blob) {
           if (!blob) { fehler(new Error('Das Bild liess sich nicht umwandeln.')); return; }
@@ -182,6 +219,49 @@
     });
   }
 
+  // Grobe Unschaerfe-Schaetzung ueber die Varianz eines vereinfachten
+  // Laplace-Filters auf einem verkleinerten Graustufenbild. Kein echtes
+  // Kantenerkennungsverfahren (das kommt erst in ADR-0005-Phase 4), nur eine
+  // billige Heuristik: ein scharfes Bild hat viele starke lokale Kontraste,
+  // ein verwackeltes/unscharfes Bild ist lokal gleichfoermig grau.
+  //
+  // Rueckgabewert ist ein roher Varianzwert ohne festgelegte Einheit -
+  // gedacht zum Vergleich gegen SCHAERFE_SCHWELLE, nicht als absolute Zahl.
+  var SCHAERFE_SCHWELLE = 55;
+
+  function schaerfeMass(quelle) {
+    return Promise.resolve(
+      quelle instanceof global.ImageBitmap ? quelle
+        : global.createImageBitmap(quelle, { imageOrientation: 'from-image' })
+    ).then(function (bild) {
+      // Herunterskalieren spart Rechenzeit und daempft Rauschen, das sonst
+      // als falsche Schaerfe zaehlen wuerde.
+      var kante = 320;
+      var f = Math.min(1, kante / Math.max(bild.width, bild.height));
+      var w = Math.max(3, Math.round(bild.width * f)), h = Math.max(3, Math.round(bild.height * f));
+      var c = global.document.createElement('canvas');
+      c.width = w; c.height = h;
+      var g = c.getContext('2d');
+      g.drawImage(bild, 0, 0, w, h);
+      var px = g.getImageData(0, 0, w, h).data;
+      var grau = new Float32Array(w * h);
+      for (var i = 0, j = 0; i < px.length; i += 4, j++) {
+        grau[j] = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+      }
+      var summe = 0, summeQ = 0, n = 0;
+      for (var y = 1; y < h - 1; y++) {
+        for (var x = 1; x < w - 1; x++) {
+          var idx = y * w + x;
+          var lap = 4 * grau[idx] - grau[idx - 1] - grau[idx + 1] - grau[idx - w] - grau[idx + w];
+          summe += lap; summeQ += lap * lap; n++;
+        }
+      }
+      if (!n) return 0;
+      var mittel = summe / n;
+      return summeQ / n - mittel * mittel;
+    });
+  }
+
   function datei(seiten, name) {
     return new global.File([pdf(seiten)], name || 'Scan.pdf', { type: 'application/pdf' });
   }
@@ -189,6 +269,8 @@
   global.DWScan = {
     pdf: pdf,
     seiteAus: seiteAus,
+    schaerfeMass: schaerfeMass,
+    SCHAERFE_SCHWELLE: SCHAERFE_SCHWELLE,
     datei: datei,
     MAX_KANTE: MAX_KANTE,
   };

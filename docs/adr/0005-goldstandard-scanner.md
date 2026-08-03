@@ -131,3 +131,30 @@ Wie geplant implementiert, keine Abweichung vom Entwurf:
 - Kein Auto-Capture, keine Kantenerkennung, keine Bildverstaerkung in dieser
   Phase - wie geplant. Kein reales Geraet getestet - "Goldstandard" oder
   "Swift-Paperless-Paritaet" bleiben bis zur Geraeteverifikation unbelegt.
+
+
+## Nachtrag: Umsetzung Phase 3 (2026-08-03)
+
+Wie geplant implementiert, mit einer bewussten Abweichung: Kontrast/
+Helligkeit sind in `scan.js: seiteAus` als Parameter vorbereitet (echte
+Pixelrechnung), bekommen aber noch kein eigenes UI-Element - ein Regler ohne
+sinnvoll erprobte Wertebereiche waere schlechter als gar keiner. Umgesetzt und
+sichtbar ist der Modus-Umschalter Original/Graustufe (`erfassen.js:
+scanModusSetzen`, `scan.js: seiteAus` mit `opt.modus`), der fuer den gesamten
+Scan gilt und bei jedem Wechsel alle Seiten aus ihrem unveraenderten Original
+neu rendert - nichts geht verloren.
+
+Die Schatten-/Hintergrundbereinigung aus der urspruenglichen Phase-3-
+Beschreibung ist noch offen; sie braucht mehr als einen einfachen Pixel-
+Durchlauf (lokale Adaptivschwelle statt globaler Kontrast) und wurde bewusst
+zurueckgestellt, um keine grobe/haessliche erste Fassung zu verspielen.
+
+Neu: `scan.js: schaerfeMass` schaetzt Unschaerfe ueber die Varianz eines
+vereinfachten Laplace-Filters auf einem verkleinerten Graustufenbild - eine
+billige Heuristik ohne echte Kantenerkennung (die kommt erst in Phase 4).
+Nicht blockierend, nur ein Hinweis-Toast.
+
+Getestet mit einem neuen Browser-Test ("Bildmodus wirkt auf den Scan").
+Nicht verifiziert: reale Unschaerfe-Erkennung mit echten verwackelten Fotos
+(nur mit synthetischen Testbildern geprueft) - das bleibt Teil der spaeteren
+Geraeteverifikationsrunde.

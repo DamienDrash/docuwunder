@@ -684,3 +684,19 @@ Unit-Tests machen die Lage nur schlechter.
   (Kantenerkennung/Overlay) - Reihenfolge noch offen, beide bauen nicht
   zwingend aufeinander auf.
 - Version: 0.4.2 -> 0.5.0 (MINOR: erste real nutzbare Kamera-Faehigkeit).
+
+
+## Goldstandard-Scanner, Phase 3 (2026-08-03) - Bildverstaerkung
+
+- Modus-Umschalter Original/Graustufe fuer den gesamten Scan, echte
+  Pixelrechnung statt CSS-Filter (siehe docs/AUDIT.md fuer Details).
+  Kontrast/Helligkeit in `scan.js: seiteAus` bereits als Parameter
+  vorbereitet, noch ohne eigenes UI-Element.
+- Nicht blockierende Unschaerfe-Heuristik nach jeder Aufnahme (vereinfachter
+  Laplace-Filter, Hinweis-Toast statt Verbot).
+- Ein neuer Browser-Test, volle Suite danach gruen (10 Stufen, 41
+  Browserpruefungen). Huellenversion neu berechnet.
+- Naechster Schritt: ADR-0005-Phase 4 (Kantenerkennung/Overlay) oder
+  Kontrast/Helligkeit-UI, danach weiterhin Meilenstein C (Virtualisierung)
+  und Meilenstein D (Release-Dokumentation) gemaess Prioritaetsreihenfolge.
+- Version: 0.5.0 -> 0.6.0 (MINOR).

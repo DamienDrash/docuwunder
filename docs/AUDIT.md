@@ -713,3 +713,40 @@ näher.
   (Bildverstaerkung) bzw. Phase 4 (Kantenerkennung/Overlay).
 - Version: 0.4.2 -> 0.5.0 (MINOR: erste sichtbare, echt nutzbare Kamera-Faehigkeit,
   kein Verhaltensbruch am bestehenden Dateidialog-Weg).
+
+
+## Goldstandard-Scanner, Phase 3 (2026-08-03) - Bildverstaerkung
+
+- Umgesetzt gemaess ADR 0005, Phase 3: Modus-Umschalter Original/Graustufe
+  fuer den gesamten Scan (`erfassen.js: scanModusSetzen`), echte Pixelrechnung
+  in `scan.js: seiteAus` (kein CSS-Filter - der Modus wirkt auf den JPEG-
+  Bytestrom, der spaeter im PDF landet). Kontrast/Helligkeit sind als Parameter
+  in `seiteAus` bereits vorbereitet (0..255-Versatz bzw. Faktor um 128), aber
+  noch ohne eigenes UI-Element - kein totes UI, aber auch keine verfrueht
+  gebaute Bedienflaeche ohne Anschluss.
+- Unschaerfe-Heuristik `scan.js: schaerfeMass` (vereinfachter Laplace-Filter
+  auf einem auf 320px verkleinerten Graustufenbild, Varianz als Mass). Nicht
+  blockierend: nach jeder Aufnahme laeuft die Pruefung im Hintergrund und
+  zeigt bei Unterschreiten von `SCHAERFE_SCHWELLE=55` einen Hinweis-Toast
+  ("Seite N wirkt unscharf. Nochmal aufnehmen?"). Kein hartes Verbot, keine
+  Blockade des Workflows - die Heuristik ist grob und darf keine gute
+  Aufnahme verhindern.
+- Alle bereits aufgenommenen Seiten werden beim Moduswechsel neu aus dem
+  unveraenderten Original gerendert (dieselbe scanRendern-Pipeline wie bei
+  Drehen/Zuschnitt) - der Wechsel ist jederzeit umkehrbar, nichts geht
+  verloren.
+- Ein neuer Browser-Test ("Bildmodus wirkt auf den Scan") prueft: Umschalten
+  faerbt tatsaechlich um (Bild-URL aendert sich, nicht nur der Knopfzustand),
+  `aria-pressed` spiegelt die Auswahl, keine Seite geht beim Wechsel verloren,
+  Zuruecksetzen auf Original funktioniert.
+- Volle Suite (10 Stufen, 41 Browserpruefungen, davon 1 neu) danach gruen.
+  Huellenversion neu berechnet (2affe07765ba -> 9e5b340e3e39).
+- Nicht verifiziert: echtes Kameragerat, reale Bildqualitaet unter echtem
+  Licht (die Unschaerfe-Heuristik wurde nur mit synthetischen Testbildern
+  geprueft, nicht mit echten verwackelten Fotos). Keine "Goldstandard"- oder
+  Paritaets-Aussage vor Geraeteverifikation.
+- Naechster Schritt: ADR-0005-Phase 4 (Kantenerkennung/Overlay) oder ein
+  eigenes Kontrast/Helligkeit-UI-Element (der Rechenweg in scan.js steht
+  bereits) - Reihenfolge noch offen.
+- Version: 0.5.0 -> 0.6.0 (MINOR: neues, sichtbares Nutzerverhalten -
+  Bildmodus-Umschalter und Unschaerfe-Hinweis).

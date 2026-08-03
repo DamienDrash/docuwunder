@@ -39,6 +39,9 @@
     </div>` : null}
 
   ${v.scanSeiten && !v.scanKameraOn ? html`<div style=${stil('flex:1;overflow-y:auto;padding:16px 20px;width:100%;max-width:840px;margin:0 auto')}>
+      ${v.scanHasPages ? html`<div role="group" aria-label="Bildmodus" style=${stil('display:flex;gap:8px;margin-bottom:14px')}>
+        ${[['original', 'Original'], ['grau', 'Graustufe']].map((m) => html`<button key=${m[0]} type="button" aria-pressed=${v.scanModus === m[0]} onClick=${() => v.scanModusSetzen(m[0])} style=${stil(S.buttonReset + 'flex:1;height:38px;border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;' + (v.scanModus === m[0] ? 'background:var(--acc);color:var(--onAcc)' : 'background:rgba(120,120,128,0.24);color:#fff'))}>${m[1]}</button>`)}
+      </div>` : null}
       ${v.scanLeer ? html`<div style=${stil('text-align:center;padding:50px 20px 30px;font-size:14.5px;color:rgba(235,235,245,0.55);line-height:1.6')}>Noch keine Seite aufgenommen.</div>` : null}
       ${''/* auto-fill statt drei fester Spalten: auf dem Telefon ergibt das
            dieselben drei, auf einem breiten Fenster mehr - statt drei

@@ -77,7 +77,11 @@
     // der Aufruf fehl, faellt scanKameraFehler auf denselben Dateidialog
     // zurueck. Der Dateidialog bleibt so in jedem Fall erreichbar.
     scanOeffnen() {
-      this.setState({ sheet: null, scan: { schritt: 'seiten', seiten: [], zId: null, zRect: null, busy: false } });
+      // modus/kontrast gelten fuer den ganzen Scan, nicht pro Seite - wie
+      // bei Swift Paperless. 'original' aendert kein Pixel; Aenderungen sind
+      // jederzeit umkehrbar, weil scanRendern immer vom unveraenderten
+      // Original (sei.quelle) neu rechnet.
+      this.setState({ sheet: null, scan: { schritt: 'seiten', seiten: [], zId: null, zRect: null, busy: false, modus: 'original' } });
       if (global.DWLogik.kameraNutzbar(global.navigator, global)) {
         this.scanKameraOeffnen();
       } else {
@@ -207,11 +211,22 @@
     },
 
     scanAufnahmen(dateien) {
-      this.setState(st => ({ scan: { ...(st.scan || { schritt: 'seiten', seiten: [] }), busy: true } }));
+      this.setState(st => ({ scan: { ...(st.scan || { schritt: 'seiten', seiten: [], modus: 'original' }), busy: true } }));
       const neue = dateien.map(d => ({ id: 's' + (this.scanZaehler = (this.scanZaehler || 0) + 1), datei: d, dreh: 0, zuschnitt: null }));
-      return Promise.all(neue.map(sei => this.scanRendern(sei)))
+      const modus = (this.state.scan && this.state.scan.modus) || 'original';
+      return Promise.all(neue.map(sei => this.scanRendern(sei, modus)))
         .then(fertig => {
           this.setState(st => (st.scan ? { scan: { ...st.scan, seiten: [...st.scan.seiten, ...fertig], busy: false } } : {}));
+          // Unschaerfe-Hinweis je Aufnahme, nicht blockierend: eine grobe
+          // Heuristik soll nie eine gute Aufnahme verhindern, nur auf eine
+          // schlechte hinweisen (siehe ADR 0005, Phase 3).
+          fertig.forEach(sei => {
+            global.DWScan.schaerfeMass(sei.datei).then(mass => {
+              if (mass < global.DWScan.SCHAERFE_SCHWELLE) {
+                this.note('Seite ' + (this.scanSeitenNr(sei.id)) + ' wirkt unscharf. Nochmal aufnehmen?');
+              }
+            }).catch(() => { /* Heuristik optional, kein harter Fehler */ });
+          });
         })
         .catch(e => {
           this.setState(st => (st.scan ? { scan: { ...st.scan, busy: false } } : {}));
@@ -219,10 +234,17 @@
         });
     },
 
+    scanSeitenNr(id) {
+      const liste = (this.state.scan && this.state.scan.seiten) || [];
+      const i = liste.findIndex(x => x.id === id);
+      return i >= 0 ? i + 1 : '?';
+    },
+
     // Drehung und Zuschnitt auf das Original anwenden und daraus das Bild
     // machen, das spaeter im PDF landet.
-    scanRendern(sei) {
-      return global.DWScan.seiteAus(sei.datei, { dreh: sei.dreh, zuschnitt: sei.zuschnitt })
+    scanRendern(sei, modus) {
+      const m = modus || (this.state.scan && this.state.scan.modus) || 'original';
+      return global.DWScan.seiteAus(sei.datei, { dreh: sei.dreh, zuschnitt: sei.zuschnitt, modus: m })
         .then(erg => {
           if (sei.url) URL.revokeObjectURL(sei.url);
           return { ...sei, jpeg: erg.jpeg, breite: erg.breite, hoehe: erg.hoehe, url: URL.createObjectURL(erg.blob) };
@@ -245,6 +267,22 @@
     },
 
     scanDrehen(id) { this.scanErsetzen(id, sei => ({ ...sei, dreh: (sei.dreh + 90) % 360 })); },
+
+    // Modus (Original/Graustufe) fuer den gesamten Scan umschalten. Alle
+    // bereits aufgenommenen Seiten werden neu aus ihrem unveraenderten
+    // Original gerendert - nichts geht verloren, der Wechsel ist umkehrbar.
+    scanModusSetzen(modus) {
+      this.setState(st => (st.scan ? { scan: { ...st.scan, modus: modus } } : {}));
+      const seiten = (this.state.scan && this.state.scan.seiten) || [];
+      seiten.forEach(sei => {
+        this.setState(st => ({ scan: { ...st.scan, seiten: st.scan.seiten.map(x => x.id === sei.id ? { ...x, busy: true } : x) } }));
+        this.scanRendern(sei, modus)
+          .then(fertig => this.setState(st => (st.scan
+            ? { scan: { ...st.scan, seiten: st.scan.seiten.map(x => x.id === sei.id ? { ...fertig, busy: false } : x) } }
+            : {})))
+          .catch(e => this.setState(st => (st.scan ? { scan: { ...st.scan, seiten: st.scan.seiten.map(x => x.id === sei.id ? { ...x, busy: false } : x) } } : {})));
+      });
+    },
 
     scanEntfernen(id) {
       this.setState(st => {
