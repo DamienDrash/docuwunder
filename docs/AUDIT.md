@@ -950,3 +950,12 @@ näher.
 - Verifikation: isoliert `python3 tests/api_check.py` gruen (24/24), danach volle Suite `python3 tests/run_e2e.py` gruen (11 Stufen). Browser-Proxy meldet weiterhin harmlose `BrokenPipeError`-Tracebacks durch vom Browser abgebrochene Weiterleitungen; die Browserpruefung selbst meldet keine Konsolenfehler.
 - Produktionsreife-Score bleibt bei 56 %, weil kein Nutzerverhalten und keine neue Produktfaehigkeit hinzugekommen ist; die Backend-Integrationspruefung ist aber weniger flatterhaft.
 - Version: 0.8.2 -> 0.8.3 (PATCH: Test-/Integrationsstabilitaet, kein API-/Datenmodellwechsel).
+
+## Teststabilitaet, Browser-Proxy ohne BrokenPipe-Rauschen (2026-08-04)
+
+- `tests/browser_check.py` behandelt vom Browser abgebrochene Proxy-Antworten (`BrokenPipeError`/`ConnectionResetError`) jetzt als erwartbares Transportereignis statt als Python-Traceback. Die Browserpruefung war vorher fachlich gruen, die komplette Suite enthielt aber unerwartetes Log-Rauschen; das erschwerte echte Fehler von harmlosen Navigationsabbruechen zu unterscheiden.
+- Keine Produktlogik geaendert, kein Test abgeschwaecht: die HTTP-Antwort wird weiterhin normal geschrieben, nur ein abgebrochener Client wird sauber ignoriert.
+- Verifikation: isoliert `python3 tests/browser_check.py` gruen (43/43) ohne BrokenPipe-Tracebacks; danach volle Suite `python3 tests/run_e2e.py` gruen (11 Stufen).
+- Produktionsreife-Score bleibt bei 56 %, weil nur die Testsignalqualitaet verbessert wurde.
+- Version: 0.8.3 -> 0.8.4 (PATCH: Test-/Integrationsstabilitaet, kein Nutzerverhalten).
+

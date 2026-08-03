@@ -79,7 +79,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header(k, v)
         self.send_header("Content-Length", str(len(daten)))
         self.end_headers()
-        self.wfile.write(daten)
+        try:
+            self.wfile.write(daten)
+        except (BrokenPipeError, ConnectionResetError):
+            # Browser brechen Proxy-Antworten gelegentlich ab (z.B. beim
+            # Navigieren oder beim Austausch der Service-Worker-Huelle). Das
+            # ist kein Produktfehler und soll die Testausgabe nicht mit
+            # Tracebacks verrauschen.
+            return
 
     def _datei(self):
         rel = self.path[len("/paperless-app/"):].split("?")[0] or "index.html"
@@ -102,7 +109,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if ziel.name == "sw.js":
             self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
         self.end_headers()
-        self.wfile.write(daten)
+        try:
+            self.wfile.write(daten)
+        except (BrokenPipeError, ConnectionResetError):
+            return
 
     def _route(self):
         if self.path.startswith("/paperless/"):
