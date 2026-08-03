@@ -15,7 +15,7 @@ kritisch waren — beide mit Gegenprobe, dass die Prüfung den Fehler wirklich f
 
 ## 1. Gesamtergebnis
 
-### Produktionsreife: **55 %**
+### Produktionsreife: **56 %**
 
 | Bereich | Reife | Begründung |
 |---|---:|---|
@@ -25,7 +25,7 @@ kritisch waren — beide mit Gegenprobe, dass die Prüfung den Fehler wirklich f
 | Sicherheit | 55 % | Ein XSS gefunden und behoben; keine CSP, API-Adresse ungeprüft |
 | Performance | 45 % | Harte Decke bei ~2.000 Dokumenten in einer Liste (gemessen) |
 | PWA | 75 % | Offline und Selbstaktualisierung belegt; Cache-Version von Hand |
-| **Barrierefreiheit** | **32 %** | Tableiste, Onboarding, Sperrdialog, Auswahlleiste, Ordnung, Erfassen, Dokument-Detail, Sheets und Tabs migriert (Kernnavigation vollständig, 217 Buttons gesamt). Nur `verwaltung.js` (30 klickbare div/span) und ein bewusst offener Undo-Link verbleiben. Automatisierte a11y-Baseline (`tests/a11y_check.py`) grün; manuelle Screenreader-/Tastatur-Geräteprüfung steht weiterhin aus |
+| **Barrierefreiheit** | **34 %** | Kernnavigation, Verwaltung und Scanner sind weitgehend semantisch migriert. Scanner-Zuschnittgriffe sind native, benannte Buttons; `tests/a11y_check.py` zählt jetzt auch PointerDown-Interaktionen, damit draggable Divs sichtbar bleiben. Verbleibend: Swipe-/Pull-Flächen in Dokument/Tabs, Sheet-Backdrop und Undo-Link; manuelle Screenreader-/Tastatur-Geräteprüfung steht weiterhin aus |
 | Dokumentation | 30 % | README + Roadmap; 7 von 9 geforderten Dokumenten fehlen |
 | CI/Release | 0 % | Kein `.github/`, keine `package.json`, keine Versionierung |
 | Store-Reife | 15 % | Siehe K-1 — als PWA **nicht** App-Store-fähig |
@@ -934,3 +934,11 @@ näher.
   trifft die Entscheidung aber nicht selbst.
 - Version: 0.8.0 -> 0.8.1 (PATCH: Pruefstufe erweitert, kein neues
   Nutzerverhalten).
+
+
+## Meilenstein B/Scanner, Zuschnittgriffe semantisch bedienbar (2026-08-03)
+
+- Scanner-Zuschnitt: die vier gelben Eckgriffe sind keine anonymen `div`-Handles mehr, sondern native `button type="button"` mit eindeutigen zugänglichen Namen ("Zuschnitt Ecke … verschieben"). Touch-/Pointer-Verhalten bleibt erhalten, weil `onPointerDown` und dieselbe absolute Positionierung weiter genutzt werden.
+- A11y-Leitplanke erweitert: `tests/a11y_check.py` zählt jetzt neben `onClick` auch `onPointerDown` auf `div`/`span`; dadurch werden die bewusst noch offenen Swipe-/Pull-Flächen in `tabs.js` und `dokument.js` nicht mehr übersehen. Die Baseline ist jetzt ehrlicher: 176 semantische Buttons, 7 verbleibende klick-/pointeraktive `div`/`span`.
+- Einordnung: Das ist ein kleiner, aber scanner-relevanter Barrierefreiheitsbatch. Tastaturverschiebung der Zuschnittecken selbst ist damit noch nicht fertig; dafür braucht es einen Folge-Batch mit Pfeiltasten-Handling und Fokuszustand im Zuschnittmodus.
+- Version: 0.8.1 -> 0.8.2 (PATCH: Scanner-A11y und Testleitplanke, kein API-/Datenmodellwechsel).

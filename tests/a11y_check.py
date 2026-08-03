@@ -2,8 +2,8 @@
 from pathlib import Path
 import re, sys
 ROOT=Path(__file__).resolve().parent.parent
-BASE={"vorlage/dokument.js":33,"vorlage/erfassen.js":14,"vorlage/onboarding.js":0,"vorlage/ordnung.js":0,"vorlage/sheets.js":1,"vorlage/sperre.js":0,"vorlage/tabs.js":0,"vorlage/verwaltung.js":31}
-TAG=re.compile(r"<(div|span)\b[^>`]*?\bonClick=", re.S); BTN=re.compile(r"<button\b[^>`]*?\bonClick=", re.S); NOTYPE=re.compile(r"<button\b(?![^>`]*\btype=)", re.S)
+BASE={"vorlage/dokument.js":1,"vorlage/erfassen.js":1,"vorlage/onboarding.js":0,"vorlage/ordnung.js":0,"vorlage/sheets.js":1,"vorlage/sperre.js":0,"vorlage/tabs.js":4,"vorlage/verwaltung.js":0}
+TAG=re.compile(r"<(div|span)\b[^>]*?\bon(?:Click|PointerDown)=", re.S); BTN=re.compile(r"<button\b[^>]*?\bon(?:Click|PointerDown)=", re.S); NOTYPE=re.compile(r"<button\b(?![^>`]*\btype=)", re.S)
 def main():
  print("Barrierefreiheits-Leitplanken"); err=[]; dt=bt=0
  for p in sorted((ROOT/"vorlage").glob("*.js")):

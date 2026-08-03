@@ -24,6 +24,14 @@ Sortiert nach dem, was zuerst weh tut.
 
 ---
 
+## Aktueller Fokus (2026-08-03)
+
+- ✅ Scanner-Zuschnittgriffe auf native, benannte Buttons umgestellt; Pointer-basierte A11y-Leitplanke erweitert.
+- 🟠 Nächster Scanner-A11y-Schritt: Zuschnittecken per Tastatur verschiebbar machen und Fokuszustand im Zuschnittmodus prüfen.
+- 🟠 Danach: verbleibende Pointer-Flächen (`tabs.js`, `dokument.js`) systematisch semantisch/keyboard-fähig umbauen, ohne Pull-to-refresh/Swipe zu brechen.
+
+---
+
 ## Phase 0 — Erledigt
 
 - ✅ **Keine CDN-Abhängigkeit mehr.** React, ReactDOM, Babel und die Schriften liegen unter

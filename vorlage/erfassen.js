@@ -91,7 +91,7 @@
              nach aussen: alles ausserhalb des Rahmens wird abgedunkelt, ohne
              dass vier einzelne Flaechen berechnet werden muessen. */}
         <div style=${stil(`position:absolute;left:${v.zRect.x0 * 100}%;top:${v.zRect.y0 * 100}%;width:${(v.zRect.x1 - v.zRect.x0) * 100}%;height:${(v.zRect.y1 - v.zRect.y0) * 100}%;border:2px solid #FFD60A;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);pointer-events:none`)}></div>
-        ${[['lo', v.zRect.x0, v.zRect.y0], ['ro', v.zRect.x1, v.zRect.y0], ['lu', v.zRect.x0, v.zRect.y1], ['ru', v.zRect.x1, v.zRect.y1]].map((g) => html`<div key=${g[0]} data-griff=${g[0]} onPointerDown=${v.zGriffFassen(g[0])} style=${stil(`position:absolute;left:${g[1] * 100}%;top:${g[2] * 100}%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:#FFD60A;opacity:0.92;cursor:grab;touch-action:none`)}></div>`)}
+        ${[['lo', v.zRect.x0, v.zRect.y0, 'Ecke links oben'], ['ro', v.zRect.x1, v.zRect.y0, 'Ecke rechts oben'], ['lu', v.zRect.x0, v.zRect.y1, 'Ecke links unten'], ['ru', v.zRect.x1, v.zRect.y1, 'Ecke rechts unten']].map((g) => html`<button key=${g[0]} type="button" aria-label=${'Zuschnitt ' + g[3] + ' verschieben'} data-griff=${g[0]} onPointerDown=${v.zGriffFassen(g[0])} style=${stil(S.buttonReset + `position:absolute;left:${g[1] * 100}%;top:${g[2] * 100}%;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:#FFD60A;opacity:0.92;cursor:grab;touch-action:none`)}></button>`)}
       </div>
     </div>
     <div style=${stil('display:flex;gap:10px;padding:0 20px 46px;flex-shrink:0;width:100%;max-width:840px;margin:0 auto')}>
