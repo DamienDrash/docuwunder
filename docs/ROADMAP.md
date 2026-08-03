@@ -628,3 +628,24 @@ Unit-Tests machen die Lage nur schlechter.
 - Naechster Schritt: Meilenstein C (Virtualisierung fuer grosse Archive, Performance-
   Tests 100/1000/5000/20000/50000 Dokumente) oder der Goldstandard-Scanner-Meilenstein.
 - Version: 0.3.0 -> 0.4.0 (MINOR).
+
+
+## Goldstandard-Scanner, Phase 0 (2026-08-03)
+
+- ADR 0005 (docs/adr/0005-goldstandard-scanner.md) legt die Architektur und den
+  Phasenplan fuer den Goldstandard-Scanner fest: Ist-Zustand (Datei-Dialog mit
+  capture=environment, keine eigene Kameravorschau, client-seitige Drehung/
+  Zuschnitt/PDF-Pipeline in scan.js) dokumentiert, Referenzvergleich zu Swift
+  Paperless festgehalten, sechs Phasen definiert (Live-Kamera-Huelle mit
+  Fallback -> Aufnahme/Review/Upload an bestehende Pipeline -> Bildverstaerkung
+  -> Kantenerkennung/Overlay -> Automatischer Ausloeser -> Native-Wrapper-
+  Haertung).
+- Bewusste Entscheidung: der bestehende, funktionierende Datei-Dialog-Weg
+  bleibt bis zur echten Geraeteverifikation der neuen Kette die dauerhafte
+  Fallback- und Desktop-Loesung. Keine grosse CV-Abhaengigkeit ohne
+  dokumentierten Groessen-/Lizenzvergleich.
+- Keine Codeaenderung in diesem Batch (nur ADR). Naechster Schritt: Phase 1
+  (Live-Kamera-Huelle mit robuster Fallback-Kette zu getUserMedia, manueller
+  Ausloeser, kein Auto-Capture) als eigener, testbarer Batch.
+- Version: 0.4.0 -> 0.4.1 (PATCH: Architekturentscheidung dokumentiert, kein
+  Verhaltensbruch).

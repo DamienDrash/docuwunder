@@ -634,3 +634,15 @@ näher.
 - Naechster Schritt: Meilenstein C (Virtualisierung grosser Archive) oder der
   Goldstandard-Scanner-Meilenstein; danach manuelle A11y-Geraetetests nachholen.
 - Version: 0.3.0 -> 0.4.0 (MINOR: Meilenstein B strukturell abgeschlossen).
+
+
+## Goldstandard-Scanner, Phase 0 (2026-08-03)
+
+- ADR 0005 (docs/adr/0005-goldstandard-scanner.md): Architektur-/Phasenplan fuer den
+  von Damien geforderten Goldstandard-Scanner (Ziel: mindestens Swift-Paperless-
+  Niveau). Ist-Zustand analysiert, sechs Phasen definiert, bewusste Nicht-Ziele
+  (keine grosse CV-Abhaengigkeit blind, kein Cloud-Processing, Datei-Dialog bleibt
+  Fallback bis Geraeteverifikation). Reine Dokumentation, kein Codeeingriff.
+- Version 0.4.0 -> 0.4.1 (PATCH). Produktionsreife-Score unveraendert (kein neuer
+  Code, kein neu getesteter Zustand) - naechster Batch (Phase 1: Live-Kamera-
+  Huelle mit Fallback-Kette) bringt die erste messbare Scanner-Verbesserung.
