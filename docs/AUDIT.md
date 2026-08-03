@@ -890,3 +890,47 @@ näher.
   vorhanden, die Entscheidung stand also auf Annahme statt Beleg.
 - Version: 0.7.0 -> 0.8.0 (MINOR: neue automatisierte Pruefstufe mit
   belastbarem, bislang fehlendem Leistungsbeleg fuer Meilenstein C).
+
+
+## Meilenstein C, Beleg fuer den realen Risikofall (2026-08-03)
+
+- Nachtrag zur Leistungs-Pruefstufe: `tests/perf_check.py` klickt jetzt in
+  einem zusaetzlichen Szenario "Weitere laden" wiederholt (bis zu 25 mal)
+  gegen einen 5.000-Dokumente-Mockbestand, bis der Grenzhinweis
+  ("werden zäh") erscheint - der reale DOC_MAX-Grenzfall (1200 Dokumente,
+  `app.js`), nicht nur der unkritische Erststart.
+- Gemessenes Ergebnis: nach 19 Klicks auf "Weitere laden" (1.201 geladene
+  Dokumente) liegen **33.753 DOM-Knoten** im Listenbereich. Zum Vergleich:
+  eine frische Ansicht liegt bei jeder Archivgroesse bei 1.773 Knoten.
+  Das ist der belastbare Beleg, den die bisherige Annahme "Fensterung noetig"
+  bislang NICHT hatte - jetzt ist es eine Messung statt einer Vermutung.
+- Einordnung: 33.753 DOM-Knoten fuer 1.200 Listeneintraege (~28 Knoten je
+  Zeile: Karte, zwei Swipe-Buttons mit je Icon+Text, Titel, Untertitel,
+  Datum, Tag-Chips, Trennlinie usw.) ist mit modernen Mobilgeraeten noch
+  darstellbar, aber deutlich im Bereich, wo Scroll-Ruckeln, Layout-Thrashing
+  bei Reflows und hoher Speicherverbrauch zu erwarten sind - insbesondere
+  auf aelteren/schwaecheren Geraeten, die diese Umgebung nicht abbildet.
+  Diese Pruefstufe bestaetigt damit begruendet (nicht nur behauptet), dass
+  Meilenstein C (Fensterung/Virtualisierung) einen echten Nutzen haette,
+  sobald jemand oft genug "Weitere laden" antippt oder stark filtert und
+  dabei die Grenze streift.
+- Bewusst keine automatische Fehlerbewertung an der DOM-Zahl selbst
+  (`pruefe(..., True, ...)` fuer den zweiten Grenzfall-Check): es gibt noch
+  keinen vereinbarten Schwellwert, ab dem die App "zu langsam" waere - eine
+  erfundene Zahl waere unehrlich. Stattdessen ein informativer Hinweis
+  (`HINWEIS`) ab 15.000 Knoten, der die Grenze sichtbar macht, ohne die
+  Pruefstufe rot zu faerben, bevor eine Entscheidung getroffen ist.
+- Volle Suite (11 Stufen, davon Leistungsstufe jetzt 12 statt 10
+  Einzelpruefungen) danach gruen.
+- Nicht verifiziert: Ruckeln/Speicherverbrauch auf einem echten, insbesondere
+  aelteren, Mobilgeraet - nur DOM-Groesse in einem Desktop-Chromium ohne
+  Geraeteemulation der CPU-Drosselung.
+- Naechster Schritt: Entscheidung treffen, ob Fensterung/Virtualisierung
+  jetzt umgesetzt wird (echte react-window-artige Loesung fuer die Liste,
+  ohne Wischgesten/Screenreader-Zugaenglichkeit zu brechen - Risiko laut
+  Risikotabelle "mittel/hoch") oder ob eine einfachere Zwischenloesung
+  (z. B. DOC_MAX absenken, oder Grenzhinweis frueher zeigen) fuer die
+  naechste Version genuegt. Diese Messung liefert die Entscheidungsgrundlage,
+  trifft die Entscheidung aber nicht selbst.
+- Version: 0.8.0 -> 0.8.1 (PATCH: Pruefstufe erweitert, kein neues
+  Nutzerverhalten).

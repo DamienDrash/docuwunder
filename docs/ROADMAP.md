@@ -769,3 +769,16 @@ Unit-Tests machen die Lage nur schlechter.
   das ist noch nicht gemessen und der naechste Teilschritt.
 - Volle Suite (11 Stufen) danach gruen.
 - Version: 0.7.0 -> 0.8.0 (MINOR).
+
+
+## Meilenstein C, Beleg fuer den realen Risikofall (2026-08-03)
+
+- `tests/perf_check.py` misst jetzt zusaetzlich den DOC_MAX-Grenzfall
+  (wiederholtes "Weitere laden"): bei 1.201 geladenen Dokumenten liegen
+  33.753 DOM-Knoten im Listenbereich (vs. 1.773 bei einer frischen Ansicht,
+  unabhaengig vom Gesamtbestand). Das ist der belastbare Beleg fuer den
+  Nutzen von Fensterung/Virtualisierung, den Meilenstein C bisher nur
+  vermutet hatte. Details: docs/AUDIT.md.
+- Naechster Schritt: Entscheidung ueber Umsetzung (echte Virtualisierung
+  vs. einfachere Zwischenloesung), danach ggf. Umsetzung selbst.
+- Version: 0.8.0 -> 0.8.1 (PATCH).

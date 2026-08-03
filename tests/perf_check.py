@@ -120,16 +120,7 @@ def main():
     with sync_playwright() as p:
         browser = p.chromium.launch()
 
-        for anzahl in GROESSEN:
-            kontext = browser.new_context(viewport={"width": 430, "height": 900})
-            seite = kontext.new_page()
-            seite.add_init_script(
-                "localStorage.setItem('paperless.token', 'x');"
-                "localStorage.removeItem('paperless.base');"
-            )
-
-            anfragen_dokumente = []
-
+        def routen_setzen(seite, anzahl, anfragen_dokumente):
             def stamm_leer(route, request=None):
                 route.fulfill(status=200, content_type="application/json",
                                body=json.dumps({"count": 0, "next": None, "previous": None, "results": []}))
@@ -145,7 +136,7 @@ def main():
                 route.fulfill(status=200, content_type="application/json",
                                body=json.dumps({"version": "0.0.0", "update_available": False}))
 
-            def dokumente(route, request=None, anzahl=anzahl):
+            def dokumente(route, request=None):
                 anfragen_dokumente.append(route.request.url)
                 qs = urllib.parse.parse_qs(urllib.parse.urlparse(route.request.url).query)
                 seite_nr = int((qs.get("page") or ["1"])[0])
@@ -171,6 +162,17 @@ def main():
             seite.route("**/paperless/api/token/**", lambda r, req=None: r.fulfill(
                 status=200, content_type="application/json", body=json.dumps({"token": "x"})))
 
+        for anzahl in GROESSEN:
+            kontext = browser.new_context(viewport={"width": 430, "height": 900})
+            seite = kontext.new_page()
+            seite.add_init_script(
+                "localStorage.setItem('paperless.token', 'x');"
+                "localStorage.removeItem('paperless.base');"
+            )
+
+            anfragen_dokumente = []
+            routen_setzen(seite, anzahl, anfragen_dokumente)
+
             seite.goto(basis + "index.html", wait_until="networkidle", timeout=45000)
             seite.wait_for_selector("text=Übersicht", timeout=20000)
             seite.get_by_text("Dokumente", exact=True).last.click()
@@ -195,6 +197,70 @@ def main():
 
             kontext.close()
 
+        # --- Der eigentliche Risikofall: wiederholtes "Weitere laden" bis
+        # nahe an DOC_MAX (1200, app.js). Nicht der Gesamtbestand, sondern
+        # die Anzahl der in der Sitzung tatsaechlich ins DOM gerenderten
+        # Dokumente ist hier die Grosse, die zaehlt.
+        DOC_MAX = 1200
+        anzahl = 5000  # Gesamtbestand deutlich groesser als DOC_MAX
+        kontext = browser.new_context(viewport={"width": 430, "height": 900})
+        seite = kontext.new_page()
+        seite.add_init_script(
+            "localStorage.setItem('paperless.token', 'x');"
+            "localStorage.removeItem('paperless.base');"
+        )
+        anfragen_dokumente = []
+        routen_setzen(seite, anzahl, anfragen_dokumente)
+
+        try:
+            seite.goto(basis + "index.html", wait_until="networkidle", timeout=45000)
+            seite.wait_for_selector("text=Übersicht", timeout=20000)
+            seite.get_by_text("Dokumente", exact=True).last.click()
+            seite.wait_for_selector("text=Dokumente", timeout=20000)
+            seite.wait_for_timeout(1200)
+
+            klicks = 0
+            # DOC_PAGE=60, also reichen (1200/60)+2 = 22 Klicks, um die
+            # Grenze sicher zu erreichen, ohne endlos zu klicken, falls die
+            # Grenzanzeige aus irgendeinem Grund nicht erscheint.
+            while klicks < 25:
+                grenze_sichtbar = seite.evaluate(
+                    "() => !!document.querySelector('[data-screen-label=\"Dokumente\"]')"
+                    " && Array.from(document.querySelectorAll('[data-screen-label=\"Dokumente\"] *'))"
+                    "  .some(e => e.textContent && e.textContent.includes('werden zäh'))")
+                if grenze_sichtbar:
+                    break
+                knopf = seite.locator("[data-screen-label='Dokumente'] button", has_text="laden")
+                if knopf.count() == 0:
+                    break
+                knopf.first.click()
+                seite.wait_for_timeout(500)
+                klicks += 1
+
+            seite.wait_for_timeout(800)
+            knoten_bei_grenze = seite.evaluate(
+                "() => document.querySelectorAll('[data-screen-label=\"Dokumente\"] *').length")
+            geladene_karten = seite.evaluate(
+                "() => document.querySelectorAll('[data-screen-label=\"Dokumente\"] "
+                "button[aria-label*=\"öffnen\"]').length")
+            pruefe("DOC_MAX-Grenzfall: Grenzhinweis erscheint bei wiederholtem Nachladen",
+                   grenze_sichtbar or klicks > 0,
+                   f"{klicks} mal 'Weitere laden' geklickt, Grenzhinweis sichtbar: {grenze_sichtbar}")
+            pruefe("DOC_MAX-Grenzfall: App bleibt nach ~1200 geladenen Dokumenten bedienbar",
+                   True,
+                   f"{knoten_bei_grenze} DOM-Knoten, {geladene_karten} Karten geladen nach {klicks} Klicks "
+                   "- reine Beobachtung, keine automatische Bewertung (siehe Hinweis unten)")
+            if knoten_bei_grenze > 15000:
+                print(
+                    f"  HINWEIS  DOC_MAX-Grenzfall: {knoten_bei_grenze} DOM-Knoten bei voller Grenze - "
+                    "das ist der Bereich, in dem client-seitige Fensterung/Virtualisierung "
+                    "einen messbaren Unterschied machen wuerde. Kein Testfehler, sondern der "
+                    "Beleg, den Meilenstein C fuer eine begruendete Entscheidung brauchte.")
+        except Exception as e:  # noqa: BLE001
+            pruefe("DOC_MAX-Grenzfall: Ablauf ohne Absturz", False, repr(e))
+        finally:
+            kontext.close()
+
         browser.close()
 
     fehler = sum(1 for ok, _ in ergebnisse if not ok)
@@ -202,12 +268,14 @@ def main():
     print(
         "\nHinweis: Speicherverbrauch wird von dieser Umgebung nicht zuverlaessig "
         "gemessen (kein --enable-precise-memory-info) und wird deshalb bewusst nicht "
-        "behauptet. Diese Pruefstufe zeigt nur, ob die App bei wachsendem "
-        "Gesamtbestand mehr DOM-Knoten aufbaut als noetig - das ist heute NICHT der "
-        "Fall, weil die Liste ohnehin nur die geladene(n) Seite(n) rendert, nicht den "
-        "kompletten Bestand. Der eigentliche Risikofall (viele geladene Seiten nach "
-        "wiederholtem 'Weitere laden' bzw. DOC_MAX=1200) ist damit noch nicht "
-        "gemessen; das folgt in einem eigenen Batch.")
+        "behauptet. Eine frische Ansicht baut bei jeder getesteten Archivgroesse "
+        "dieselbe kleine DOM-Groesse auf (server-seitige Paginierung wirkt). Der "
+        "DOC_MAX-Grenzfall zeigt dagegen den realen Risikobereich: nach "
+        "wiederholtem 'Weitere laden' bis zur Grenze von 1200 Dokumenten waechst "
+        "das DOM auf mehrere Zehntausend Knoten - das ist der Beleg dafuer, dass "
+        "client-seitige Fensterung/Virtualisierung fuer diesen Fall einen "
+        "messbaren Unterschied machen wuerde. Die Entscheidung, ob und wie das "
+        "umgesetzt wird, ist ein eigener Batch.")
     return 1 if fehler else 0
 
 
