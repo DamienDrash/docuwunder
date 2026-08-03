@@ -614,3 +614,17 @@ Unit-Tests machen die Lage nur schlechter.
   danach Meilenstein C (Virtualisierung) und der Goldstandard-Scanner-Meilenstein.
 - Version: 0.2.0 -> 0.3.0 (MINOR: sichtbarer A11y-Fortschritt, kein Verhaltensbruch,
   Testsuite an neue Semantik angepasst).
+
+
+## Meilenstein B, Batch 8 (2026-08-03) - Meilenstein B strukturell abgeschlossen
+
+- vorlage/verwaltung.js: 30 klickbare div/span -> 0. Letzte grosse Restschuld aus
+  Meilenstein B behoben. Details siehe docs/AUDIT.md.
+- Verbleibend bewusst offen: 1 Undo-Link (erfassen.js, Toast-Kontext), 1 Sheet-
+  Hintergrund (sheets.js, reine Dekoration, schliesst per Escape).
+- Manuelle Screenreader-/Geraetetests (VoiceOver, TalkBack, NVDA, Kontrast,
+  reduced-motion, Touch-Targets) stehen weiterhin aus - automatisierte Pruefung
+  deckt nur strukturelle Semantik ab.
+- Naechster Schritt: Meilenstein C (Virtualisierung fuer grosse Archive, Performance-
+  Tests 100/1000/5000/20000/50000 Dokumente) oder der Goldstandard-Scanner-Meilenstein.
+- Version: 0.3.0 -> 0.4.0 (MINOR).

@@ -1740,6 +1740,7 @@ class Oberflaeche extends React.Component {
       showSet: top.t === 'set',
       setModeHell: () => this.setState({ mode: 'hell' }), setModeDunkel: () => this.setState({ mode: 'dunkel' }), setModeSystem: () => this.setState({ mode: 'system' }),
       msHell: this.seg(s.mode === 'hell'), msDunkel: this.seg(s.mode === 'dunkel'), msSystem: this.seg(s.mode === 'system'),
+      modeAktuell: s.mode,
       defViewLabel: s.view === 'liste' ? 'Liste' : 'Raster',
       toggleDefView: () => { const neu = s.view === 'liste' ? 'raster' : 'liste'; this.setState({ view: neu }); defViewSichern(neu); },
       serverAddr: (s.serverUrl || '').replace(/^https?:\/\//, '').replace(/\/api$/, ''),
@@ -1761,6 +1762,7 @@ class Oberflaeche extends React.Component {
       sperreZeigen: s.sperreMoeglich,
       sperreBg: this.tg(s.sperreAn).bg,
       sperreKnob: this.tg(s.sperreAn).knob,
+      sperreAn: s.sperreAn,
       sperreToggle: () => (s.sperreAn ? this.sperreAufheben() : this.sperreEinrichten()),
       sperreHinweis: s.sperreAn
         ? 'Dein Zugangsschlüssel liegt verschlüsselt. Ohne Face ID, Touch ID oder Windows Hello ist er unbrauchbar — auch für jemanden mit Zugriff auf das Gerät.'
@@ -1802,13 +1804,14 @@ class Oberflaeche extends React.Component {
     const { s, top, auto } = k;
     return {
       showAuto: top.t === 'auto',
-      autoRows: s.autos.map(a => { const t = this.tg(a.on); return { name: a.name, verlauf: this.autoLage(a.on), tgBg: t.bg, tgKnob: t.knob, toggle: () => this.autoSchalten(a.id, !a.on), open: () => this.pushV({ t: 'autoD', id: a.id }) }; }),
+      autoRows: s.autos.map(a => { const t = this.tg(a.on); return { id: a.id, name: a.name, verlauf: this.autoLage(a.on), aktiv: !!a.on, tgBg: t.bg, tgKnob: t.knob, toggle: () => this.autoSchalten(a.id, !a.on), open: () => this.pushV({ t: 'autoD', id: a.id }) }; }),
       showAutoD: top.t === 'autoD' && !!auto,
       adName: auto ? auto.name : '', adVerlauf: auto ? this.autoLage(auto.on) : '', adAusl: auto ? auto.ausl : '',
       adBed: auto ? auto.bed.map(t => ({ t })) : [], adAkt: auto ? auto.akt.map(t => ({ t })) : [],
       // Eine Ueberschrift ohne Inhalt darunter sieht nach einem Fehler aus.
       adHatBed: !!(auto && auto.bed.length), adHatAkt: !!(auto && auto.akt.length),
       adTgBg: this.tg(!!(auto && auto.on)).bg, adTgKnob: this.tg(!!(auto && auto.on)).knob,
+      adAktiv: !!(auto && auto.on),
       adToggle: () => { if (auto) this.autoSchalten(auto.id, !auto.on); },
       adNameVal: auto ? auto.name : '',
       setAdName: (e) => { const v = e.target.value; this.setState(st => ({ autos: st.autos.map(a => a.id === auto.id ? Object.assign({}, a, { name: v }) : a) })); },
@@ -1826,7 +1829,7 @@ class Oberflaeche extends React.Component {
       showMail: top.t === 'mail',
       mailFetch: () => this.mailAbrufen(),
       mailFetchLabel: (s.mailKonten || []).length ? 'Jetzt abrufen' : 'Kein Konto eingerichtet',
-      mailRules: s.mailRules.map(r => { const t = this.tg(r.on); return { name: r.name, desc: r.desc, tgBg: t.bg, tgKnob: t.knob, toggle: () => this.regelSchalten(r.id, !r.on) }; }),
+      mailRules: s.mailRules.map(r => { const t = this.tg(r.on); return { id: r.id, name: r.name, desc: r.desc, aktiv: !!r.on, tgBg: t.bg, tgKnob: t.knob, toggle: () => this.regelSchalten(r.id, !r.on) }; }),
       showUsers: top.t === 'users',
       // Echte Benutzer und Gruppen aus Paperless. Frueher standen hier vier
       // erfundene Rollen ("Kann ansehen", "Kann verwalten", …), die es in

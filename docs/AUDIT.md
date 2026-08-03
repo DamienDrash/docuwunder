@@ -605,3 +605,32 @@ näher.
   Restschuld jetzt: 30 in verwaltung.js, 1 bewusst offen (erfassen.js).
   Version 0.2.0 -> 0.3.0 (MINOR: sichtbarer A11y-Fortschritt, kein Verhaltensbruch,
   Testsuite an neue Semantik angepasst).
+
+
+## Meilenstein B, Batch 8 (2026-08-03) - Meilenstein B abgeschlossen
+
+- vorlage/verwaltung.js: 30 klickbare div/span -> 0. 30 neue native Buttons mit
+  aria-label/aria-pressed fuer Automatisierungen-Liste und -Detail, Aktiv-Schalter,
+  Ausloeser-Wahl, Loeschen, E-Mail-Regeln, Darstellung-Segmente (Hell/Dunkel/System),
+  Standardansicht, Server wechseln, Lokale Daten loeschen, Geraetesperre-Schalter,
+  Hilfe/Datenschutz/Abmelden, Aufgaben-Erneut-Knopf, Benutzer- und Gruppenzeilen,
+  Gruppe anlegen. app.js liefert dafuer neu aktiv/aria-Zustaende (adAktiv, modeAktuell,
+  sperreAn, autoRows[].aktiv, mailRules[].aktiv) statt nur CSS-Klassen.
+- tests/a11y_check.py-Baseline fuer verwaltung.js auf 0 gesenkt.
+- Huellenversion neu berechnet (12acb9781f46 -> cd719411963f). Volle Suite (10 Stufen,
+  60 Unit, 24 API/Geheimnis-Checks, 37 Browserpruefungen) danach gruen.
+- **Meilenstein B (Accessibility-Semantik) ist damit strukturell abgeschlossen:**
+  0 klickbare div/span in dokument.js, onboarding.js, ordnung.js, sperre.js, tabs.js,
+  verwaltung.js. Nur 2 bewusst offen gelassene Ausnahmen verbleiben: der Undo-Link in
+  erfassen.js (Toast-Kontext, kein primaerer Bedienweg) und der Sheet-Hintergrund in
+  sheets.js (reine Dekorationsflaeche, schliesst per Escape). 169 native Buttons
+  insgesamt.
+- **Wichtige Einschraenkung:** Dies deckt nur die strukturelle Semantik (native Buttons,
+  aria-label/aria-pressed, Labels an Formularfelder) ab. Noch NICHT verifiziert:
+  Fokus-Reihenfolge im Detail, Fokus-Ruecksprung nach Sheet-Schluss ueberall,
+  echte Screenreader-Tests (VoiceOver, TalkBack, NVDA), Kontrastpruefung, reduced-motion,
+  Touch-Target-Groessen im Detail. Diese bleiben offene Punkte fuer eine manuelle
+  Pruefrunde vor einer "vollstaendige Barrierefreiheit"-Aussage.
+- Naechster Schritt: Meilenstein C (Virtualisierung grosser Archive) oder der
+  Goldstandard-Scanner-Meilenstein; danach manuelle A11y-Geraetetests nachholen.
+- Version: 0.3.0 -> 0.4.0 (MINOR: Meilenstein B strukturell abgeschlossen).
