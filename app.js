@@ -2081,6 +2081,13 @@ class Oberflaeche extends React.Component {
       // Referenzvergleich (ADR 0005, Phase 3).
       scanModus: s.scan ? (s.scan.modus || 'original') : 'original',
       scanModusSetzen: (m) => this.scanModusSetzen(m),
+      // Kontrast/Helligkeit gelten ebenfalls fuer den gesamten Scan (siehe
+      // ADR 0005, Phase 3 Nachtrag). 1 = unveraendert bei Kontrast, 0 bei
+      // Helligkeit - dieselben Neutralwerte wie in scan.js: seiteAus.
+      scanKontrast: s.scan && typeof s.scan.kontrast === 'number' ? s.scan.kontrast : 1,
+      scanKontrastSetzen: (k) => this.scanKontrastSetzen(k),
+      scanHelligkeit: s.scan && typeof s.scan.helligkeit === 'number' ? s.scan.helligkeit : 0,
+      scanHelligkeitSetzen: (h) => this.scanHelligkeitSetzen(h),
       scanPagesArr: (s.scan ? s.scan.seiten : []).map((sei, i, alle) => ({
         id: sei.id, nr: String(i + 1), url: sei.url, busy: !!sei.busy,
         del: () => this.scanEntfernen(sei.id),

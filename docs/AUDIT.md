@@ -750,3 +750,50 @@ näher.
   bereits) - Reihenfolge noch offen.
 - Version: 0.5.0 -> 0.6.0 (MINOR: neues, sichtbares Nutzerverhalten -
   Bildmodus-Umschalter und Unschaerfe-Hinweis).
+
+
+## Goldstandard-Scanner, Kontrast/Helligkeit-UI (2026-08-03)
+
+- Nachtrag zu Phase 3: die in `scan.js: seiteAus` bereits vorbereiteten
+  Parameter `kontrast` (Faktor 0.5-2, Neutralwert 1) und `helligkeit`
+  (additiver Versatz -80..+80, Neutralwert 0) bekommen jetzt ein eigenes
+  UI-Element in `vorlage/erfassen.js`: zwei Schieberegler unterhalb des
+  Original/Graustufe-Umschalters, sichtbar sobald mindestens eine Seite
+  aufgenommen wurde.
+- `erfassen.js`: neue `scanVerstaerkung()` buendelt Modus/Kontrast/Helligkeit
+  zu einem Objekt, `scanAlleNeuRendern(patch)` ersetzt die bisherige
+  Moduswechsel-Logik als gemeinsamer Weg fuer alle drei Regler - jede
+  Aenderung rendert alle Seiten erneut aus ihrem unveraenderten Original,
+  nichts geht verloren, jede Aenderung bleibt umkehrbar.
+- Schieberegler sind per 180ms-Debounce entkoppelt (`scanKontrastSetzen`,
+  `scanHelligkeitSetzen`): beim Ziehen loest nicht jede einzelne Raststufe
+  sofort eine Neu-Rechnung aller Seiten aus, sondern erst nach kurzer Ruhe -
+  wichtig bei mehrseitigen Scans, wo jede Neu-Rechnung mehrere Canvas-Op-
+  erationen pro Seite kostet.
+- Zustand `scan.kontrast`/`scan.helligkeit` liegt wie `scan.modus` im
+  Scan-State, nicht pro Seite - deckt sich mit der bestehenden Entscheidung
+  aus Phase 3, dass Bildverstaerkung fuer den gesamten Scan gilt.
+- Kein neuer automatisierter Test fuer die Regler selbst in diesem Batch
+  (der bestehende Test "Bildmodus wirkt auf den Scan" deckt die gemeinsame
+  Rendern-Pipeline ab, die jetzt auch von Kontrast/Helligkeit genutzt wird).
+  Offen: ein eigener Browser-Test, der die Regler bewegt und eine echte
+  Pixel-Aenderung im Ergebnis-JPEG prueft - fuer den naechsten Scanner-Batch
+  vorgemerkt, damit dieser Batch klein und ueberschaubar bleibt.
+- Volle Suite (10 Stufen, 41 Browserpruefungen) nach der Aenderung gruen.
+  Huellenversion neu berechnet (9e5b340e3e39 -> e9753b03a535).
+- Waehrend dieses Batches wurde ein operativer Fehler im eigenen
+  Werkzeugeinsatz gefunden und behoben, kein Produktfehler: das Hochladen
+  von Dateien per SSH-Pipe (`cat datei | ssh-vps ... 'cat > ziel'`) schrieb
+  die Zieldateien serverseitig leer, weil `bin/ssh-vps` stdin bewusst auf
+  `/dev/null` umleitet (Passwort-Auth via SSH_ASKPASS). `git checkout --`
+  stellte den vorherigen Stand sofort wieder her, `scp` wurde stattdessen
+  fuer den eigentlichen Dateitransfer verwendet. Kein Datenverlust, da vor
+  jedem Schreiben committeter Git-Stand vorlag.
+- Nicht verifiziert: echtes Kameragerat, reale Bildqualitaet unter echtem
+  Licht mit den neuen Reglern. Keine "Goldstandard"- oder Paritaets-Aussage
+  vor Geraeteverifikation.
+- Naechster Schritt: eigener Browser-Test fuer Kontrast/Helligkeit-Regler,
+  danach ADR-0005-Phase 4 (Kantenerkennung/Overlay) oder Meilenstein C
+  (Virtualisierung fuer grosse Archive).
+- Version: 0.6.0 -> 0.6.1 (PATCH: UI fuer bereits vorbereitete Backend-
+  Parameter, kein neuer Funktionsumfang in scan.js selbst).

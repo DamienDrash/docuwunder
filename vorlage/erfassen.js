@@ -42,6 +42,18 @@
       ${v.scanHasPages ? html`<div role="group" aria-label="Bildmodus" style=${stil('display:flex;gap:8px;margin-bottom:14px')}>
         ${[['original', 'Original'], ['grau', 'Graustufe']].map((m) => html`<button key=${m[0]} type="button" aria-pressed=${v.scanModus === m[0]} onClick=${() => v.scanModusSetzen(m[0])} style=${stil(S.buttonReset + 'flex:1;height:38px;border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;' + (v.scanModus === m[0] ? 'background:var(--acc);color:var(--onAcc)' : 'background:rgba(120,120,128,0.24);color:#fff'))}>${m[1]}</button>`)}
       </div>` : null}
+      ${v.scanHasPages ? html`<div style=${stil('display:flex;flex-direction:column;gap:10px;margin-bottom:14px')}>
+        <label style=${stil('display:flex;align-items:center;gap:10px;font-size:12.5px;color:rgba(235,235,245,0.7)')}>
+          <span style=${stil('width:64px;flex-shrink:0')}>Kontrast</span>
+          <input type="range" min="0.5" max="2" step="0.05" value=${v.scanKontrast} onChange=${(e) => v.scanKontrastSetzen(parseFloat(e.target.value))} aria-label="Kontrast" style=${stil('flex:1')} />
+          <span style=${stil('width:34px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums')}>${Math.round(v.scanKontrast * 100)}%</span>
+        </label>
+        <label style=${stil('display:flex;align-items:center;gap:10px;font-size:12.5px;color:rgba(235,235,245,0.7)')}>
+          <span style=${stil('width:64px;flex-shrink:0')}>Helligkeit</span>
+          <input type="range" min="-80" max="80" step="4" value=${v.scanHelligkeit} onChange=${(e) => v.scanHelligkeitSetzen(parseInt(e.target.value, 10))} aria-label="Helligkeit" style=${stil('flex:1')} />
+          <span style=${stil('width:34px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums')}>${v.scanHelligkeit > 0 ? '+' : ''}${v.scanHelligkeit}</span>
+        </label>
+      </div>` : null}
       ${v.scanLeer ? html`<div style=${stil('text-align:center;padding:50px 20px 30px;font-size:14.5px;color:rgba(235,235,245,0.55);line-height:1.6')}>Noch keine Seite aufgenommen.</div>` : null}
       ${''/* auto-fill statt drei fester Spalten: auf dem Telefon ergibt das
            dieselben drei, auf einem breiten Fenster mehr - statt drei

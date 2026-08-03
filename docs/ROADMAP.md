@@ -700,3 +700,17 @@ Unit-Tests machen die Lage nur schlechter.
   Kontrast/Helligkeit-UI, danach weiterhin Meilenstein C (Virtualisierung)
   und Meilenstein D (Release-Dokumentation) gemaess Prioritaetsreihenfolge.
 - Version: 0.5.0 -> 0.6.0 (MINOR).
+
+
+## Goldstandard-Scanner, Kontrast/Helligkeit-UI (2026-08-03)
+
+- Zwei Schieberegler (Kontrast, Helligkeit) im Scan-Bildschirm ergaenzen den
+  bestehenden Original/Graustufe-Umschalter aus Phase 3. Der Rechenweg in
+  `scan.js: seiteAus` war bereits vorbereitet, es fehlte nur die Bedienflaeche
+  - siehe docs/AUDIT.md fuer Details.
+- Volle Suite (10 Stufen, 41 Browserpruefungen) danach gruen. Huellenversion
+  neu berechnet.
+- Naechster Schritt: eigener Browser-Test fuer die neuen Regler, danach
+  ADR-0005-Phase 4 (Kantenerkennung/Overlay) oder Meilenstein C
+  (Virtualisierung fuer grosse Archive) gemaess Prioritaetsreihenfolge.
+- Version: 0.6.0 -> 0.6.1 (PATCH).

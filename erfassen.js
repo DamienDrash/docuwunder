@@ -211,10 +211,10 @@
     },
 
     scanAufnahmen(dateien) {
-      this.setState(st => ({ scan: { ...(st.scan || { schritt: 'seiten', seiten: [], modus: 'original' }), busy: true } }));
+      this.setState(st => ({ scan: { ...(st.scan || { schritt: 'seiten', seiten: [], modus: 'original', kontrast: 1, helligkeit: 0 }), busy: true } }));
       const neue = dateien.map(d => ({ id: 's' + (this.scanZaehler = (this.scanZaehler || 0) + 1), datei: d, dreh: 0, zuschnitt: null }));
-      const modus = (this.state.scan && this.state.scan.modus) || 'original';
-      return Promise.all(neue.map(sei => this.scanRendern(sei, modus)))
+      const verst = this.scanVerstaerkung();
+      return Promise.all(neue.map(sei => this.scanRendern(sei, verst)))
         .then(fertig => {
           this.setState(st => (st.scan ? { scan: { ...st.scan, seiten: [...st.scan.seiten, ...fertig], busy: false } } : {}));
           // Unschaerfe-Hinweis je Aufnahme, nicht blockierend: eine grobe
@@ -242,9 +242,9 @@
 
     // Drehung und Zuschnitt auf das Original anwenden und daraus das Bild
     // machen, das spaeter im PDF landet.
-    scanRendern(sei, modus) {
-      const m = modus || (this.state.scan && this.state.scan.modus) || 'original';
-      return global.DWScan.seiteAus(sei.datei, { dreh: sei.dreh, zuschnitt: sei.zuschnitt, modus: m })
+    scanRendern(sei, verst) {
+      const v = verst || this.scanVerstaerkung();
+      return global.DWScan.seiteAus(sei.datei, { dreh: sei.dreh, zuschnitt: sei.zuschnitt, modus: v.modus, kontrast: v.kontrast, helligkeit: v.helligkeit })
         .then(erg => {
           if (sei.url) URL.revokeObjectURL(sei.url);
           return { ...sei, jpeg: erg.jpeg, breite: erg.breite, hoehe: erg.hoehe, url: URL.createObjectURL(erg.blob) };
@@ -268,15 +268,48 @@
 
     scanDrehen(id) { this.scanErsetzen(id, sei => ({ ...sei, dreh: (sei.dreh + 90) % 360 })); },
 
+    // Aktuelle Bildverstaerkung (Modus, Kontrast, Helligkeit) fuer den
+    // gesamten Scan - gilt fuer alle Seiten gleich, siehe scanAlleNeuRendern.
+    scanVerstaerkung() {
+      const sc = this.state.scan || {};
+      return {
+        modus: sc.modus || 'original',
+        kontrast: typeof sc.kontrast === 'number' ? sc.kontrast : 1,
+        helligkeit: typeof sc.helligkeit === 'number' ? sc.helligkeit : 0,
+      };
+    },
+
     // Modus (Original/Graustufe) fuer den gesamten Scan umschalten. Alle
     // bereits aufgenommenen Seiten werden neu aus ihrem unveraenderten
     // Original gerendert - nichts geht verloren, der Wechsel ist umkehrbar.
     scanModusSetzen(modus) {
       this.setState(st => (st.scan ? { scan: { ...st.scan, modus: modus } } : {}));
+      this.scanAlleNeuRendern({ modus: modus });
+    },
+
+    // Kontrast/Helligkeit aendern sich per Schieberegler, oft mehrfach kurz
+    // hintereinander - ein leichtes Debounce vermeidet, dass jede Rasterstufe
+    // sofort eine teure Neu-Rechnung aller Seiten ausloest.
+    scanKontrastSetzen(kontrast) {
+      this.setState(st => (st.scan ? { scan: { ...st.scan, kontrast: kontrast } } : {}));
+      clearTimeout(this._scanVerstTimer);
+      this._scanVerstTimer = setTimeout(() => this.scanAlleNeuRendern({ kontrast: kontrast }), 180);
+    },
+
+    scanHelligkeitSetzen(helligkeit) {
+      this.setState(st => (st.scan ? { scan: { ...st.scan, helligkeit: helligkeit } } : {}));
+      clearTimeout(this._scanVerstTimer);
+      this._scanVerstTimer = setTimeout(() => this.scanAlleNeuRendern({ helligkeit: helligkeit }), 180);
+    },
+
+    // Gemeinsamer Weg fuer Modus/Kontrast/Helligkeit: alle Seiten aus ihrem
+    // unveraenderten Original neu rendern, nichts geht verloren.
+    scanAlleNeuRendern(patch) {
+      const verst = { ...this.scanVerstaerkung(), ...patch };
       const seiten = (this.state.scan && this.state.scan.seiten) || [];
       seiten.forEach(sei => {
         this.setState(st => ({ scan: { ...st.scan, seiten: st.scan.seiten.map(x => x.id === sei.id ? { ...x, busy: true } : x) } }));
-        this.scanRendern(sei, modus)
+        this.scanRendern(sei, verst)
           .then(fertig => this.setState(st => (st.scan
             ? { scan: { ...st.scan, seiten: st.scan.seiten.map(x => x.id === sei.id ? { ...fertig, busy: false } : x) } }
             : {})))
