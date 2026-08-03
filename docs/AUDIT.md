@@ -646,3 +646,30 @@ näher.
 - Version 0.4.0 -> 0.4.1 (PATCH). Produktionsreife-Score unveraendert (kein neuer
   Code, kein neu getesteter Zustand) - naechster Batch (Phase 1: Live-Kamera-
   Huelle mit Fallback-Kette) bringt die erste messbare Scanner-Verbesserung.
+
+
+## Fehlerbehebung: doppeltes Blaettern im Posteingang (2026-08-03)
+
+- Wiedereinstieg in den geplanten naechsten Schritt (Goldstandard-Scanner Phase 1)
+  begann mit dem vorgeschriebenen Schritt 2 der Routine: volle Testsuite vor neuer
+  Arbeit. Dabei schlug "Posteingang blaettern: nach links" reproduzierbar fehl
+  (Stand blieb bei 3 von 3 statt 2 von 3).
+- Ursache: revZiehEnde im JSX-Callback (app.js, render()-Objekt) hatte anders als
+  revZiehStart/revZiehZug keine pointerType-Wache. Auf Touch-Geraeten feuert
+  onPointerUp am [data-rev]-Container zusaetzlich zum globalen touchend-Listener
+  aus componentDidMount (_revAus). Beide riefen this.revZiehEnde() auf - eine
+  Wischgeste loeste die Index-Aenderung zweimal aus und blaetterte de facto zwei
+  Karten statt einer weiter (bzw. federte in Randfaellen falsch).
+- Fix: revZiehEnde erhielt dieselbe pointerType-Wache wie Start/Zug
+  ((e) => { if (!e || !e.pointerType || e.pointerType === 'mouse') this.revZiehEnde(); }),
+  sodass Touch-Ereignisse ausschliesslich ueber den globalen Touch-Pfad laufen.
+  Kein Verhaltensbruch fuer Maus/Trackpad (Pointer-Events dort weiterhin aktiv).
+- Huellenversion neu berechnet (cd719411963f -> 5738f0e0c67d). Volle Suite (10
+  Stufen, 60 Unit, 24 API/Geheimnis-Checks, 37 Browserpruefungen) danach gruen,
+  inklusive der zuvor fehlgeschlagenen Pruefung.
+- Kein automatisierter Test wurde geschwaecht oder entfernt - der bestehende Test
+  hat den echten Fehler korrekt gefunden.
+- Version: 0.4.1 -> 0.4.2 (PATCH: Fehlerbehebung, kein neues Verhalten fuer
+  Nutzer:innen ausser dem korrekten Blaettern).
+- Naechster Schritt: Goldstandard-Scanner Phase 1 (Live-Kamera-Huelle mit
+  Fallback-Kette) gemaess ADR 0005.

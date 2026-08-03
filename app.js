@@ -1595,7 +1595,14 @@ class Oberflaeche extends React.Component {
       revZurueck: inbox.indexOf(rev) < inbox.length - 1,
       revZiehStart: (e) => { if (!e.pointerType || e.pointerType === 'mouse') this.revZiehStart(e.clientX, e.clientY); },
       revZiehZug: (e) => { if (!e.pointerType || e.pointerType === 'mouse') this.revZiehZug(e.clientX, e.clientY, null); },
-      revZiehEnde: () => this.revZiehEnde(),
+      // Touch wird bereits ueber die globalen touch*-Listener in
+      // componentDidMount abgewickelt (siehe _revAn/_revZug/_revAus). Ohne
+      // diese Wache feuert bei Touch zusaetzlich das Pointer-Ende hier und
+      // ruft revZiehEnde() ein zweites Mal auf, waehrend der erste Aufruf
+      // noch sein setState/later() abarbeitet - das Ergebnis war doppeltes
+      // Blaettern pro Wisch (siehe tests/browser_check.py, "Posteingang
+      // blaettern").
+      revZiehEnde: (e) => { if (!e || !e.pointerType || e.pointerType === 'mouse') this.revZiehEnde(); },
       revZurueckTap: () => { if (inbox.indexOf(rev) > 0) this.setState(st => ({ revIdx: st.revIdx - 1 })); },
       revVorTap: () => { if (inbox.indexOf(rev) < inbox.length - 1) this.setState(st => ({ revIdx: st.revIdx + 1 })); },
       revFields: revF.map((f, i) => ({ k: f.k, conf: f.conf, vShow: f.v, hasVal: !!f.v, empty: !f.v, ok: !!(f.ok && f.v), notOk: !(f.ok && f.v), toggle: () => this.patchRev(it => ({ ...it, felder: it.felder.map((x, j) => j === i ? { ...x, ok: !x.ok } : x) })), edit: () => this.setState({ pickTarget: 'rev', pickField: f.k, pickNew: '', sheet: 'pick' }) })),

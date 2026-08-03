@@ -649,3 +649,17 @@ Unit-Tests machen die Lage nur schlechter.
   Ausloeser, kein Auto-Capture) als eigener, testbarer Batch.
 - Version: 0.4.0 -> 0.4.1 (PATCH: Architekturentscheidung dokumentiert, kein
   Verhaltensbruch).
+
+
+## Fehlerbehebung: doppeltes Blaettern im Posteingang (2026-08-03)
+
+- Vor dem geplanten Start von Goldstandard-Scanner Phase 1 fand die vorgeschriebene
+  volle Testsuite einen echten Regressionsfehler: Wisch-Blaettern im Posteingang
+  ueberspringt auf Touch-Geraeten eine Karte, weil revZiehEnde doppelt ausgeloest
+  wurde (Pointer- und Touch-Pfad liefen parallel, siehe docs/AUDIT.md fuer Details).
+  Behoben durch dieselbe pointerType-Wache wie bei Start/Zug. Volle Suite (10
+  Stufen, 37 Browserpruefungen) danach gruen.
+- Version: 0.4.1 -> 0.4.2 (PATCH).
+- Naechster Schritt bleibt: Goldstandard-Scanner Phase 1 (Live-Kamera-Huelle mit
+  Fallback-Kette zu getUserMedia, manueller Ausloeser, kein Auto-Capture) gemaess
+  ADR 0005 - wird im naechsten Lauf begonnen.
