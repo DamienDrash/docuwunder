@@ -831,3 +831,62 @@ näher.
   realen Telefon, oder Meilenstein C (Virtualisierung fuer grosse Archive)
   gemaess Prioritaetsreihenfolge.
 - Version: 0.6.2 -> 0.7.0 (MINOR: neue, sichtbare Nutzerfaehigkeit).
+
+
+## Meilenstein C, erster Schritt: Leistungs-Pruefstufe fuer grosse Bestaende (2026-08-03)
+
+- Neu: `tests/perf_check.py`, als Stufe 7 in `tests/run_e2e.py` eingehaengt
+  (11 Stufen statt 10). Misst reproduzierbar, wie die App auf 100 / 1.000 /
+  5.000 / 20.000 / 50.000 synthetische Dokumente reagiert - ohne einen
+  echten Paperless-Server mit Testdaten zu fuellen. Dafuer laeuft Playwright
+  gegen die reale App-Auslieferung, aber jede Paperless-API-Antwort kommt
+  aus Mock-Routing (`page.route`): Stammdaten (Tags, Korrespondenten,
+  Dokumentarten, Lagerorte, Nutzer, Workflows, Freigaben, Mailregeln usw.)
+  minimal/leer, `/documents/` liefert serverseitig paginiert genau die
+  angeforderte Seite aus einer generierten Menge der gewuenschten Groesse.
+- Ergebnis (10 von 10 Pruefungen gruen, siehe Testlauf): bei jeder der fuenf
+  Archivgroessen laedt die erste Ansicht des Dokumente-Tabs nur eine Seite
+  (`page_size=60`, 2 Anfragen an `/documents/` inkl. Ordnerabfrage) und das
+  DOM im Listenbereich bleibt bei 1.773 Knoten / 121 sichtbaren Karten -
+  unabhaengig davon, ob der Gesamtbestand 100 oder 50.000 Dokumente
+  umfasst. Server-seitige Paginierung wirkt also wie vorgesehen: das
+  eigentliche Problem, das Meilenstein C beschreibt, tritt bei einer
+  frischen Ansicht NICHT auf.
+- **Wichtige Praezisierung gegenueber der urspruenglichen Annahme:** Der
+  reale Risikofall ist nicht "grosser Bestand insgesamt", sondern "viele
+  bereits geladene Seiten in derselben Sitzung" - also wiederholtes
+  "Weitere laden" bis nahe an `DOC_MAX = 1200` (`app.js`). Genau dieser
+  Fall ist mit dieser Pruefstufe noch NICHT gemessen; dafuer muesste
+  `mehrDocs()` in einer Schleife bis zur Grenze aufgerufen und danach DOM-
+  Groesse/Scrollverhalten gemessen werden. Das ist der naechste Teilschritt
+  von Meilenstein C, nicht dieser.
+- Speicherverbrauch wird bewusst NICHT gemessen oder behauptet: Chromium
+  liefert ohne `--enable-precise-memory-info` keine verlaesslichen Werte in
+  dieser Umgebung. Die Pruefstufe sagt das explizit in ihrer Ausgabe, statt
+  eine Zahl vorzutaeuschen.
+- Zwei Implementierungsfehler beim Bau der Pruefstufe gefunden und behoben,
+  keine Produktfehler: (1) Playwright ruft Routing-Callbacks mit zwei
+  Positionsargumenten auf (`route`, `request`) - ein Handler mit nur einem
+  Parameter erhielt das Request-Objekt versehentlich als Keyword-Argument
+  `anzahl` und stuerzte mit `TypeError` ab; behoben durch `request=None` in
+  jeder Handler-Signatur. (2) Das Zaehlen "nur eine Seite geladen" verglich
+  zunaechst gegen die Substring `/documents/`, die auch auf
+  `/documents/?...` UND auf spaeter im selben Testlauf ausgeloeste
+  Ordnerabfragen wie `/documents/12/notes/`-artige Pfade traf; ein
+  praeziserer regulaerer Ausdruck (`/documents/\?`) behebt die
+  Falschzaehlung.
+- Volle Suite (11 Stufen, 43 Browserpruefungen unveraendert plus neue
+  Leistungsstufe) danach gruen.
+- Nicht verifiziert: reales Geraet, echter Paperless-Server mit
+  tatsaechlich 20.000+ Dokumenten (Netzwerklatenz, echte Serverlast, echte
+  Thumbnail-Generierung fehlen im Mock). Diese Pruefstufe ersetzt keinen
+  Lasttest gegen eine echte Instanz, sie schliesst nur die haeufigste
+  Fehlerquelle (client-seitiges Ueber-Rendern) fruehzeitig und wiederholbar
+  aus.
+- Naechster Schritt: Pruefstufe um den DOC_MAX-Grenzfall (wiederholtes
+  "Weitere laden") erweitern, danach Entscheidung, ob echte Fensterung
+  (Virtualisierung) noch noetig ist oder ob serverseitige Paginierung samt
+  DOC_MAX-Warnung bereits ausreicht - diese Messung war bislang nicht
+  vorhanden, die Entscheidung stand also auf Annahme statt Beleg.
+- Version: 0.7.0 -> 0.8.0 (MINOR: neue automatisierte Pruefstufe mit
+  belastbarem, bislang fehlendem Leistungsbeleg fuer Meilenstein C).

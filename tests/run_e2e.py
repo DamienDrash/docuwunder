@@ -12,8 +12,9 @@ Die Stufen bauen aufeinander auf und laufen von schnell nach langsam:
   4. huelle_check    die Cache-Version passt zum Inhalt der Huelle
   5. geheim_check    nichts Geheimes in den versionierten Dateien
   6. pwa_check       Manifest, Service Worker und Einstiegspunkt passen zusammen
-  7. api_check       die Zusagen der Paperless-API, auf die die App baut
-  8. browser_check   die App im echten Browser gegen den echten Server
+  7. perf_check      Leistung der Dokumentliste bei 100..50.000 Dokumenten (Mock-API)
+  8. api_check       die Zusagen der Paperless-API, auf die die App baut
+  9. browser_check   die App im echten Browser gegen den echten Server
 
 Fuer 3 und 4 wird ein API-Token gebraucht:
 
@@ -40,6 +41,10 @@ STATISCH = [
     ("Huellenversion", "huelle_check.py"),
     ("Geheimnisse", "geheim_check.py"),
     ("PWA", "pwa_check.py"),
+    # Braucht Playwright, aber keinen echten Paperless-Server: die API kommt
+    # komplett aus synthetischem Mock-Routing (siehe perf_check.py). Deshalb
+    # hier bei den statischen Stufen und nicht bei GEGEN_SERVER.
+    ("Leistung bei grossen Bestaenden", "perf_check.py"),
 ]
 GEGEN_SERVER = [
     ("API-Vertrag", "api_check.py"),

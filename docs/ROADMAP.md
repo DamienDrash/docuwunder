@@ -754,3 +754,18 @@ Unit-Tests machen die Lage nur schlechter.
   Scanner-Phasen oder Meilenstein C (Virtualisierung fuer grosse Archive)
   gemaess Prioritaetsreihenfolge.
 - Version: 0.6.2 -> 0.7.0 (MINOR).
+
+
+## Meilenstein C, erster Schritt: Leistungs-Pruefstufe (2026-08-03)
+
+- Neue Pruefstufe `tests/perf_check.py` (Details: docs/AUDIT.md) misst
+  reproduzierbar DOM-Groesse und Anzahl der `/documents/`-Anfragen bei
+  100 / 1.000 / 5.000 / 20.000 / 50.000 synthetischen Dokumenten via
+  Playwright-Mock-Routing, ohne echten Server oder Testdaten.
+- Kernbefund: eine frische Ansicht des Dokumente-Tabs bleibt bei jeder
+  Archivgroesse bei derselben DOM-Groesse (server-seitige Paginierung
+  wirkt). Der eigentliche Risikofall fuer Meilenstein C ist wiederholtes
+  "Weitere laden" bis nahe `DOC_MAX = 1200`, nicht der Gesamtbestand -
+  das ist noch nicht gemessen und der naechste Teilschritt.
+- Volle Suite (11 Stufen) danach gruen.
+- Version: 0.7.0 -> 0.8.0 (MINOR).
