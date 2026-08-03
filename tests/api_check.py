@@ -375,6 +375,21 @@ def multipart(felder, datei_name, datei_inhalt):
     return b"".join(teile), f"multipart/form-data; boundary={grenze}"
 
 
+def dokument_im_papierkorb(doc_id):
+    # Paperless liefert /trash/ paginiert; bei bestehenden grossen Papierkoerben
+    # muss der Test alle Seiten pruefen statt anzunehmen, dass page_size=100
+    # das frisch geloeschte Dokument enthaelt.
+    seite = 1
+    while True:
+        _, papier, _ = hole("/trash/", {"page_size": 100, "page": seite})
+        eintraege = papier.get("results", []) if isinstance(papier, dict) else []
+        if any(x.get("id") == doc_id for x in eintraege):
+            return True
+        if not papier.get("next"):
+            return False
+        seite += 1
+
+
 def t_upload_roundtrip():
     """Hochladen, ueber die Aufgabenkennung verfolgen, wieder entfernen.
 
@@ -410,13 +425,9 @@ def t_upload_roundtrip():
 
     # Aufraeumen: in den Papierkorb und endgueltig loeschen.
     hole(f"/documents/{doc_id}/", method="DELETE", roh=True)
-    _, papier, _ = hole("/trash/", {"page_size": 100})
-    im_papierkorb = any(x["id"] == doc_id for x in papier.get("results", []))
-    assert im_papierkorb, "geloeschtes Dokument liegt nicht im Papierkorb"
+    assert dokument_im_papierkorb(doc_id), "geloeschtes Dokument liegt nicht im Papierkorb"
     hole("/trash/", method="POST", daten={"action": "empty", "documents": [doc_id]})
-    _, papier2, _ = hole("/trash/", {"page_size": 100})
-    assert not any(x["id"] == doc_id for x in papier2.get("results", [])), \
-        "Testdokument liess sich nicht endgueltig entfernen"
+    assert not dokument_im_papierkorb(doc_id), "Testdokument liess sich nicht endgueltig entfernen"
     return f"Dokument {doc_id} angelegt und wieder entfernt"
 
 

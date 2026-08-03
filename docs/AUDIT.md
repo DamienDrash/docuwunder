@@ -942,3 +942,11 @@ näher.
 - A11y-Leitplanke erweitert: `tests/a11y_check.py` zählt jetzt neben `onClick` auch `onPointerDown` auf `div`/`span`; dadurch werden die bewusst noch offenen Swipe-/Pull-Flächen in `tabs.js` und `dokument.js` nicht mehr übersehen. Die Baseline ist jetzt ehrlicher: 176 semantische Buttons, 7 verbleibende klick-/pointeraktive `div`/`span`.
 - Einordnung: Das ist ein kleiner, aber scanner-relevanter Barrierefreiheitsbatch. Tastaturverschiebung der Zuschnittecken selbst ist damit noch nicht fertig; dafür braucht es einen Folge-Batch mit Pfeiltasten-Handling und Fokuszustand im Zuschnittmodus.
 - Version: 0.8.1 -> 0.8.2 (PATCH: Scanner-A11y und Testleitplanke, kein API-/Datenmodellwechsel).
+
+## API-Vertrag, robuster Papierkorb-Roundtrip (2026-08-03)
+
+- Fehler behoben: Die API-Vertragspruefung fuer Upload -> Aufgabenverfolgung -> Loeschen nahm an, dass ein frisch geloeschtes Dokument im ersten `/trash/`-Ergebnis mit `page_size=100` auftaucht. Auf der Testinstanz enthaelt der Papierkorb inzwischen ueber 300 Eintraege; Paperless paginiert `/trash/`, dadurch war der Test rot, obwohl das Dokument korrekt im Papierkorb lag.
+- `tests/api_check.py` prueft den Papierkorb jetzt seitenweise, bevor es das Testdokument endgueltig entfernt. Das ist keine Testabsenkung, sondern eine realistischere API-Vertragspruefung fuer volle Paperless-Instanzen.
+- Verifikation: isoliert `python3 tests/api_check.py` gruen (24/24), danach volle Suite `python3 tests/run_e2e.py` gruen (11 Stufen). Browser-Proxy meldet weiterhin harmlose `BrokenPipeError`-Tracebacks durch vom Browser abgebrochene Weiterleitungen; die Browserpruefung selbst meldet keine Konsolenfehler.
+- Produktionsreife-Score bleibt bei 56 %, weil kein Nutzerverhalten und keine neue Produktfaehigkeit hinzugekommen ist; die Backend-Integrationspruefung ist aber weniger flatterhaft.
+- Version: 0.8.2 -> 0.8.3 (PATCH: Test-/Integrationsstabilitaet, kein API-/Datenmodellwechsel).

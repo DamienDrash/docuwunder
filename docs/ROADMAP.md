@@ -790,3 +790,11 @@ Unit-Tests machen die Lage nur schlechter.
 - Naechster Schritt: Entscheidung ueber Umsetzung (echte Virtualisierung
   vs. einfachere Zwischenloesung), danach ggf. Umsetzung selbst.
 - Version: 0.8.0 -> 0.8.1 (PATCH).
+
+## API-Vertrag, robuster Papierkorb-Roundtrip (2026-08-03)
+
+- Fehler behoben: Die API-Vertragspruefung fuer Upload -> Aufgabenverfolgung -> Loeschen nahm an, dass ein frisch geloeschtes Dokument im ersten `/trash/`-Ergebnis mit `page_size=100` auftaucht. Auf der Testinstanz enthaelt der Papierkorb inzwischen ueber 300 Eintraege; Paperless paginiert `/trash/`, dadurch war der Test rot, obwohl das Dokument korrekt im Papierkorb lag.
+- `tests/api_check.py` prueft den Papierkorb jetzt seitenweise, bevor es das Testdokument endgueltig entfernt. Das ist keine Testabsenkung, sondern eine realistischere API-Vertragspruefung fuer volle Paperless-Instanzen.
+- Verifikation: isoliert `python3 tests/api_check.py` gruen (24/24), danach volle Suite `python3 tests/run_e2e.py` gruen (11 Stufen). Browser-Proxy meldet weiterhin harmlose `BrokenPipeError`-Tracebacks durch vom Browser abgebrochene Weiterleitungen; die Browserpruefung selbst meldet keine Konsolenfehler.
+- Produktionsreife-Score bleibt bei 56 %, weil kein Nutzerverhalten und keine neue Produktfaehigkeit hinzugekommen ist; die Backend-Integrationspruefung ist aber weniger flatterhaft.
+- Version: 0.8.2 -> 0.8.3 (PATCH: Test-/Integrationsstabilitaet, kein API-/Datenmodellwechsel).
