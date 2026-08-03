@@ -1045,6 +1045,40 @@ def main():
                 assert seite.locator('text="Original"').get_attribute("aria-pressed") == "true"
                 return "Graustufe faerbt um, Original stellt zurueck, keine Seite verloren"
 
+            def t_scan_regler_wirken():
+                # Kontrast/Helligkeit-Regler (Goldstandard-Scanner, 0.6.1).
+                # Beide muessen echt neu rechnen (neue Bildquelle) und duerfen
+                # die Seite nicht verlieren; der Wert daneben muss folgen.
+                vorher_src = seite.locator('[data-seite="1"] img').get_attribute("src")
+                kontrast = seite.locator('input[aria-label="Kontrast"]')
+                kontrast.fill("1.6")
+                kontrast.dispatch_event("change")
+                seite.wait_for_timeout(2500)
+                assert seite.locator('text="160%"').count() > 0, "Kontrastwert folgt nicht"
+                nach_kontrast = seite.locator('[data-seite="1"] img').get_attribute("src")
+                assert nach_kontrast and nach_kontrast != vorher_src, \
+                    "Kontrastregler veraendert das Bild nicht"
+                assert seite.locator("[data-seite]").count() == 1, "Seite bei Kontrast verloren"
+
+                helligkeit = seite.locator('input[aria-label="Helligkeit"]')
+                helligkeit.fill("40")
+                helligkeit.dispatch_event("change")
+                seite.wait_for_timeout(2500)
+                assert seite.locator('text="+40"').count() > 0, "Helligkeitswert folgt nicht"
+                nach_helligkeit = seite.locator('[data-seite="1"] img').get_attribute("src")
+                assert nach_helligkeit and nach_helligkeit != nach_kontrast, \
+                    "Helligkeitsregler veraendert das Bild nicht"
+                assert seite.locator("[data-seite]").count() == 1, "Seite bei Helligkeit verloren"
+
+                # Zuruecksetzen, damit nachfolgende Pruefungen (Zuschnitt,
+                # Massvergleich) vom bekannten Ausgangszustand ausgehen.
+                kontrast.fill("1")
+                kontrast.dispatch_event("change")
+                helligkeit.fill("0")
+                helligkeit.dispatch_event("change")
+                seite.wait_for_timeout(2500)
+                return "Kontrast und Helligkeit wirken auf das Bild, Werte folgen den Reglern"
+
             def t_zuschnitt_wirkt():
                 vorher = masse(1)
                 seite.locator('[data-seite="1"] [title="Zuschneiden"]').click()
@@ -1378,6 +1412,7 @@ def main():
                 ("Gewaehlte Datei kommt an", t_datei_kommt_beim_server_an),
                 ("Mehrseitig scannen", t_scannen_mehrseitig),
                 ("Bildmodus wirkt auf den Scan", t_scan_modus_wirkt),
+                ("Kontrast/Helligkeit wirken", t_scan_regler_wirken),
                 ("Zuschnitt wirkt auf das Bild", t_zuschnitt_wirkt),
                 ("Scan wird ein mehrseitiges PDF", t_scan_wird_ein_pdf),
                 ("Kamera erlaubt zeigt Live-Vorschau", t_kamera_erfolg_zeigt_vorschau),

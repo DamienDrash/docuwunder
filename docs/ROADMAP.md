@@ -714,3 +714,21 @@ Unit-Tests machen die Lage nur schlechter.
   ADR-0005-Phase 4 (Kantenerkennung/Overlay) oder Meilenstein C
   (Virtualisierung fuer grosse Archive) gemaess Prioritaetsreihenfolge.
 - Version: 0.6.0 -> 0.6.1 (PATCH).
+
+
+## Test-Haertung: eigener Browser-Test fuer Kontrast/Helligkeit (2026-08-03)
+
+- Die Kontrast/Helligkeit-Regler aus 0.6.1 hatten noch keinen eigenen
+  Browser-Test - sie liefen nur "huckepack" ueber Sichtpruefung. Ergaenzt:
+  `t_scan_regler_wirken` in `tests/browser_check.py` prueft, dass beide
+  Regler echte Pixelrechnung ausloesen (neue Bildquelle je Regler, nicht nur
+  ein CSS-Filter), der Anzeigewert dem Regler folgt (160%, +40) und keine
+  Seite beim Rechnen verloren geht. Regler werden danach zurueckgesetzt,
+  damit nachfolgende Pruefungen (Zuschnitt, Massvergleich) vom bekannten
+  Ausgangszustand starten.
+- Volle Suite danach gruen (10 Stufen, 42 Browserpruefungen, vorher 41).
+  Huellenversion neu berechnet.
+- Naechster Schritt: ADR-0005-Phase 4 (Kantenerkennung/Overlay) oder
+  Meilenstein C (Virtualisierung fuer grosse Archive) gemaess
+  Prioritaetsreihenfolge.
+- Version: 0.6.1 -> 0.6.2 (PATCH).
