@@ -47,6 +47,45 @@
   // ohne Flaeche, aus dem sich kein Bild mehr schneiden liesse.
   const ZUSCHNITT_MIN = 0.08;
 
+  // --- Auto-Ausloeser (ADR 0005, Phase 5) ----------------------------------
+  //
+  // Die fruehere Baseline (v0.8.11) beobachtete nur, ob videoWidth/videoHeight/
+  // readyState eines Videobildes ein paar Ticks lang gleich blieben - das ist
+  // keine Dokument-, sondern eine reine Signalpruefung und feuert praktisch
+  // sofort, egal ob ueberhaupt Papier im Bild ist. Diese Fassung nutzt den in
+  // Phase 4 gebauten Randvorschlag (DWScan.randSchaetzen) auf einem kleinen,
+  // regelmaessig aus dem <video> gezogenen Standbild: es zaehlt, wie oft in
+  // Folge ein *aehnlicher* Rand gefunden wird - das ist der Unterschied
+  // zwischen "das Bild aendert sich nicht" und "hier liegt vermutlich ein
+  // Dokument, und es haelt still".
+  //
+  // Kantenlaenge des Beobachtungsbilds. Klein und bewusst nicht mit der vollen
+  // Kameraaufloesung: der Ausloeser braucht nur eine grobe Flaechenschaetzung
+  // alle 350ms, keine hochaufgeloeste Analyse - die eigentliche Aufnahme
+  // verwendet weiterhin die volle Videoaufloesung (scanKameraAufnehmen).
+  const AUTO_BEOB_KANTE = 260;
+  // So oft in Folge muss ein aehnlicher Rand gefunden werden, bevor ausgeloest
+  // wird (bei 350ms Taktung sind das rund 1 Sekunde ruhiges Halten).
+  const AUTO_STABIL_N = 3;
+  // Wird in dieser Anzahl Takte in Folge gar kein Rand gefunden (z. B.
+  // gemusterter Hintergrund, randloses Motiv, schwaches Licht), wird trotzdem
+  // ausgeloest - sonst bliebe der Auto-Ausloeser fuer manche Motive auf ewig
+  // stumm, was schlechter waere als eine Aufnahme ohne Kantenvorschlag.
+  const AUTO_OHNE_RAND_N = 9;
+  // Erlaubte Abweichung je Randkoordinate (Anteil der Bildkante), damit ein
+  // minimal zitterndes Kamerabild nicht als "kein stabiler Rand" gilt.
+  const AUTO_RAND_EPS = 0.035;
+
+  // Zwei Randvorschlaege als "im Wesentlichen gleich" werten, wenn keine
+  // ihrer vier Koordinaten mehr als AUTO_RAND_EPS voneinander abweicht.
+  function randAehnlich(a, b) {
+    if (!a || !b) return false;
+    return Math.abs(a.x0 - b.x0) <= AUTO_RAND_EPS
+        && Math.abs(a.y0 - b.y0) <= AUTO_RAND_EPS
+        && Math.abs(a.x1 - b.x1) <= AUTO_RAND_EPS
+        && Math.abs(a.y1 - b.y1) <= AUTO_RAND_EPS;
+  }
+
   // Der Zustand dieses Sachgebiets, an einer Stelle statt verstreut im
   // Konstruktor.
   //
@@ -100,7 +139,7 @@
         audio: false,
       }).then(stream => {
         this._scanStream = stream;
-        this.setState(st => (st.scan ? { scan: { ...st.scan, kamera: true, kameraFehler: '', autoStatus: st.scan.autoCapture ? 'Auto-Auslöser sucht ein ruhiges Bild.' : 'Auto-Auslöser ist aus.' } } : {}));
+        this.setState(st => (st.scan ? { scan: { ...st.scan, kamera: true, kameraFehler: '', autoStatus: st.scan.autoCapture ? 'Auto-Auslöser sucht Dokumentkanten …' : 'Auto-Auslöser ist aus.' } } : {}));
       }).catch(e => {
         this.scanKameraFehler(e);
       });
@@ -134,42 +173,82 @@
         this._scanAutoTimer = null;
       }
       this._scanAutoLetzte = null;
+      this._scanAutoBusy = false;
     },
 
     scanAutoUmschalten() {
       this.setState(st => {
         if (!st.scan) return {};
         const an = !st.scan.autoCapture;
-        return { scan: { ...st.scan, autoCapture: an, autoStatus: an ? 'Auto-Auslöser sucht ein ruhiges Bild.' : 'Auto-Auslöser ist aus.' } };
+        return { scan: { ...st.scan, autoCapture: an, autoStatus: an ? 'Auto-Auslöser sucht Dokumentkanten …' : 'Auto-Auslöser ist aus.' } };
       }, () => {
         if (this.state.scan && this.state.scan.autoCapture && this._scanVideoEl) this.scanAutoBeobachten(this._scanVideoEl);
         else this.scanAutoStoppen();
       });
     },
 
+    // Beobachtet die Live-Vorschau alle 350ms und zieht dabei ein kleines
+    // Standbild, das DWScan.randSchaetzen (Phase 4) auf einen moeglichen
+    // Dokumentrand hin untersucht. Ausgeloest wird, sobald derselbe Rand
+    // AUTO_STABIL_N mal in Folge wiederkehrt (das Dokument liegt ruhig und
+    // ist erkennbar) - oder nach AUTO_OHNE_RAND_N Takten ganz ohne Randfund,
+    // damit ein Motiv ohne klaren Kontrast (z. B. randlos fotografiert) den
+    // Ausloeser nicht dauerhaft blockiert. this._scanAutoBusy verhindert,
+    // dass sich zwei Auswertungen ueberlappen, falls eine einzelne laenger
+    // braeuchte als der 350ms-Takt.
     scanAutoBeobachten(video) {
       if (!video || this._scanAutoTimer || !(this.state.scan && this.state.scan.autoCapture)) return;
-      this._scanAutoLetzte = null;
+      this._scanAutoLetzte = { box: null, nStabil: 0, nOhneRand: 0 };
+      this._scanAutoBusy = false;
       this._scanAutoTimer = setInterval(() => {
         const sc = this.state.scan;
         if (!sc || !sc.kamera || !sc.autoCapture) { this.scanAutoStoppen(); return; }
+        if (this._scanAutoBusy) return;
         const w = video.videoWidth || video.clientWidth || 0, h = video.videoHeight || video.clientHeight || 0;
         if (!w || !h) {
           this.setState(st => (st.scan ? { scan: { ...st.scan, autoStatus: 'Auto-Auslöser wartet auf das Kamerabild.' } } : {}));
           return;
         }
-        const sig = w + 'x' + h + ':' + (video.readyState || 0);
-        const alt = this._scanAutoLetzte || { sig: '', n: 0 };
-        const n = alt.sig === sig ? alt.n + 1 : 1;
-        this._scanAutoLetzte = { sig, n };
-        if (n >= 4) {
-          this.scanAutoStoppen();
-          this.setState(st => (st.scan ? { scan: { ...st.scan, autoCapture: false, autoStatus: 'Ruhiges Bild erkannt, Aufnahme läuft.' } } : {}));
-          this.scanKameraAufnehmen(video);
-          this.scanKameraSchliessen();
-        } else {
-          this.setState(st => (st.scan ? { scan: { ...st.scan, autoStatus: 'Bitte ruhig halten …' } } : {}));
+        this._scanAutoBusy = true;
+        const f = Math.min(1, AUTO_BEOB_KANTE / Math.max(w, h));
+        const cw = Math.max(1, Math.round(w * f)), ch = Math.max(1, Math.round(h * f));
+        let c;
+        try {
+          c = global.document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          c.getContext('2d').drawImage(video, 0, 0, cw, ch);
+        } catch (fehler) {
+          // Manche Geraete/WebViews liefern kurzzeitig ein Videobild, das sich
+          // noch nicht zeichnen laesst (z. B. unmittelbar nach dem Start) -
+          // ein einzelner uebersprungener Takt ist kein Fehlerfall.
+          this._scanAutoBusy = false;
+          return;
         }
+        global.DWScan.randSchaetzen(c).then(box => {
+          const st0 = this._scanAutoLetzte;
+          if (!st0) return; // Beobachtung wurde inzwischen gestoppt
+          const stabil = randAehnlich(box, st0.box);
+          st0.nStabil = box && stabil ? st0.nStabil + 1 : (box ? 1 : 0);
+          st0.nOhneRand = box ? 0 : st0.nOhneRand + 1;
+          st0.box = box;
+
+          const feuern = (hinweis) => {
+            this.scanAutoStoppen();
+            this.setState(sst => (sst.scan ? { scan: { ...sst.scan, autoCapture: false, autoStatus: hinweis } } : {}));
+            this.scanKameraAufnehmen(video);
+            this.scanKameraSchliessen();
+          };
+
+          if (box && st0.nStabil >= AUTO_STABIL_N) {
+            feuern('Dokument erkannt, Aufnahme läuft.');
+          } else if (!box && st0.nOhneRand >= AUTO_OHNE_RAND_N) {
+            feuern('Kein Dokumentrand erkannt, Aufnahme läuft.');
+          } else if (box) {
+            this.setState(sst => (sst.scan ? { scan: { ...sst.scan, autoStatus: 'Dokument erkannt, bitte ruhig halten …' } } : {}));
+          } else {
+            this.setState(sst => (sst.scan ? { scan: { ...sst.scan, autoStatus: 'Auto-Auslöser sucht Dokumentkanten …' } } : {}));
+          }
+        }).catch(() => { /* Heuristik optional, kein harter Fehler */ }).then(() => { this._scanAutoBusy = false; });
       }, 350);
     },
 

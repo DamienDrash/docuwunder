@@ -839,3 +839,10 @@ Unit-Tests machen die Lage nur schlechter.
 - Einordnung: Das ist noch keine Swift-Paperless-Paritaet und keine echte Dokument-/Fokus-/Bewegungserkennung; die weitere CV-gestuetzte Kanten-/Schaerfe-/Stabilitaetsbewertung bleibt offen und muss auf realen Mobilgeraeten verifiziert werden.
 - Tests: `tests/browser_check.py` prueft mit einem echten Canvas-`MediaStream`, dass der Auto-Ausloeser aktiv ist und nach stabilem Bild eine erste Scan-Seite erzeugt. Volle Suite: 11 Stufen, 60 Unit, 24 API, 45 Browserpruefungen gruen.
 - Version: 0.8.10 -> 0.8.11 (PATCH: Scanner-Autoausloeser-Baseline, kein API-/Datenmodellwechsel).
+
+## Goldstandard-Scanner, Phase 5 real umgesetzt: Auto-Ausloeser nutzt echte Randerkennung (2026-08-04)
+
+- Der Auto-Ausloeser nutzt jetzt DWScan.randSchaetzen (Phase 4) statt einer inhaltsblinden Videosignal-Stabilitaetspruefung: ausgeloest wird erst, wenn ein aehnlicher Dokumentrand mehrfach in Folge gefunden wird, mit bewusstem Zeit-Fallback fuer randlose/kontrastarme Motive. Details und Testevidenz: docs/AUDIT.md und docs/adr/0005-goldstandard-scanner.md.
+- Volle Suite (11 Stufen, 46 Browserpruefungen, davon 1 neu) danach gruen. Huellenversion neu berechnet.
+- Naechster Schritt: echte Geraeteverifikation der Scanner-Kette, oder Fortsetzung mit Meilenstein B (restliche Pointer-Flaechen in tabs.js/dokument.js), Meilenstein C (Virtualisierungsentscheidung) oder Meilenstein D (Release-Dokumentation).
+- Version: 0.8.11 -> 0.9.0 (MINOR).

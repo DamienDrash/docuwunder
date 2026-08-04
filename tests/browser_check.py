@@ -1278,10 +1278,52 @@ def main():
                 seite.wait_for_selector('[data-scan-auto-status]', timeout=5000)
                 assert seite.get_by_role('button', name='Auto', exact=True).get_attribute('aria-pressed') == 'true', \
                     "Auto-Ausloeser ist nicht aktiv"
+                # Der neue Auto-Ausloeser (ADR 0005, Phase 5) feuert nicht mehr nach
+                # einer festen, inhaltsblinden Wartezeit, sondern erst, wenn
+                # DWScan.randSchaetzen denselben Rand mehrfach in Folge findet
+                # (AUTO_STABIL_N Takte a 350ms in erfassen.js). Eine Mindestwartezeit
+                # von rund zwei Takten unterscheidet das von einem sofortigen,
+                # inhaltsunabhaengigen Ausloesen.
+                start = time.monotonic()
                 seite.wait_for_selector('[data-seite="1"]', timeout=6000)
+                dauer_ms = (time.monotonic() - start) * 1000
+                assert dauer_ms >= 500, \
+                    f"Auto-Ausloeser feuerte zu sofort ({dauer_ms:.0f}ms) - wirkt nicht wie eine echte Randstabilitaetsprüfung"
                 seite.locator('[aria-label="Abbrechen"]').click()
                 seite.wait_for_timeout(400)
-                return "ruhiges Kamerabild loest automatisch eine Aufnahme aus"
+                return "ruhiges, randdeutliches Kamerabild löst nach echter Randstabilität eine Aufnahme aus (%.0fms)" % dauer_ms
+
+            def t_kamera_auto_ohne_rand_faellt_zurueck():
+                # Ein voellig gleichfoermiges Kamerabild (kein Kontrast, also kein
+                # Rand-Fund durch randSchaetzen) darf den Auto-Ausloeser nicht fuer
+                # immer blockieren: nach AUTO_OHNE_RAND_N Takten ohne Randfund
+                # (erfassen.js) wird trotzdem ausgeloest. Das ist der bewusste
+                # Fallback aus ADR 0005, Phase 5 fuer randlose/kontrastarme Motive.
+                seite.context.add_init_script("""
+                    Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+                    Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth', { get() { return 320; }, configurable: true });
+                    Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', { get() { return 240; }, configurable: true });
+                    navigator.mediaDevices = navigator.mediaDevices || {};
+                    navigator.mediaDevices.getUserMedia = () => {
+                        const c = document.createElement('canvas');
+                        c.width = 320; c.height = 240;
+                        const g = c.getContext('2d');
+                        g.fillStyle = '#888'; g.fillRect(0, 0, 320, 240);
+                        return Promise.resolve(c.captureStream(8));
+                    };
+                """)
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                seite.locator('text="Scannen"').last.click()
+                seite.wait_for_selector('[data-scan-auto-status]', timeout=5000)
+                start = time.monotonic()
+                seite.wait_for_selector('[data-seite="1"]', timeout=9000)
+                dauer_ms = (time.monotonic() - start) * 1000
+                assert dauer_ms >= 1500, \
+                    f"Fallback ohne Randfund feuerte zu frueh ({dauer_ms:.0f}ms) - kein echter Fallback-Takt"
+                seite.locator('[aria-label="Abbrechen"]').click()
+                seite.wait_for_timeout(400)
+                return "kein erkennbarer Rand fuehrt trotzdem nach kurzer Wartezeit zur Aufnahme (%.0fms), kein Blockieren" % dauer_ms
 
             def t_kamera_verweigert_faellt_zurueck():
                 seite.context.add_init_script("""
@@ -1529,6 +1571,7 @@ def main():
                 ("Scan wird ein mehrseitiges PDF", t_scan_wird_ein_pdf),
                 ("Kamera erlaubt zeigt Live-Vorschau", t_kamera_erfolg_zeigt_vorschau),
                 ("Kamera-Autoausloeser nimmt ruhiges Bild auf", t_kamera_auto_ausloeser),
+                ("Kamera-Autoausloeser faellt ohne Randfund nicht dauerhaft aus", t_kamera_auto_ohne_rand_faellt_zurueck),
                 ("Kamera verweigert faellt zurueck", t_kamera_verweigert_faellt_zurueck),
                 ("Kamera fehlt geht direkt zum Dateidialog", t_kamera_fehlt_direkt_dateidialog),
                 ("Automatisierung bearbeiten", t_automatisierung_bearbeiten),
