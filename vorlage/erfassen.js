@@ -127,7 +127,7 @@
   V.toastOn = function (v, html, stil) {
     return v.toastOn ? html`<div style=${stil('position:absolute;left:50%;transform:translateX(-50%);bottom:100px;z-index:90;background:rgba(28,28,32,0.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:14px;box-shadow:0 8px 24px rgba(0,0,0,0.3);animation:toastIn .3s ease;max-width:86%')}>
   <span style=${stil('font-size:14px;font-weight:500;color:#fff;line-height:1.35')}>${v.toastMsg}</span>
-  ${v.undoOn ? html`<span onClick=${v.doUndo} style=${stil('font-size:14px;font-weight:700;color:#6CB8FF;cursor:pointer;flex-shrink:0')}>${v.undoLabel}</span>` : null}
+  ${v.undoOn ? html`<button type="button" aria-label=${v.undoLabel} onClick=${v.doUndo} style=${stil(S.buttonReset + 'font-size:14px;font-weight:700;color:#6CB8FF;cursor:pointer;flex-shrink:0;padding:2px 0')}>${v.undoLabel}</button>` : null}
 </div>` : null;
   };
 

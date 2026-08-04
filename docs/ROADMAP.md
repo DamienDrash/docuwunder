@@ -818,3 +818,10 @@ Unit-Tests machen die Lage nur schlechter.
 - Browser-Regressionstest erweitert: prüft Fokusdarstellung, Pfeiltastenbewegung und aktualisierten Zuschnittstatus.
 - Volle Suite (11 Stufen, 60 Unit, 24 API, 44 Browserprüfungen) danach grün; Hüllenversion neu berechnet.
 - Version: 0.8.5 -> 0.8.6 (PATCH: Scanner-A11y und Regressionstest, kein API-/Datenmodellwechsel).
+
+## Meilenstein B/Scanner, Toast-Rueckgaengig semantisch bedienbar (2026-08-04)
+
+- Aenderung: Der Rueckgaengig-Eintrag im Toast ist kein klickbarer span mehr, sondern ein nativer button mit zugaenglichem Namen. Damit ist die Scanner-/Upload-Toast-Aktion per Tastatur fokussierbar und ausloesbar, ohne Touch-Verhalten oder visuelle Gestaltung wesentlich zu veraendern.
+- Testabdeckung: Die A11y-Leitplanke senkt die erlaubte Restschuld in vorlage/erfassen.js von 1 auf 0; die komplette E2E-Suite bestaetigt jetzt 193 Buttons und 6 verbleibende klickbare div/span in anderen Bereichen.
+- Produktionsreife bleibt bei 56 Prozent, Accessibility-Teilscore steigt von 34 Prozent auf 35 Prozent, weil eine reale interaktive Restschuld geschlossen wurde. Manuelle Screenreader-/Mobilgeraetepruefung bleibt erforderlich.
+- Version: 0.8.6 -> 0.8.7 (PATCH: Accessibility-Verbesserung, kein API-/Datenmodellwechsel).

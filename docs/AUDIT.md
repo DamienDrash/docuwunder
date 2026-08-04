@@ -25,7 +25,7 @@ kritisch waren — beide mit Gegenprobe, dass die Prüfung den Fehler wirklich f
 | Sicherheit | 55 % | Ein XSS gefunden und behoben; keine CSP, API-Adresse ungeprüft |
 | Performance | 45 % | Harte Decke bei ~2.000 Dokumenten in einer Liste (gemessen) |
 | PWA | 75 % | Offline und Selbstaktualisierung belegt; Cache-Version von Hand |
-| **Barrierefreiheit** | **34 %** | Kernnavigation, Verwaltung und Scanner sind weitgehend semantisch migriert. Scanner-Zuschnittgriffe sind native, benannte Buttons; `tests/a11y_check.py` zählt jetzt auch PointerDown-Interaktionen, damit draggable Divs sichtbar bleiben. Verbleibend: Swipe-/Pull-Flächen in Dokument/Tabs, Sheet-Backdrop und Undo-Link; manuelle Screenreader-/Tastatur-Geräteprüfung steht weiterhin aus |
+| **Barrierefreiheit** | **35 %** | Kernnavigation, Verwaltung und Scanner sind weitgehend semantisch migriert. Scanner-Zuschnittgriffe und Toast-Rueckgaengig sind native, benannte Buttons; die A11y-Leitplanke zaehlt auch PointerDown-Interaktionen, damit draggable Divs sichtbar bleiben. Verbleibend: Swipe-/Pull-Flaechen in Dokument/Tabs und Sheet-Backdrop; manuelle Screenreader-/Tastatur-Geraetepruefung steht weiterhin aus |
 | Dokumentation | 30 % | README + Roadmap; 7 von 9 geforderten Dokumenten fehlen |
 | CI/Release | 0 % | Kein `.github/`, keine `package.json`, keine Versionierung |
 | Store-Reife | 15 % | Siehe K-1 — als PWA **nicht** App-Store-fähig |
@@ -976,3 +976,10 @@ näher.
 - Testevidenz: `python3 tests/run_e2e.py` grün mit 11 Stufen, 60 Unit-Tests, 24 API-Vertragsprüfungen und 44 Browserprüfungen. Die Browserprüfung deckt Fokusdarstellung, Tastaturbewegung und Statusaktualisierung ab.
 - Produktionsreife bleibt bei 56 %; kein Score-Anstieg, weil reale Screenreader-/Mobilgeräteprüfung weiterhin aussteht und die restlichen Pointer-Flächen noch offen sind.
 - Version: 0.8.5 -> 0.8.6.
+
+## Meilenstein B/Scanner, Toast-Rueckgaengig semantisch bedienbar (2026-08-04)
+
+- Aenderung: Der Rueckgaengig-Eintrag im Toast ist kein klickbarer span mehr, sondern ein nativer button mit zugaenglichem Namen. Damit ist die Scanner-/Upload-Toast-Aktion per Tastatur fokussierbar und ausloesbar, ohne Touch-Verhalten oder visuelle Gestaltung wesentlich zu veraendern.
+- Testabdeckung: Die A11y-Leitplanke senkt die erlaubte Restschuld in vorlage/erfassen.js von 1 auf 0; die komplette E2E-Suite bestaetigt jetzt 193 Buttons und 6 verbleibende klickbare div/span in anderen Bereichen.
+- Produktionsreife bleibt bei 56 Prozent, Accessibility-Teilscore steigt von 34 Prozent auf 35 Prozent, weil eine reale interaktive Restschuld geschlossen wurde. Manuelle Screenreader-/Mobilgeraetepruefung bleibt erforderlich.
+- Version: 0.8.6 -> 0.8.7 (PATCH: Accessibility-Verbesserung, kein API-/Datenmodellwechsel).
