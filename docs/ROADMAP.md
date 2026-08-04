@@ -29,8 +29,8 @@ Sortiert nach dem, was zuerst weh tut.
 - ✅ Scanner-Zuschnittgriffe auf native, benannte Buttons umgestellt; Pointer-basierte A11y-Leitplanke erweitert.
 - ✅ Scanner-Zuschnittecken sind per Pfeiltasten verschiebbar; Browser-Regressionstest prüft fokussierten Griff und Positionsänderung.
 - ✅ Sichtbarer Fokuszustand im Zuschnittmodus wird browserseitig geprüft; Zuschnittänderungen liefern einen `aria-live`-Status für Screenreader.
+- ✅ Pull-to-refresh- und Posteingang-Swipe-Flächen aus klickbaren `div`-Resten zu semantisch benannten `section`-Regionen migriert; A11y-Leitplanke verlangt jetzt 0 klickbare `div/span`.
 - 🟠 Nächster Scanner-Schritt: Zuschnitt-Status/Bedienhinweise auf echten Mobilgeräten mit VoiceOver/TalkBack prüfen und danach die nächste Scanner-Phase priorisieren.
-- 🟠 Danach: verbleibende Pointer-Flächen (`tabs.js`, `dokument.js`) systematisch semantisch/keyboard-fähig umbauen, ohne Pull-to-refresh/Swipe zu brechen.
 
 ---
 

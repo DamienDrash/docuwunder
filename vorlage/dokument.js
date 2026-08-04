@@ -99,7 +99,7 @@
   };
 
   V.showRev = function (v, html, stil) {
-    return v.showRev ? html`<div data-screen-label="Posteingang prüfen" data-rev="1" onPointerDown=${v.revZiehStart} onPointerMove=${v.revZiehZug} onPointerUp=${v.revZiehEnde} onPointerCancel=${v.revZiehEnde} style=${stil(`${v.paneL}background:var(--bg);${v.paneAnim}z-index:40`)}>
+    return v.showRev ? html`<section aria-label="Posteingang prüfen" data-screen-label="Posteingang prüfen" data-rev="1" onPointerDown=${v.revZiehStart} onPointerMove=${v.revZiehZug} onPointerUp=${v.revZiehEnde} onPointerCancel=${v.revZiehEnde} style=${stil(`${v.paneL}background:var(--bg);${v.paneAnim}z-index:40`)}>
   ${''/* Der Inhalt folgt dem Finger. Die Kopfleiste bleibt stehen: sie
        traegt die Zaehlung, und die soll waehrend des Wischens lesbar
        bleiben. */}
@@ -153,7 +153,7 @@
     <button type="button" aria-label="Übernehmen und weiter" onClick=${v.revConfirm} style=${stil(S.buttonReset + 'width:100%;height:50px;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(13,27,42,0.18)')}>Übernehmen & weiter</button>
     <button type="button" aria-label="Dokument überspringen" onClick=${v.revSkip} style=${stil(S.buttonReset + 'width:100%;height:44px;border-radius:14px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:0.5px solid var(--gbor);color:var(--acc);display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:600;cursor:pointer')}>Überspringen</button>
   </div>
-</div>` : null;
+</section>` : null;
   };
 
   V.showSearch = function (v, html, stil) {

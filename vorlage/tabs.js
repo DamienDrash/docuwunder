@@ -17,10 +17,10 @@
   };
 
   V.tabDocs = function (v, html, stil) {
-    return v.tabDocs ? html`<div data-screen-label="Dokumente" data-zieh="1" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
+    return v.tabDocs ? html`<section aria-label="Dokumente" data-screen-label="Dokumente" data-zieh="1" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
   ${v.ziehAn ? html`<div style=${stil(`position:absolute;left:0;right:0;top:${Math.round(v.ziehDy) - 34}px;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:none;z-index:3`)}>
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" style=${stil(v.ziehLaeuft ? 'animation:spin 1s linear infinite' : 'transition:transform .15s')}><path d="M12 3a9 9 0 109 9"></path></svg>
-    <span style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
+    <span role="status" aria-live="polite" style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
   </div>` : null}
   <div style=${stil('display:flex;align-items:center;justify-content:space-between;padding:8px 16px 0 20px')}>
     <div style=${stil('font-size:31px;font-weight:700;letter-spacing:-0.6px')}>Dokumente</div>
@@ -151,14 +151,14 @@
       <div style=${stil('font-size:14px;color:var(--lab2);margin-top:6px;line-height:1.45')}>${v.docsEmptyText}</div>
       ${v.filterOn ? html`<button type="button" onClick=${v.resetFilter} style=${stil(S.buttonReset + ';display:inline-flex;margin-top:16px;height:38px;padding:0 18px;border-radius:999px;background:var(--fill);align-items:center;font-size:14.5px;font-weight:600;color:var(--acc);cursor:pointer')}>Filter zurücksetzen</button>` : null}
     </div>` : null}
-</div>` : null;
+</section>` : null;
   };
 
   V.tabHome = function (v, html, stil) {
-    return v.tabHome ? html`<div data-screen-label="Übersicht" data-zieh="1" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
+    return v.tabHome ? html`<section aria-label="Übersicht" data-screen-label="Übersicht" data-zieh="1" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
   ${v.ziehAn ? html`<div style=${stil(`position:absolute;left:0;right:0;top:${Math.round(v.ziehDy) - 34}px;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:none;z-index:3`)}>
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" style=${stil(v.ziehLaeuft ? 'animation:spin 1s linear infinite' : 'transition:transform .15s')}><path d="M12 3a9 9 0 109 9"></path></svg>
-    <span style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
+    <span role="status" aria-live="polite" style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
   </div>` : null}
   <div style=${stil('display:flex;align-items:center;justify-content:space-between;padding:8px 20px 0')}>
     <div style=${stil('font-size:31px;font-weight:700;letter-spacing:-0.6px')}>Übersicht</div>
@@ -234,14 +234,14 @@
         <div style=${stil('position:absolute;left:46px;right:0;bottom:0;height:0.5px;background:var(--sep)')}></div>
       </button>`)}
   </div>
-</div>` : null;
+</section>` : null;
   };
 
   V.tabInbox = function (v, html, stil) {
-    return v.tabInbox ? html`<div data-screen-label="Posteingang" data-zieh="1" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
+    return v.tabInbox ? html`<section aria-label="Posteingang" data-screen-label="Posteingang" data-zieh="1" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
   ${v.ziehAn ? html`<div style=${stil(`position:absolute;left:0;right:0;top:${Math.round(v.ziehDy) - 34}px;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:none;z-index:3`)}>
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" style=${stil(v.ziehLaeuft ? 'animation:spin 1s linear infinite' : 'transition:transform .15s')}><path d="M12 3a9 9 0 109 9"></path></svg>
-    <span style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
+    <span role="status" aria-live="polite" style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
   </div>` : null}
   <div style=${stil('padding:8px 20px 0')}>
     <div style=${stil('font-size:31px;font-weight:700;letter-spacing:-0.6px')}>Posteingang</div>
@@ -271,14 +271,14 @@
       </button>`)}
   </div>
   ${v.inboxHasNew ? html`<div style=${stil('font-size:12.5px;color:var(--lab3);text-align:center;padding:10px 40px;line-height:1.5')}>Bestätigte Dokumente werden in deine Bibliothek übernommen.</div>` : null}
-</div>` : null;
+</section>` : null;
   };
 
   V.tabMore = function (v, html, stil) {
-    return v.tabMore ? html`<div data-screen-label="Mehr" data-zieh="1" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
+    return v.tabMore ? html`<section aria-label="Mehr" data-screen-label="Mehr" data-zieh="1" onPointerDown=${v.ziehStart} onPointerMove=${v.ziehZug} onPointerUp=${v.ziehEnde} onPointerCancel=${v.ziehEnde} style=${stil(`${v.paneL}overflow-y:auto;overscroll-behavior:contain;padding:64px 0 128px;${v.ziehAn ? 'user-select:none;-webkit-user-select:none;' : ''}transform:translateY(${Math.round(v.ziehDy)}px);transition:${v.ziehAn ? "none" : "transform .3s cubic-bezier(.3,.7,.4,1)"}`)}>
   ${v.ziehAn ? html`<div style=${stil(`position:absolute;left:0;right:0;top:${Math.round(v.ziehDy) - 34}px;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:none;z-index:3`)}>
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" style=${stil(v.ziehLaeuft ? 'animation:spin 1s linear infinite' : 'transition:transform .15s')}><path d="M12 3a9 9 0 109 9"></path></svg>
-    <span style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
+    <span role="status" aria-live="polite" style=${stil('font-size:12.5px;font-weight:600;color:var(--lab2)')}>${v.ziehText}</span>
   </div>` : null}
   <div style=${stil('font-size:31px;font-weight:700;letter-spacing:-0.6px;padding:8px 20px 0')}>Mehr</div>
   <button type="button" aria-label="Konto- und Servereinstellungen öffnen" onClick=${v.openSettings} data-konto="1" style=${stil(S.buttonReset + ';width:calc(100% - 32px);text-align:left;background:var(--card);border-radius:16px;margin:16px 16px 0;padding:14px 16px;display:flex;gap:13px;align-items:center;cursor:pointer')}>
@@ -320,7 +320,7 @@
       </button>`)}
   </div>
   <div style=${stil('font-size:12.5px;color:var(--lab3);text-align:center;padding:14px 40px;line-height:1.5')}>Angemeldet als Administrator<br />Paperless-ngx 2.17.1 · API v9</div>
-</div>` : null;
+</section>` : null;
   };
 
   V.tabbarOn = function (v, html, stil) {

@@ -15,7 +15,7 @@ kritisch waren — beide mit Gegenprobe, dass die Prüfung den Fehler wirklich f
 
 ## 1. Gesamtergebnis
 
-### Produktionsreife: **56 %**
+### Produktionsreife: **58 %**
 
 | Bereich | Reife | Begründung |
 |---|---:|---|
@@ -25,7 +25,7 @@ kritisch waren — beide mit Gegenprobe, dass die Prüfung den Fehler wirklich f
 | Sicherheit | 55 % | Ein XSS gefunden und behoben; keine CSP, API-Adresse ungeprüft |
 | Performance | 45 % | Harte Decke bei ~2.000 Dokumenten in einer Liste (gemessen) |
 | PWA | 75 % | Offline und Selbstaktualisierung belegt; Cache-Version von Hand |
-| **Barrierefreiheit** | **35 %** | Kernnavigation, Verwaltung und Scanner sind weitgehend semantisch migriert. Scanner-Zuschnittgriffe und Toast-Rueckgaengig sind native, benannte Buttons; die A11y-Leitplanke zaehlt auch PointerDown-Interaktionen, damit draggable Divs sichtbar bleiben. Verbleibend: Swipe-/Pull-Flaechen in Dokument/Tabs und Sheet-Backdrop; manuelle Screenreader-/Tastatur-Geraetepruefung steht weiterhin aus |
+| **Barrierefreiheit** | **45 %** | Alle bekannten onClick/onPointerDown-Interaktionen im Vorlagenbaum liegen jetzt auf nativen Buttons oder semantisch benannten Regionen. Die A11y-Leitplanke steht bei 194 Buttons und 0 verbleibenden klickbaren div/span; Pull-to-refresh- und Posteingang-Swipe-Flächen sind als `section` mit zugänglichem Namen erhalten. Manuelle Screenreader-/Tastatur-Geraetepruefung steht weiterhin aus |
 | Dokumentation | 30 % | README + Roadmap; 7 von 9 geforderten Dokumenten fehlen |
 | CI/Release | 0 % | Kein `.github/`, keine `package.json`, keine Versionierung |
 | Store-Reife | 15 % | Siehe K-1 — als PWA **nicht** App-Store-fähig |
