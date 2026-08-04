@@ -24,11 +24,12 @@ Sortiert nach dem, was zuerst weh tut.
 
 ---
 
-## Aktueller Fokus (2026-08-03)
+## Aktueller Fokus (2026-08-04)
 
 - ✅ Scanner-Zuschnittgriffe auf native, benannte Buttons umgestellt; Pointer-basierte A11y-Leitplanke erweitert.
 - ✅ Scanner-Zuschnittecken sind per Pfeiltasten verschiebbar; Browser-Regressionstest prüft fokussierten Griff und Positionsänderung.
-- 🟠 Nächster Scanner-A11y-Schritt: sichtbaren Fokuszustand im Zuschnittmodus browserseitig prüfen und Statushinweise für Zuschnittänderungen ergänzen.
+- ✅ Sichtbarer Fokuszustand im Zuschnittmodus wird browserseitig geprüft; Zuschnittänderungen liefern einen `aria-live`-Status für Screenreader.
+- 🟠 Nächster Scanner-Schritt: Zuschnitt-Status/Bedienhinweise auf echten Mobilgeräten mit VoiceOver/TalkBack prüfen und danach die nächste Scanner-Phase priorisieren.
 - 🟠 Danach: verbleibende Pointer-Flächen (`tabs.js`, `dokument.js`) systematisch semantisch/keyboard-fähig umbauen, ohne Pull-to-refresh/Swipe zu brechen.
 
 ---
@@ -808,3 +809,12 @@ Unit-Tests machen die Lage nur schlechter.
 - Produktionsreife-Score bleibt bei 56 %, weil nur die Testsignalqualitaet verbessert wurde.
 - Version: 0.8.3 -> 0.8.4 (PATCH: Test-/Integrationsstabilitaet, kein Nutzerverhalten).
 
+
+
+## Meilenstein B/Scanner, sichtbarer Fokus und Status im Zuschnitt (2026-08-04)
+
+- Scanner-Zuschnitt: fokussierte Eckgriffe haben jetzt einen expliziten, kontrastreichen Fokuszustand.
+- Screenreader erhalten während der Zuschnittänderung einen höflichen Live-Status mit Prozentwerten für links/oben/rechts/unten.
+- Browser-Regressionstest erweitert: prüft Fokusdarstellung, Pfeiltastenbewegung und aktualisierten Zuschnittstatus.
+- Volle Suite (11 Stufen, 60 Unit, 24 API, 44 Browserprüfungen) danach grün; Hüllenversion neu berechnet.
+- Version: 0.8.5 -> 0.8.6 (PATCH: Scanner-A11y und Regressionstest, kein API-/Datenmodellwechsel).

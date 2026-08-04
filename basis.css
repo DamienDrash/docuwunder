@@ -17,6 +17,7 @@ html,body{margin:0;height:100%;overflow:hidden;overscroll-behavior:none;backgrou
 @media (prefers-color-scheme: dark){html,body{background:#0D1B2A}}
 *{box-sizing:border-box}
 input,textarea,button{font-family:inherit}
+button[data-griff]:focus,button[data-griff]:focus-visible{outline:3px solid #fff!important;outline-offset:4px!important;box-shadow:0 0 0 6px rgba(10,132,255,.75)!important}
 @keyframes pushIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
 @keyframes sheetUp{from{transform:translateY(105%)}to{transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}

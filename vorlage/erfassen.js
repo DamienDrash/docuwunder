@@ -87,6 +87,7 @@
   ${v.scanZuschnitt ? html`<div style=${stil('flex:1;display:flex;align-items:center;justify-content:center;padding:12px 20px;overflow:hidden')}>
       <div onPointerMove=${v.zZiehen} onPointerUp=${v.zLoslassen} onPointerCancel=${v.zLoslassen} style=${stil('position:relative;max-width:100%;max-height:100%;touch-action:none')}>
         <img src=${v.zUrl} alt="Seite zuschneiden" style=${stil('display:block;max-width:100%;max-height:62vh;user-select:none;-webkit-user-drag:none')} />
+        <div aria-live="polite" data-zuschnitt-status="1" style=${stil('position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0')}>${v.zStatus}</div>
         ${''/* Die Aussparung entsteht durch einen sehr grossen Schlagschatten
              nach aussen: alles ausserhalb des Rahmens wird abgedunkelt, ohne
              dass vier einzelne Flaechen berechnet werden muessen. */}

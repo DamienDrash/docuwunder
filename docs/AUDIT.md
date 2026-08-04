@@ -20,7 +20,7 @@ kritisch waren — beide mit Gegenprobe, dass die Prüfung den Fehler wirklich f
 | Bereich | Reife | Begründung |
 |---|---:|---|
 | Funktionsumfang | 90 % | Vollständig verdrahtet, keine Attrappen mehr |
-| Testabdeckung | 80 % | 7 Stufen, 53 Unit-, 24 API-, 35 Browserprüfungen; Lücken bei Fehlerpfaden |
+| Testabdeckung | 80 % | 11 Stufen, 60 Unit-, 24 API-, 44 Browserprüfungen; Lücken bei Fehlerpfaden |
 | Architektur | 65 % | 13 Module extrahiert, `app.js` noch 2.145 Zeilen und zentral |
 | Sicherheit | 55 % | Ein XSS gefunden und behoben; keine CSP, API-Adresse ungeprüft |
 | Performance | 45 % | Harte Decke bei ~2.000 Dokumenten in einer Liste (gemessen) |
@@ -968,3 +968,11 @@ näher.
 - Verifikation: isoliert `python3 tests/browser_check.py` gruen (44/44), volle Suite folgt in diesem Batch. Manuelle Screenreader-/Realgeraetepruefung bleibt offen; keine Behauptung vollstaendiger A11y-Konformitaet.
 - Produktionsreife-Score bleibt bei 56 %, weil nur ein kleiner Scanner-A11y-Teil geschlossen wurde; Accessibility-Teilreife verbessert sich qualitativ, wird aber erst nach weiteren Tastatur-/Fokus-Batches angehoben.
 - Version: 0.8.4 -> 0.8.5 (PATCH: Scanner-A11y und Regressionstest, kein API-/Datenmodellwechsel).
+
+
+## Meilenstein B/Scanner, sichtbarer Fokus und Status im Zuschnitt (2026-08-04)
+
+- Änderung: Scanner-Zuschnittgriffe besitzen einen sichtbaren Fokuszustand (`button[data-griff]:focus`) und eine `aria-live`-Statuszeile mit Prozentwerten für die aktuelle Zuschneidebox.
+- Testevidenz: `python3 tests/run_e2e.py` grün mit 11 Stufen, 60 Unit-Tests, 24 API-Vertragsprüfungen und 44 Browserprüfungen. Die Browserprüfung deckt Fokusdarstellung, Tastaturbewegung und Statusaktualisierung ab.
+- Produktionsreife bleibt bei 56 %; kein Score-Anstieg, weil reale Screenreader-/Mobilgeräteprüfung weiterhin aussteht und die restlichen Pointer-Flächen noch offen sind.
+- Version: 0.8.5 -> 0.8.6.

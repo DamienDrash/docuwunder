@@ -381,6 +381,11 @@
 
     zLoslassen() { this.zGriff = null; },
 
+    zStatusText(r) {
+      const p = n => Math.round(Math.max(0, Math.min(1, n)) * 100);
+      return 'Zuschnitt: links ' + p(r.x0) + ' Prozent, oben ' + p(r.y0) + ' Prozent, rechts ' + p(r.x1) + ' Prozent, unten ' + p(r.y1) + ' Prozent.';
+    },
+
     // Tastaturweg fuer denselben Zuschnitt: Pfeiltasten verschieben die
     // fokussierte Ecke in kleinen, mit Shift in groesseren Schritten. Das
     // ergaenzt Pointer-Bedienung, damit der Scanner nicht nur per Touch/Maus
