@@ -297,13 +297,25 @@ class Oberflaeche extends React.Component {
     };
     this.loadAll();
   }
-  componentDidUpdate() {
+  componentDidUpdate(prevProps, prevState) {
     this.reportDark();
     // Beides treibt vorschau.js an: die Bilder der Listen holen sich nach, was
     // sichtbar geworden ist, und die Detailvorschau folgt dem Dokument, das
     // gerade oben auf dem Stapel liegt.
     this.bilderNachladen();
     this.vorschauFolgen();
+    // Fokus-Management fuer Sheets: beim Oeffnen merken wir uns, was gerade
+    // fokussiert war, und setzen den Fokus in den Dialog. Beim Schliessen
+    // geht der Fokus dahin zurueck - ohne das faellt der Tastaturfokus beim
+    // Schliessen eines Sheets auf <body> und die naechste Tab-Taste faengt
+    // wieder ganz vorn an.
+    if (prevState && !prevState.sheet && this.state.sheet) {
+      this._sheetVorFokus = document.activeElement;
+    } else if (prevState && prevState.sheet && !this.state.sheet) {
+      const el = this._sheetVorFokus;
+      this._sheetVorFokus = null;
+      if (el && document.contains(el) && typeof el.focus === 'function') el.focus();
+    }
   }
   // Das ?tab= eines Kurzbefehls hat seinen Zweck erfuellt, sobald der
   // Startzustand steht. Bliebe es stehen, landete jedes spaetere Neuladen
@@ -1944,6 +1956,28 @@ class Oberflaeche extends React.Component {
         : '',
       gwGo: () => this.gruppeEntfernen(s.gruppeSel),
       sheetOn: !!s.sheet, closeSheet: () => this.setState({ sheet: null, editDraft: null, pendingDel: null, ...DWOrdnung.beimSchliessen() }),
+      // Fokus in den Dialog setzen, sobald das Panel im DOM steht - sonst
+      // bleibt der Tastaturfokus hinter dem sichtbaren Sheet auf dem Element,
+      // das es geoeffnet hat.
+      sheetRef: (el) => {
+        if (!el || el._dwFokussiert) return;
+        el._dwFokussiert = true;
+        const erst = el.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        (erst || el).focus();
+      },
+      // Tab/Umschalt+Tab bleiben innerhalb des Sheets - ein echter Fokus-Trap,
+      // solange der modale Dialog offen ist.
+      sheetKeyDown: (e) => {
+        if (e.key !== 'Tab') return;
+        const panel = e.currentTarget;
+        const items = Array.prototype.slice.call(
+          panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+        ).filter(el => !el.disabled && el.offsetParent !== null);
+        if (!items.length) return;
+        const erst = items[0], letzt = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === erst) { e.preventDefault(); letzt.focus(); }
+        else if (!e.shiftKey && document.activeElement === letzt) { e.preventDefault(); erst.focus(); }
+      },
       // --- Zuweisen -------------------------------------------------------
       dmZuweisen: () => this.setState({ sheet: 'zuweisen' }),
       shZuweisen: s.sheet === 'zuweisen',

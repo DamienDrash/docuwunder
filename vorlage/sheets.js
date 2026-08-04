@@ -9,7 +9,7 @@
   V.sheetOn = function (v, html, stil) {
     return v.sheetOn ? html`
       <button type="button" aria-label="Sheet schließen" onClick=${v.closeSheet} style=${stil(S.buttonReset + ';position:absolute;inset:0;width:100%;height:100%;background:rgba(0,0,0,0.42);animation:fadeIn .25s ease;z-index:60;cursor:pointer')}></button>
-<div style=${stil(`position:absolute;${v.sheetPos}bottom:0;background:var(--card);border-radius:22px 22px 0 0;animation:sheetUp .34s cubic-bezier(.32,.72,.36,1);z-index:61;max-height:78%;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,0.18)`)}>
+<div role="dialog" aria-modal="true" aria-label="Dialog" data-sheet-panel tabindex="-1" ref=${v.sheetRef} onKeyDown=${v.sheetKeyDown} style=${stil(`position:absolute;${v.sheetPos}bottom:0;background:var(--card);border-radius:22px 22px 0 0;animation:sheetUp .34s cubic-bezier(.32,.72,.36,1);z-index:61;max-height:78%;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,0.18)`)}>
   <div style=${stil('width:36px;height:5px;border-radius:3px;background:var(--fill2);margin:8px auto 0;flex-shrink:0')}></div>
   <div style=${stil('overflow-y:auto;padding:6px 0 44px')}>
 
