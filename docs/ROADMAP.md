@@ -846,3 +846,9 @@ Unit-Tests machen die Lage nur schlechter.
 - Volle Suite (11 Stufen, 46 Browserpruefungen, davon 1 neu) danach gruen. Huellenversion neu berechnet.
 - Naechster Schritt: echte Geraeteverifikation der Scanner-Kette, oder Fortsetzung mit Meilenstein B (restliche Pointer-Flaechen in tabs.js/dokument.js), Meilenstein C (Virtualisierungsentscheidung) oder Meilenstein D (Release-Dokumentation).
 - Version: 0.8.11 -> 0.9.0 (MINOR).
+
+## Sheet-Fokusverwaltung: Fokus-Trap und Fokus-Rueckgabe (2026-08-04)
+
+- Modale Sheets (Zuweisen, Loeschen, Automatisierung, etc.) setzen jetzt beim Oeffnen den Tastaturfokus in den Dialog, halten Tab/Umschalt+Tab per echtem Fokus-Trap darin, und geben den Fokus beim Schliessen an das aufrufende Element zurueck. `role="dialog"`/`aria-modal="true"` ergaenzt. Details und Testevidenz: docs/AUDIT.md.
+- Naechster Schritt: dedizierter automatisierter Fokus-Trap-Test fuer Sheets, danach Fortsetzung mit Meilenstein B (verbleibende Pointer-/Tastaturfaelle), Meilenstein C (Virtualisierungsentscheidung) oder Meilenstein D (Release-Dokumentation).
+- Version: 0.9.0 -> 0.9.1 (PATCH).
