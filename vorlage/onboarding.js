@@ -8,15 +8,15 @@
 
   V.showOnb = function (v, html, stil) {
     return v.showOnb ? html`<div data-screen-label="Onboarding" style=${stil('position:absolute;inset:0;background:var(--bg);z-index:20')}>
-  ${v.ob0 ? html`<div style=${stil('position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;text-align:center;padding:104px 32px 40px')}>
+  ${v.ob0 ? html`<div style=${stil('position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;text-align:center;padding:96px 32px 48px;max-width:430px;margin:0 auto;left:0;right:0')}>
       <img src="./icons/icon-512.png" alt="" width="86" height="86" style=${stil('border-radius:21px;box-shadow:0 12px 30px rgba(20,126,115,0.22)')} />
       <div style=${stil('font-size:30px;font-weight:700;margin-top:22px;font-family:\'Manrope\',-apple-system,BlinkMacSystemFont,\'Inter\',sans-serif;letter-spacing:-0.5px')}>DocuWunder</div>
       <div style=${stil('font-size:16.5px;color:var(--lab2);margin-top:10px;line-height:1.45;max-width:280px')}>Deine Dokumente. Ohne Technikstress.</div>
       <div style=${stil('flex:1')}></div>
-      <button type="button" aria-label="Einrichtung starten" onClick=${v.obStart} style=${stil(S.buttonReset + ';width:100%;min-height:52px;height:auto;padding:0 18px;line-height:1.2;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(13,27,42,0.18)')}>Los geht’s</button>
-      <div style=${stil('font-size:12.5px;color:var(--lab3);margin-top:14px;line-height:1.55;max-width:300px')}>DocuWunder verbindet sich mit deinem bestehenden Paperless-ngx-Archiv. Deine Dokumente bleiben bei dir. Ein unabhängiger Client – nicht vom Paperless-ngx-Projekt betrieben.</div>
+      <button type="button" aria-label="Einrichtung starten" onClick=${v.obStart} style=${stil(S.buttonReset + ';width:100%;max-width:340px;min-height:54px;height:auto;padding:0 22px;line-height:1.25;border-radius:16px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(13,27,42,0.18)')}>Los geht’s</button>
+      <div style=${stil('font-size:12.5px;color:var(--lab3);margin-top:24px;line-height:1.6;max-width:320px')}>DocuWunder verbindet sich mit deinem bestehenden Paperless-ngx-Archiv. Deine Dokumente bleiben bei dir. Ein unabhängiger Client – nicht vom Paperless-ngx-Projekt betrieben.</div>
     </div>` : null}
-  ${v.ob1 ? html`<div style=${stil('position:absolute;inset:0;overflow-y:auto;padding:70px 24px 40px')}>
+  ${v.ob1 ? html`<div style=${stil('position:absolute;inset:0;overflow-y:auto;padding:70px 24px 48px;max-width:430px;margin:0 auto;left:0;right:0')}>
       <button type="button" aria-label="Zurück" onClick=${v.obBack} style=${stil(S.buttonReset + ';width:36px;height:36px;border-radius:50%;background:var(--fill);display:flex;align-items:center;justify-content:center;cursor:pointer')}><svg width="10" height="17" viewBox="0 0 10 17" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 1.5L1.5 8.5l7 7"></path></svg></button>
       <div style=${stil('font-size:26px;font-weight:700;letter-spacing:-0.4px;margin-top:22px')}>Mit deinem Server verbinden</div>
       <div style=${stil('font-size:15px;color:var(--lab2);margin-top:8px;line-height:1.5')}>Gib die Adresse deines Paperless-ngx-Archivs ein.</div>
@@ -27,18 +27,18 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style=${stil('flex-shrink:0;margin-top:1px')}><path d="M12 4.5L2.8 19.5h18.4z"></path><path d="M12 10.2v3.6"></path><path d="M12 16.8v0.1"></path></svg>
           <div><div style=${stil('font-size:14.5px;font-weight:600')}>Verbindung nicht möglich</div><div style=${stil('font-size:13px;color:var(--lab2);margin-top:2px;line-height:1.45')}>${v.onbErr}</div></div>
         </div>` : null}
-      <button type="button" aria-expanded=${v.onbShowAdv ? 'true' : 'false'} onClick=${v.obToggleAdv} style=${stil(S.buttonReset + ';display:flex;align-items:center;gap:8px;margin-top:24px;min-height:38px;padding:6px 0;cursor:pointer')}>
+      <button type="button" aria-expanded=${v.onbShowAdv ? 'true' : 'false'} onClick=${v.obToggleAdv} style=${stil(S.buttonReset + ';display:flex;align-items:center;gap:8px;margin-top:28px;min-height:42px;padding:8px 0;cursor:pointer')}>
         <span style=${stil('font-size:14.5px;font-weight:600;color:var(--acc)')}>Erweiterte Optionen</span>
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l7 7 7-7"></path></svg>
       </button>
       ${v.onbShowAdv ? html`<div style=${stil('margin-top:10px;background:var(--card);border-radius:14px;padding:4px 16px')}>
         </div>` : null}
-      <button type="button" onClick=${v.obConnect} style=${stil(S.buttonReset + ';width:100%;margin-top:30px;min-height:52px;height:auto;padding:0 18px;line-height:1.2;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer')}>
+      <button type="button" onClick=${v.obConnect} style=${stil(S.buttonReset + ';width:100%;margin-top:34px;min-height:54px;height:auto;padding:0 22px;line-height:1.25;border-radius:16px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer')}>
         ${v.onbChecking ? html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" style=${stil('animation:spin 0.9s linear infinite')}><path d="M12 3a9 9 0 109 9"></path></svg>` : null}
         <span>${v.obConnectLabel}</span>
       </button>
     </div>` : null}
-  ${v.ob2 ? html`<div style=${stil('position:absolute;inset:0;overflow-y:auto;padding:70px 24px 40px')}>
+  ${v.ob2 ? html`<div style=${stil('position:absolute;inset:0;overflow-y:auto;padding:70px 24px 48px;max-width:430px;margin:0 auto;left:0;right:0')}>
       <button type="button" aria-label="Zurück" onClick=${v.obBack} style=${stil(S.buttonReset + ';width:36px;height:36px;border-radius:50%;background:var(--fill);display:flex;align-items:center;justify-content:center;cursor:pointer')}><svg width="10" height="17" viewBox="0 0 10 17" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 1.5L1.5 8.5l7 7"></path></svg></button>
       <div style=${stil('font-size:26px;font-weight:700;letter-spacing:-0.4px;margin-top:22px')}>Anmelden</div>
       <div style=${stil('display:flex;align-items:center;gap:7px;margin-top:10px;background:var(--card);border-radius:10px;padding:9px 12px')}>
@@ -55,19 +55,19 @@
       ${v.onbErrOn ? html`<div style=${stil('margin-top:14px;background:rgba(255,59,48,0.10);border-radius:14px;padding:12px 14px')}>
           <div style=${stil('font-size:13.5px;color:var(--red);font-weight:500;line-height:1.45')}>${v.onbErr}</div>
         </div>` : null}
-      <button type="button" onClick=${v.obLoginTap} style=${stil(S.buttonReset + ';width:100%;margin-top:30px;min-height:52px;height:auto;padding:0 18px;line-height:1.2;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer')}>
+      <button type="button" onClick=${v.obLoginTap} style=${stil(S.buttonReset + ';width:100%;margin-top:34px;min-height:54px;height:auto;padding:0 22px;line-height:1.25;border-radius:16px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;gap:8px;font-size:16.5px;font-weight:600;cursor:pointer')}>
         ${v.onbChecking ? html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" style=${stil('animation:spin 0.9s linear infinite')}><path d="M12 3a9 9 0 109 9"></path></svg>` : null}
         <span>Anmelden</span>
       </button>
-      <button type="button" onClick=${v.obSSO} style=${stil(S.buttonReset + ';width:100%;margin-top:14px;min-height:48px;height:auto;padding:0 18px;line-height:1.2;border-radius:14px;background:var(--fill);display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:600;color:var(--acc);cursor:pointer')}>Mit Single Sign-On anmelden</button>
-      <button type="button" onClick=${v.obToggleTok} style=${stil(S.buttonReset + ';width:100%;text-align:center;margin-top:20px;min-height:44px;padding:10px 12px;line-height:1.25;font-size:14.5px;font-weight:600;color:var(--acc);cursor:pointer')}>${v.obTokLinkLabel}</button>
+      <button type="button" onClick=${v.obSSO} style=${stil(S.buttonReset + ';width:100%;margin-top:18px;min-height:50px;height:auto;padding:0 22px;line-height:1.25;border-radius:16px;background:var(--fill);display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:600;color:var(--acc);cursor:pointer')}>Mit Single Sign-On anmelden</button>
+      <button type="button" onClick=${v.obToggleTok} style=${stil(S.buttonReset + ';width:100%;text-align:center;margin-top:24px;min-height:46px;padding:12px 14px;line-height:1.3;font-size:14.5px;font-weight:600;color:var(--acc);cursor:pointer')}>${v.obTokLinkLabel}</button>
     </div>` : null}
-  ${v.ob3 ? html`<div style=${stil('position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;text-align:center;padding:150px 32px 40px')}>
+  ${v.ob3 ? html`<div style=${stil('position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;text-align:center;padding:136px 32px 48px;max-width:430px;margin:0 auto;left:0;right:0')}>
       <div style=${stil('width:76px;height:76px;border-radius:19px;background:var(--accT);display:flex;align-items:center;justify-content:center')}><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"></path></svg></div>
       <div style=${stil('font-size:24px;font-weight:700;margin-top:20px;letter-spacing:-0.3px')}>Verbunden</div>
       <div style=${stil('font-size:15px;color:var(--lab2);margin-top:8px;line-height:1.5;max-width:280px')}>${v.obFertigText}</div>
       <div style=${stil('flex:1')}></div>
-      <button type="button" onClick=${v.obFertig} style=${stil(S.buttonReset + ';width:100%;min-height:52px;height:auto;padding:0 18px;line-height:1.2;border-radius:14px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer')}>Los geht’s</button>
+      <button type="button" onClick=${v.obFertig} style=${stil(S.buttonReset + ';width:100%;max-width:340px;min-height:54px;height:auto;padding:0 22px;line-height:1.25;border-radius:16px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer')}>Los geht’s</button>
     </div>` : null}
 </div>` : null;
   };

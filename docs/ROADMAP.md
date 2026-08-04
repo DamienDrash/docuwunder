@@ -832,3 +832,10 @@ Unit-Tests machen die Lage nur schlechter.
 - Der Sheet-Backdrop wurde von einem klickbaren `div` auf einen nativen `button type="button"` mit zugaenglichem Namen "Sheet schliessen" umgestellt. Touch-Verhalten bleibt gleich, Tastatur und Screenreader bekommen jetzt ein echtes Bedienelement.
 - `tests/a11y_check.py` senkt die Baseline fuer `vorlage/sheets.js` von 1 auf 0 klickbare `div`/`span`; verbleibend sind nur noch die Pointer-Flaechen in `tabs.js`/`dokument.js`.
 - Version: 0.8.7 -> 0.8.8 (PATCH: Accessibility-Verbesserung, kein API-/Datenmodellwechsel).
+
+## Goldstandard-Scanner, Auto-Ausloeser-Baseline (2026-08-04)
+
+- Live-Kamera: ein standards-basierter Auto-Ausloeser ist ergaenzt. Er beobachtet lokal nur die Stabilitaet des Browser-`<video>`-Signals, gibt einen `aria-live`-Status aus, laesst sich per nativem Auto-Button ein-/ausschalten und loest nach stabilem Kamerabild genau eine Aufnahme ueber die bestehende Canvas-/Scan-Pipeline aus.
+- Einordnung: Das ist noch keine Swift-Paperless-Paritaet und keine echte Dokument-/Fokus-/Bewegungserkennung; die weitere CV-gestuetzte Kanten-/Schaerfe-/Stabilitaetsbewertung bleibt offen und muss auf realen Mobilgeraeten verifiziert werden.
+- Tests: `tests/browser_check.py` prueft mit einem echten Canvas-`MediaStream`, dass der Auto-Ausloeser aktiv ist und nach stabilem Bild eine erste Scan-Seite erzeugt. Volle Suite: 11 Stufen, 60 Unit, 24 API, 45 Browserpruefungen gruen.
+- Version: 0.8.10 -> 0.8.11 (PATCH: Scanner-Autoausloeser-Baseline, kein API-/Datenmodellwechsel).

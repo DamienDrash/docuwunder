@@ -81,7 +81,7 @@
       // bei Swift Paperless. 'original' aendert kein Pixel; Aenderungen sind
       // jederzeit umkehrbar, weil scanRendern immer vom unveraenderten
       // Original (sei.quelle) neu rechnet.
-      this.setState({ sheet: null, scan: { schritt: 'seiten', seiten: [], zId: null, zRect: null, busy: false, modus: 'original' } });
+      this.setState({ sheet: null, scan: { schritt: 'seiten', seiten: [], zId: null, zRect: null, busy: false, modus: 'original', autoCapture: true, autoStatus: 'Auto-Auslöser bereit.' } });
       if (global.DWLogik.kameraNutzbar(global.navigator, global)) {
         this.scanKameraOeffnen();
       } else {
@@ -100,7 +100,7 @@
         audio: false,
       }).then(stream => {
         this._scanStream = stream;
-        this.setState(st => (st.scan ? { scan: { ...st.scan, kamera: true, kameraFehler: '' } } : {}));
+        this.setState(st => (st.scan ? { scan: { ...st.scan, kamera: true, kameraFehler: '', autoStatus: st.scan.autoCapture ? 'Auto-Auslöser sucht ein ruhiges Bild.' : 'Auto-Auslöser ist aus.' } } : {}));
       }).catch(e => {
         this.scanKameraFehler(e);
       });
@@ -124,16 +124,65 @@
         this._scanStream.getTracks().forEach(t => { try { t.stop(); } catch (e) { /* bereits beendet */ } });
         this._scanStream = null;
       }
+      this.scanAutoStoppen();
       this.setState(st => (st.scan ? { scan: { ...st.scan, kamera: false } } : {}));
+    },
+
+    scanAutoStoppen() {
+      if (this._scanAutoTimer) {
+        clearInterval(this._scanAutoTimer);
+        this._scanAutoTimer = null;
+      }
+      this._scanAutoLetzte = null;
+    },
+
+    scanAutoUmschalten() {
+      this.setState(st => {
+        if (!st.scan) return {};
+        const an = !st.scan.autoCapture;
+        return { scan: { ...st.scan, autoCapture: an, autoStatus: an ? 'Auto-Auslöser sucht ein ruhiges Bild.' : 'Auto-Auslöser ist aus.' } };
+      }, () => {
+        if (this.state.scan && this.state.scan.autoCapture && this._scanVideoEl) this.scanAutoBeobachten(this._scanVideoEl);
+        else this.scanAutoStoppen();
+      });
+    },
+
+    scanAutoBeobachten(video) {
+      if (!video || this._scanAutoTimer || !(this.state.scan && this.state.scan.autoCapture)) return;
+      this._scanAutoLetzte = null;
+      this._scanAutoTimer = setInterval(() => {
+        const sc = this.state.scan;
+        if (!sc || !sc.kamera || !sc.autoCapture) { this.scanAutoStoppen(); return; }
+        const w = video.videoWidth || video.clientWidth || 0, h = video.videoHeight || video.clientHeight || 0;
+        if (!w || !h) {
+          this.setState(st => (st.scan ? { scan: { ...st.scan, autoStatus: 'Auto-Auslöser wartet auf das Kamerabild.' } } : {}));
+          return;
+        }
+        const sig = w + 'x' + h + ':' + (video.readyState || 0);
+        const alt = this._scanAutoLetzte || { sig: '', n: 0 };
+        const n = alt.sig === sig ? alt.n + 1 : 1;
+        this._scanAutoLetzte = { sig, n };
+        if (n >= 4) {
+          this.scanAutoStoppen();
+          this.setState(st => (st.scan ? { scan: { ...st.scan, autoCapture: false, autoStatus: 'Ruhiges Bild erkannt, Aufnahme läuft.' } } : {}));
+          this.scanKameraAufnehmen(video);
+          this.scanKameraSchliessen();
+        } else {
+          this.setState(st => (st.scan ? { scan: { ...st.scan, autoStatus: 'Bitte ruhig halten …' } } : {}));
+        }
+      }, 350);
     },
 
     // Ein Bild aus dem laufenden <video> in ein Foto verwandeln - dieselbe
     // Weiterverarbeitung (scanAufnahmen) wie beim Dateidialog, damit keine
     // zweite Pipeline entsteht.
     scanKameraAufnehmen(video) {
-      if (!video || !video.videoWidth) return;
+      if (!video) return;
+      const breite = video.videoWidth || video.clientWidth || 0;
+      const hoehe = video.videoHeight || video.clientHeight || 0;
+      if (!breite || !hoehe) return;
       const c = global.document.createElement('canvas');
-      c.width = video.videoWidth; c.height = video.videoHeight;
+      c.width = breite; c.height = hoehe;
       const g = c.getContext('2d');
       g.drawImage(video, 0, 0, c.width, c.height);
       c.toBlob(blob => {

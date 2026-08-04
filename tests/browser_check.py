@@ -1235,6 +1235,8 @@ def main():
                 # einer echten Kamera - kein blosses Mock-Objekt.
                 seite.context.add_init_script("""
                     Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+                    Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth', { get() { return 320; }, configurable: true });
+                    Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', { get() { return 240; }, configurable: true });
                     navigator.mediaDevices = navigator.mediaDevices || {};
                     navigator.mediaDevices.getUserMedia = () => {
                         const c = document.createElement('canvas');
@@ -1253,6 +1255,33 @@ def main():
                 seite.locator('[aria-label="Abbrechen"]').click()
                 seite.wait_for_timeout(400)
                 return "Vorschau erscheint, wenn getUserMedia erfolgreich ist"
+
+
+            def t_kamera_auto_ausloeser():
+                seite.context.add_init_script("""
+                    Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+                    Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth', { get() { return 320; }, configurable: true });
+                    Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', { get() { return 240; }, configurable: true });
+                    navigator.mediaDevices = navigator.mediaDevices || {};
+                    navigator.mediaDevices.getUserMedia = () => {
+                        const c = document.createElement('canvas');
+                        c.width = 320; c.height = 240;
+                        const g = c.getContext('2d');
+                        g.fillStyle = '#fff'; g.fillRect(0, 0, 320, 240);
+                        g.fillStyle = '#111'; g.fillRect(46, 34, 226, 172);
+                        return Promise.resolve(c.captureStream(8));
+                    };
+                """)
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                seite.locator('text="Scannen"').last.click()
+                seite.wait_for_selector('[data-scan-auto-status]', timeout=5000)
+                assert seite.get_by_role('button', name='Auto', exact=True).get_attribute('aria-pressed') == 'true', \
+                    "Auto-Ausloeser ist nicht aktiv"
+                seite.wait_for_selector('[data-seite="1"]', timeout=6000)
+                seite.locator('[aria-label="Abbrechen"]').click()
+                seite.wait_for_timeout(400)
+                return "ruhiges Kamerabild loest automatisch eine Aufnahme aus"
 
             def t_kamera_verweigert_faellt_zurueck():
                 seite.context.add_init_script("""
@@ -1499,6 +1528,7 @@ def main():
                 ("Zuschnittgriffe sind per Tastatur bewegbar", t_zuschnitt_griffe_tastatur),
                 ("Scan wird ein mehrseitiges PDF", t_scan_wird_ein_pdf),
                 ("Kamera erlaubt zeigt Live-Vorschau", t_kamera_erfolg_zeigt_vorschau),
+                ("Kamera-Autoausloeser nimmt ruhiges Bild auf", t_kamera_auto_ausloeser),
                 ("Kamera verweigert faellt zurueck", t_kamera_verweigert_faellt_zurueck),
                 ("Kamera fehlt geht direkt zum Dateidialog", t_kamera_fehlt_direkt_dateidialog),
                 ("Automatisierung bearbeiten", t_automatisierung_bearbeiten),

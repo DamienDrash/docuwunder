@@ -34,7 +34,7 @@
 // sich die Version, und der alte Cache wird verworfen statt weitergefuehrt.
 // Von Hand hochzaehlen hiess: einmal vergessen, und behobene Fehler erreichen
 // niemanden.
-const VERSION = '0d213c4fb975';
+const VERSION = '942d196998d7';
 const CACHE = 'docuwunder-huelle-' + VERSION;
 
 // Wie lange auf das Netz gewartet wird, bevor der Cache einspringt. Kurz
