@@ -825,3 +825,10 @@ Unit-Tests machen die Lage nur schlechter.
 - Testabdeckung: Die A11y-Leitplanke senkt die erlaubte Restschuld in vorlage/erfassen.js von 1 auf 0; die komplette E2E-Suite bestaetigt jetzt 193 Buttons und 6 verbleibende klickbare div/span in anderen Bereichen.
 - Produktionsreife bleibt bei 56 Prozent, Accessibility-Teilscore steigt von 34 Prozent auf 35 Prozent, weil eine reale interaktive Restschuld geschlossen wurde. Manuelle Screenreader-/Mobilgeraetepruefung bleibt erforderlich.
 - Version: 0.8.6 -> 0.8.7 (PATCH: Accessibility-Verbesserung, kein API-/Datenmodellwechsel).
+
+
+### 2026-08-04 - A11y-Batch: Sheet-Backdrop
+
+- Der Sheet-Backdrop wurde von einem klickbaren `div` auf einen nativen `button type="button"` mit zugaenglichem Namen "Sheet schliessen" umgestellt. Touch-Verhalten bleibt gleich, Tastatur und Screenreader bekommen jetzt ein echtes Bedienelement.
+- `tests/a11y_check.py` senkt die Baseline fuer `vorlage/sheets.js` von 1 auf 0 klickbare `div`/`span`; verbleibend sind nur noch die Pointer-Flaechen in `tabs.js`/`dokument.js`.
+- Version: 0.8.7 -> 0.8.8 (PATCH: Accessibility-Verbesserung, kein API-/Datenmodellwechsel).
