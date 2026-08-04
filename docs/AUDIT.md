@@ -959,3 +959,12 @@ näher.
 - Produktionsreife-Score bleibt bei 56 %, weil nur die Testsignalqualitaet verbessert wurde.
 - Version: 0.8.3 -> 0.8.4 (PATCH: Test-/Integrationsstabilitaet, kein Nutzerverhalten).
 
+
+
+## Meilenstein B/Scanner, Zuschnittgriffe per Tastatur bedienbar (2026-08-04)
+
+- Scanner-Zuschnitt: die vier Eckgriffe behalten Pointer-/Touch-Bedienung, reagieren jetzt aber zusaetzlich auf Pfeiltasten; mit Umschalt+Pfeiltaste wird in groesseren Schritten verschoben. Die Buttons haben erweiterte zugängliche Namen und bleiben native `button type="button"`.
+- Regressionstest ergaenzt: `tests/browser_check.py` oeffnet den Zuschnitt, fokussiert einen Griff und prueft, dass Pfeiltasten die Griffposition sichtbar veraendern. Damit ist der wichtigste offene Scanner-A11y-Folgepunkt aus 0.8.2 automatisiert abgesichert.
+- Verifikation: isoliert `python3 tests/browser_check.py` gruen (44/44), volle Suite folgt in diesem Batch. Manuelle Screenreader-/Realgeraetepruefung bleibt offen; keine Behauptung vollstaendiger A11y-Konformitaet.
+- Produktionsreife-Score bleibt bei 56 %, weil nur ein kleiner Scanner-A11y-Teil geschlossen wurde; Accessibility-Teilreife verbessert sich qualitativ, wird aber erst nach weiteren Tastatur-/Fokus-Batches angehoben.
+- Version: 0.8.4 -> 0.8.5 (PATCH: Scanner-A11y und Regressionstest, kein API-/Datenmodellwechsel).

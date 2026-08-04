@@ -381,6 +381,29 @@
 
     zLoslassen() { this.zGriff = null; },
 
+    // Tastaturweg fuer denselben Zuschnitt: Pfeiltasten verschieben die
+    // fokussierte Ecke in kleinen, mit Shift in groesseren Schritten. Das
+    // ergaenzt Pointer-Bedienung, damit der Scanner nicht nur per Touch/Maus
+    // nutzbar ist.
+    zGriffTaste(ecke, e) {
+      const tasten = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+      const richtung = tasten[e.key];
+      if (!richtung) return;
+      e.preventDefault();
+      const schritt = e.shiftKey ? 0.05 : 0.01;
+      this.setState(st => {
+        if (!st.scan || !st.scan.zRect) return {};
+        const r = { ...st.scan.zRect };
+        const dx = richtung[0] * schritt;
+        const dy = richtung[1] * schritt;
+        if (ecke[0] === 'l') r.x0 = Math.min(Math.max(0, r.x0 + dx), r.x1 - ZUSCHNITT_MIN);
+        else r.x1 = Math.max(Math.min(1, r.x1 + dx), r.x0 + ZUSCHNITT_MIN);
+        if (ecke[1] === 'o') r.y0 = Math.min(Math.max(0, r.y0 + dy), r.y1 - ZUSCHNITT_MIN);
+        else r.y1 = Math.max(Math.min(1, r.y1 + dy), r.y0 + ZUSCHNITT_MIN);
+        return { scan: { ...st.scan, zRect: r } };
+      });
+    },
+
     // Ein Griff wurde gefasst und bewegt. Gerechnet wird in Anteilen der
     // Bildkante, damit die Angabe von der Anzeigegroesse unabhaengig bleibt.
     zZiehen(e) {

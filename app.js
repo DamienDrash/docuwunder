@@ -2100,6 +2100,7 @@ class Oberflaeche extends React.Component {
       zUrl: this.zSeite() ? this.zSeite().url : '',
       zRect: s.scan && s.scan.zRect ? s.scan.zRect : { x0: 0, y0: 0, x1: 1, y1: 1 },
       zGriffFassen: (ecke) => (e) => this.zGriffFassen(ecke, e),
+      zGriffTaste: (ecke) => (e) => this.zGriffTaste(ecke, e),
       zZiehen: (e) => this.zZiehen(e),
       zLoslassen: () => this.zLoslassen(),
       zAbbrechen: () => this.setState(st => ({ scan: { ...st.scan, schritt: 'seiten', zId: null, zRect: null } })),

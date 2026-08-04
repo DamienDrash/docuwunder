@@ -27,7 +27,8 @@ Sortiert nach dem, was zuerst weh tut.
 ## Aktueller Fokus (2026-08-03)
 
 - ✅ Scanner-Zuschnittgriffe auf native, benannte Buttons umgestellt; Pointer-basierte A11y-Leitplanke erweitert.
-- 🟠 Nächster Scanner-A11y-Schritt: Zuschnittecken per Tastatur verschiebbar machen und Fokuszustand im Zuschnittmodus prüfen.
+- ✅ Scanner-Zuschnittecken sind per Pfeiltasten verschiebbar; Browser-Regressionstest prüft fokussierten Griff und Positionsänderung.
+- 🟠 Nächster Scanner-A11y-Schritt: sichtbaren Fokuszustand im Zuschnittmodus browserseitig prüfen und Statushinweise für Zuschnittänderungen ergänzen.
 - 🟠 Danach: verbleibende Pointer-Flächen (`tabs.js`, `dokument.js`) systematisch semantisch/keyboard-fähig umbauen, ohne Pull-to-refresh/Swipe zu brechen.
 
 ---

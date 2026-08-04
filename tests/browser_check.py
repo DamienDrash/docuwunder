@@ -1153,6 +1153,22 @@ def main():
                     f"Zuschnitt ohne Wirkung: {vorher} -> {nachher}"
                 return f"{vorher[0]}x{vorher[1]} auf {nachher[0]}x{nachher[1]}"
 
+            def t_zuschnitt_griffe_tastatur():
+                seite.locator('[data-seite="1"] [title="Zuschneiden"]').click()
+                seite.wait_for_timeout(1200)
+                griff = seite.locator('[data-griff="lo"]')
+                assert griff.count() == 1, "Zuschnittgriff fehlt"
+                griff.focus()
+                vorher = griff.evaluate("el => ({ left: el.style.left, top: el.style.top })")
+                seite.keyboard.press('ArrowRight')
+                seite.keyboard.press('ArrowDown')
+                seite.wait_for_timeout(300)
+                nachher = griff.evaluate("el => ({ left: el.style.left, top: el.style.top })")
+                assert vorher != nachher, f"Pfeiltasten veraendern den Zuschnitt nicht: {vorher} -> {nachher}"
+                seite.locator('text="Ganz"').click()
+                seite.locator('text="Abbrechen"').click()
+                return f"{vorher} -> {nachher}"
+
             def t_scan_wird_ein_pdf():
                 # Der eigentliche Zweck: aus mehreren Aufnahmen wird EIN
                 # Dokument. Frueher waeren es mehrere Bilder im Posteingang
@@ -1469,6 +1485,7 @@ def main():
                 ("Kontrast/Helligkeit wirken", t_scan_regler_wirken),
                 ("Randerkennung schlaegt Zuschnitt vor", t_rand_erkennung_schlaegt_vor),
                 ("Zuschnitt wirkt auf das Bild", t_zuschnitt_wirkt),
+                ("Zuschnittgriffe sind per Tastatur bewegbar", t_zuschnitt_griffe_tastatur),
                 ("Scan wird ein mehrseitiges PDF", t_scan_wird_ein_pdf),
                 ("Kamera erlaubt zeigt Live-Vorschau", t_kamera_erfolg_zeigt_vorschau),
                 ("Kamera verweigert faellt zurueck", t_kamera_verweigert_faellt_zurueck),
