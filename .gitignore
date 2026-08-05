@@ -27,3 +27,4 @@ node_modules/
 # sich nicht reproduzierbar erzeugen (siehe docs/MOBILE_ARCHITECTURE.md).
 native/node_modules/
 native/web/
+.venv-test/

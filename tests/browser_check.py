@@ -1416,6 +1416,54 @@ def main():
                     "nach dem Loeschen nicht in der Liste"
                 return "anlegen, umbenennen, Ausloeser, schalten, loeschen"
 
+            def t_sheet_fokus_trap():
+                """Haelt ein offenes Sheet den Tastaturfokus und gibt ihn zurueck?
+
+                Regressionsschutz fuer den Fokus-Trap aus 0.9.1: beim Oeffnen
+                muss der Fokus in den Dialog wandern und dort bleiben (Tab
+                zirkuliert nicht auf <body>), beim Schliessen muss er zum
+                oeffnenden Element zurueckkehren. Bisher nur manuell gepruefte
+                Logik, jetzt automatisiert abgesichert.
+                """
+                seite.reload(wait_until="networkidle")
+                seite.wait_for_timeout(2600)
+                seite.locator('text="Dokumente"').last.click()
+                seite.wait_for_timeout(900)
+                oeffner = seite.get_by_label("Sortierung \u00e4ndern").last
+                oeffner.click()
+                seite.wait_for_timeout(700)
+                panel = seite.locator("[data-sheet-panel]").last
+                assert panel.count() > 0, "Sheet-Panel nicht gefunden"
+                assert panel.get_attribute("role") == "dialog", "Sheet ist kein role=dialog"
+                assert panel.get_attribute("aria-modal") == "true", "Sheet ist nicht aria-modal"
+
+                aktiv_in_panel = seite.evaluate(
+                    "() => { const p = document.querySelector('[data-sheet-panel]'); "
+                    "return !!p && (p === document.activeElement || p.contains(document.activeElement)); }"
+                )
+                assert aktiv_in_panel, "Fokus liegt beim Oeffnen nicht im Sheet"
+
+                # Tab mehrfach durchdruecken - der Fokus darf das Panel nicht
+                # verlassen, solange das Sheet offen ist (echter Trap statt
+                # nur einer Anfangsfokussierung).
+                for _ in range(12):
+                    seite.keyboard.press("Tab")
+                bleibt_drin = seite.evaluate(
+                    "() => { const p = document.querySelector('[data-sheet-panel]'); "
+                    "return !!p && (p === document.activeElement || p.contains(document.activeElement)); }"
+                )
+                assert bleibt_drin, "Tab verlaesst das offene Sheet (kein Fokus-Trap)"
+
+                seite.keyboard.press("Escape")
+                seite.wait_for_timeout(600)
+                zurueck = seite.evaluate(
+                    "() => document.activeElement && document.activeElement.getAttribute "
+                    "&& document.activeElement.getAttribute('aria-label')"
+                )
+                assert zurueck == "Sortierung \u00e4ndern", \
+                    f"Fokus kehrt nach dem Schliessen nicht zum Oeffner zurueck: {zurueck}"
+                return "Fokus wandert ins Sheet, bleibt im Trap, kehrt beim Schliessen zurueck"
+
             def t_keine_ausnahmen():
                 assert not fehlerkonsole, "; ".join(fehlerkonsole[:3])
                 return "keine Konsolenfehler"
@@ -1575,6 +1623,7 @@ def main():
                 ("Kamera verweigert faellt zurueck", t_kamera_verweigert_faellt_zurueck),
                 ("Kamera fehlt geht direkt zum Dateidialog", t_kamera_fehlt_direkt_dateidialog),
                 ("Automatisierung bearbeiten", t_automatisierung_bearbeiten),
+                ("Sheet haelt Fokus und gibt ihn zurueck", t_sheet_fokus_trap),
                 ("Keine Fehler in der Konsole", t_keine_ausnahmen),
                 ("Neue Fassung kommt von selbst an", t_neue_fassung_kommt_an),
                 ("Service Worker steuert die Seite", t_worker_uebernimmt),

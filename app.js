@@ -297,6 +297,19 @@ class Oberflaeche extends React.Component {
     };
     this.loadAll();
   }
+  // Merkt sich vor jeder DOM-Aenderung, wer gerade fokussiert ist - noch
+  // bevor sheetRef beim Oeffnen den Fokus ins Panel verschiebt. Ein Aufruf
+  // in componentDidUpdate waere zu spaet: der Ref-Callback laeuft schon
+  // waehrend des Commits, also NACH der Fokusverschiebung, und wuerde damit
+  // versehentlich den ersten Button im Sheet statt des oeffnenden Elements
+  // als "vorherigen Fokus" speichern.
+  getSnapshotBeforeUpdate(prevProps, prevState) {
+    if (prevState && !prevState.sheet && this.state.sheet) {
+      this._sheetVorFokus = document.activeElement;
+    }
+    return null;
+  }
+
   componentDidUpdate(prevProps, prevState) {
     this.reportDark();
     // Beides treibt vorschau.js an: die Bilder der Listen holen sich nach, was
@@ -304,14 +317,12 @@ class Oberflaeche extends React.Component {
     // gerade oben auf dem Stapel liegt.
     this.bilderNachladen();
     this.vorschauFolgen();
-    // Fokus-Management fuer Sheets: beim Oeffnen merken wir uns, was gerade
-    // fokussiert war, und setzen den Fokus in den Dialog. Beim Schliessen
-    // geht der Fokus dahin zurueck - ohne das faellt der Tastaturfokus beim
-    // Schliessen eines Sheets auf <body> und die naechste Tab-Taste faengt
-    // wieder ganz vorn an.
-    if (prevState && !prevState.sheet && this.state.sheet) {
-      this._sheetVorFokus = document.activeElement;
-    } else if (prevState && prevState.sheet && !this.state.sheet) {
+    // Fokus-Management fuer Sheets: beim Oeffnen merken wir uns (siehe
+    // getSnapshotBeforeUpdate), was vorher fokussiert war, und setzen den
+    // Fokus in den Dialog. Beim Schliessen geht der Fokus dahin zurueck -
+    // ohne das faellt der Tastaturfokus beim Schliessen eines Sheets auf
+    // <body> und die naechste Tab-Taste faengt wieder ganz vorn an.
+    if (prevState && prevState.sheet && !this.state.sheet) {
       const el = this._sheetVorFokus;
       this._sheetVorFokus = null;
       if (el && document.contains(el) && typeof el.focus === 'function') el.focus();
