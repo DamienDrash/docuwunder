@@ -458,17 +458,29 @@ window.PaperlessAPI = (function () {
         });
     },
 
-    login: function (username, password) {
+    // code ist optional: nur noetig, wenn das Konto einen zweiten Faktor
+    // (TOTP) nutzt. Der Server verlangt ihn dann bei der Token-Ausgabe.
+    login: function (username, password, code) {
+      var payload = { username: username, password: password };
+      if (code) payload.code = code;
       return fetch(base + '/token/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ username: username, password: password })
+        body: JSON.stringify(payload)
       }).then(function (res) {
         return res.json().catch(function () { return null; }).then(function (body) {
           if (!res.ok) {
-            // Der Token-Endpunkt meldet falsche Zugangsdaten als 400 mit
-            // non_field_errors - das ist fuer den Nutzer ein Anmeldefehler.
+            // Der Token-Endpunkt meldet Fehler als 400. Drei Faelle: kein
+            // MFA-Code angegeben, MFA-Code falsch, oder die Zugangsdaten
+            // selbst stimmen nicht - der Nutzer soll den Unterschied kennen.
             if (res.status === 400) {
+              var fehlerText = JSON.stringify(body || {});
+              if (fehlerText.indexOf('MFA code is required') !== -1) {
+                throw ApiError(400, 'Dieses Konto ist durch einen zweiten Faktor geschuetzt. Bitte gib den Code aus deiner Authenticator-App ein.', body);
+              }
+              if (fehlerText.indexOf('Invalid MFA code') !== -1) {
+                throw ApiError(400, 'Der Zweifaktor-Code ist falsch oder abgelaufen.', body);
+              }
               throw ApiError(400, 'Benutzername oder Passwort stimmt nicht.', body);
             }
             throw ApiError(res.status, humanize(res.status, body), body);

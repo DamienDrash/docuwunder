@@ -131,7 +131,7 @@ class Oberflaeche extends React.Component {
       // nichts geaendert werden.
       screenSet: null, onbStep: 0,
       onbServer: window.PaperlessAPI ? window.PaperlessAPI.getBase().replace(/\/api$/, '') : '',
-      onbUser: '', onbPass: '', onbToken: '', onbErr: '', onbChecking: false, onbFremdOk: null, onbAdv: false, onbTok: false, shAblauf: '7 Tage', shRecht: 'Kann ansehen',
+      onbUser: '', onbPass: '', onbCode: '', onbToken: '', onbErr: '', onbChecking: false, onbFremdOk: null, onbAdv: false, onbTok: false, shAblauf: '7 Tage', shRecht: 'Kann ansehen',
       mode: 'system', ...this.startZiel(), sheet: null, pickTarget: null, pickField: null, pendingDel: null,
       view: DEFVIEW_START, sort: 'neu', selMode: false, sel: [],
       fArt: null, fFav: false, fAbs: [], fTags: [], fZeit: 'alle',
@@ -1364,12 +1364,12 @@ class Oberflaeche extends React.Component {
     }
     if (!s.onbUser.trim() || !s.onbPass.trim()) { this.setState({ onbErr: 'Bitte gib Benutzername und Passwort ein.' }); return; }
     this.setState({ onbErr: '', onbChecking: true });
-    A.login(s.onbUser.trim(), s.onbPass).then(t => {
+    A.login(s.onbUser.trim(), s.onbPass, s.onbCode.trim()).then(t => {
       A.setToken(t);
-      // Passwort nicht laenger im Zustand halten als noetig.
+      // Passwort und Code nicht laenger im Zustand halten als noetig.
       // screenSet ausdruecklich halten: sonst wechselt screenEff() sofort in
       // die App, sobald der Token da ist, und ueberspringt den letzten Schritt.
-      this.setState({ onbChecking: false, screenSet: 'onb', onbStep: 3, onbPass: '' });
+      this.setState({ onbChecking: false, screenSet: 'onb', onbStep: 3, onbPass: '', onbCode: '' });
     }).catch(e => {
       this.setState({ onbChecking: false, onbErr: e.message });
     });
@@ -1390,7 +1390,7 @@ class Oberflaeche extends React.Component {
     // auch nicht im Cache, in stehen gebliebenen Suchtreffern oder in den
     // Vorschaubildern, die als Object-URL im Speicher liegen.
     this.setState({
-      screenSet: 'onb', onbStep: 1, onbErr: '', onbUser: '', onbPass: '', onbToken: '',
+      screenSet: 'onb', onbStep: 1, onbErr: '', onbUser: '', onbPass: '', onbCode: '', onbToken: '',
       stack: [], sheet: null, tab: 'home',
       docs: [], recent: [], favs: [], geteiltL: [], inbox: [], trash: [], cache: {}, prev: null,
       docsPage: 1, docsTotal: 0, docsMore: false, docsBusy: false,
@@ -2184,6 +2184,7 @@ class Oberflaeche extends React.Component {
       obTokLinkLabel: s.onbTok ? 'Mit Benutzername anmelden' : 'Stattdessen mit Zugangsschlüssel anmelden',
       onbUserVal: s.onbUser, setOnbUser: (e) => this.setState({ onbUser: e.target.value, onbErr: '' }),
       onbPassVal: s.onbPass, setOnbPass: (e) => this.setState({ onbPass: e.target.value, onbErr: '' }),
+      onbCodeVal: s.onbCode, setOnbCode: (e) => this.setState({ onbCode: e.target.value, onbErr: '' }),
       onbTokenVal: s.onbToken, setOnbToken: (e) => this.setState({ onbToken: e.target.value, onbErr: '' }),
       obLoginTap: () => this.obLoginGo(false), obSSO: () => this.obLoginGo(true),
       obFertig: () => this.obDone(),
