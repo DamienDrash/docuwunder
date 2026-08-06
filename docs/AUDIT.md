@@ -1,6 +1,14 @@
 # DocuWunder — Production Readiness Audit v1.0
 
-Stand: 2. August 2026 · Codestand `67e4aec` + Onboarding-A11y-Batch · Paperless-ngx 3.0.4
+Stand: 6. August 2026 · Codestand `59c5fcf` / v0.9.3 · Paperless-ngx 3.0.5
+
+*(Korrigiert 06.08.2026: hier stand „Stand: 2. August 2026 · Codestand `67e4aec` +
+Onboarding-A11y-Batch · Paperless-ngx 3.0.4". Beide Angaben waren überholt — das
+Backend ist seit dem 05.08.2026 auf `ghcr.io/paperless-ngx/paperless-ngx:3.0.5`
+gepinnt (`/opt/paperless/docker-compose.yml` Z. 7), und der Codestand ist seit dem
+06.08.2026 00:35 `59c5fcf` / v0.9.3 (`VERSION`; PO-STATUS.md, Abschnitt „Nicht
+committete Änderungen"). Zwischen `67e4aec` und `59c5fcf` liegen unter anderem die
+Fokus-Trap-Arbeit (v0.9.2) und die MFA-Vorbedingung (v0.9.3).)*
 
 ---
 
@@ -15,20 +23,30 @@ kritisch waren — beide mit Gegenprobe, dass die Prüfung den Fehler wirklich f
 
 ## 1. Gesamtergebnis
 
-### Produktionsreife: **58 %**
+### Produktionsreife: **56 %**
+
+*(Korrigiert 06.08.2026: hier stand **58 %** — die Zahl der ursprünglichen Tabelle vom
+02.08.2026. Gültig ist **56 %**, seit dem 03.08.2026 und aus den Log-Einträgen dieser
+Datei selbst: sieben aufeinanderfolgende Batch-Einträge schreiben 56 % fort — Z. 968
+(03.08., „Papierkorb-Roundtrip"), dann 976, 986, 994, 1001, 1010 und zuletzt Z. 1025
+(04.08., v0.9.0-Batch). Der Eintrag in Z. 1025 benennt den Widerspruch
+ausdrücklich als „bislang nicht bereinigten Unterschied
+zwischen der ursprünglichen Tabelle und der seither gepflegten Fortschreibung". Hier ist
+nur der Kopf auf die fortgeschriebene Zahl gezogen, **nicht** neu gerechnet; die dort
+empfohlene vollständige Neuableitung der Bereichstabelle steht weiterhin aus.)*
 
 | Bereich | Reife | Begründung |
 |---|---:|---|
 | Funktionsumfang | 90 % | Vollständig verdrahtet, keine Attrappen mehr |
-| Testabdeckung | 80 % | 11 Stufen, 60 Unit-, 24 API-, 44 Browserprüfungen; Lücken bei Fehlerpfaden |
-| Architektur | 65 % | 13 Module extrahiert, `app.js` noch 2.145 Zeilen und zentral |
-| Sicherheit | 55 % | Ein XSS gefunden und behoben; keine CSP, API-Adresse ungeprüft |
-| Performance | 45 % | Harte Decke bei ~2.000 Dokumenten in einer Liste (gemessen) |
-| PWA | 75 % | Offline und Selbstaktualisierung belegt; Cache-Version von Hand |
-| **Barrierefreiheit** | **45 %** | Alle bekannten onClick/onPointerDown-Interaktionen im Vorlagenbaum liegen jetzt auf nativen Buttons oder semantisch benannten Regionen. Die A11y-Leitplanke steht bei 194 Buttons und 0 verbleibenden klickbaren div/span; Pull-to-refresh- und Posteingang-Swipe-Flächen sind als `section` mit zugänglichem Namen erhalten. Manuelle Screenreader-/Tastatur-Geraetepruefung steht weiterhin aus |
-| Dokumentation | 30 % | README + Roadmap; 7 von 9 geforderten Dokumenten fehlen |
-| CI/Release | 0 % | Kein `.github/`, keine `package.json`, keine Versionierung |
-| Store-Reife | 15 % | Siehe K-1 — als PWA **nicht** App-Store-fähig |
+| Testabdeckung | 80 % | 11 Stufen, 60 Unit-, 24 API-, **47** Browserprüfungen; Lücken bei Fehlerpfaden. *(Korrigiert 06.08.2026, Lauf 11:2x: hier stand **44**. Ausgezählt im Testcode selbst — `tests/browser_check.py` Z. 1586–1632 registriert 47 Listeneinträge, die `pruefe()` (Z. 142) je genau einmal in `ergebnisse` schreibt (Z. 145/148/151), und Z. 1644 gibt `len(ergebnisse)` aus; Gegenprobe: genau 47 `def t_*`-Funktionen, Z. 238–1572. Unbedingt — die Zahl hängt an keiner Bedingung. Auflösung des Widerspruchs 44/46/47 samt Bedingungen: Abschnitt „Auszählung der Browserprüfungen aus dem Testcode" am Ende dieser Datei.)* |
+| Architektur | 65 % | 13 Module extrahiert, `app.js` noch **2.260** Zeilen und zentral. *(Zahl korrigiert 06.08.2026, Lauf 11:2x: hier stand **2.145** — `wc -l app.js` ergibt 2.260, die Datei ist seit dem Audit um 115 Zeilen **gewachsen**. Die Prozentzahl bleibt bei 65 %: M-1 ist unerledigt (keine `sitzung.js`/`navigation.js`/`dokumente.js`/`einstellungen.js` im Verzeichnis), der Trend geht in die falsche Richtung, aber ein Abschlag ohne Maßstab wäre eine erfundene Zahl. Herleitung: Abschnitt „Neuableitung der Bereichstabelle" am Dateiende.)* |
+| Sicherheit | **65 %** | Ein XSS gefunden und behoben (H-1); **die API-Adresse wird jetzt geprüft** (H-2 erfüllt); **weiterhin keine CSP** (K-4 offen). *(Korrigiert 06.08.2026, Lauf 11:2x: hier stand **55 %** mit der Begründung „keine CSP, API-Adresse ungeprüft". Der zweite Halbsatz ist belegt falsch: `logik.js` Z. 300 `basisPruefen()`, exportiert Z. 339, von `api.js` `setBase()` Z. 397–416 verwendet; sechs Unit-Tests in `tests/logik.test.js` Z. 421–469 decken genau die in H-2 geforderten Fälle ab (nur `https`, `http` nur für `localhost`/`127.0.0.1`, fremde Herkunft erst nach ausdrücklicher Erlaubnis, `javascript:` abgewiesen, Adresse mit Zugangsdaten abgewiesen); dazu die Browserprüfung `t_api_adresse_wird_geprueft` (`tests/browser_check.py` Z. 458/1597). K-4 gegengeprüft und **weiterhin offen**: kein `Content-Security-Policy` in `index.html`, `start.js` oder `sw.js`. Zu einer ungeprüften Gegenaussage in `docs/SECURITY.md` siehe den Ableitungsabschnitt.)* |
+| Performance | 45 % *(alt)* | Harte Decke bei ~2.000 Dokumenten in einer Liste (gemessen). **Nicht belegbar ohne Ausführung von `tests/perf_check.py`** — der Wert stammt vom 02.08.2026 und ist in diesem Lauf **nicht** überprüft worden. Eine Messung braucht einen Testlauf, den die Ausführungsrechte-Wand sperrt (`/opt/paperless/ops/AUSFUEHRUNGS-WARTESCHLANGE.md`). Der alte Wert bleibt bewusst stehen; er ist alt, nicht bestätigt. |
+| PWA | **85 %** | Offline und Selbstaktualisierung belegt; **die Cache-Version ist keine Handarbeit mehr, sondern eine Prüfsumme über den Hülleninhalt** (H-5 erfüllt). *(Korrigiert 06.08.2026, Lauf 11:2x: hier stand **75 %** mit „Cache-Version von Hand". Belegt falsch: `sw.js` Z. 37 `const VERSION = '91fb2ebabddb'` ist eine berechnete Prüfsumme, erzeugt und geprüft von `tools/huelle.py`; `tests/huelle_check.py` ist eine eigene Stufe der Prüfkette (`tests/run_e2e.py` Z. 41) und nennt H-5 im Kopfkommentar ausdrücklich als Anlass: „Seitdem ist die Version eine Pruefsumme ueber den Inhalt". Damit ist der einzige im 75 %-Text genannte Mangel geschlossen; die vier Browserprüfungen zu Worker/Hülle/Cache/Offline (`tests/browser_check.py` Z. 1629–1632) bleiben unverändert. Abzug bleibt für die in K-1/Store-Reife genannten Grenzen der PWA-Installation auf iOS.)* |
+| **Barrierefreiheit** | **36 %** | Alle bekannten onClick/onPointerDown-Interaktionen im Vorlagenbaum liegen jetzt auf nativen Buttons oder semantisch benannten Regionen. Die A11y-Leitplanke steht bei 194 Buttons und 0 verbleibenden klickbaren div/span; Pull-to-refresh- und Posteingang-Swipe-Flächen sind als `section` mit zugänglichem Namen erhalten. Manuelle Screenreader-/Tastatur-Geraetepruefung steht weiterhin aus. *(Korrigiert 06.08.2026, Lauf 10:16: hier stand **45 %** — das war überholt, weil die Log-Einträge dieser Datei selbst den Bereich zweimal fortschreiben: Z. 1002 vom 04.08.2026, Batch 0.8.7 („Accessibility-Teilscore steigt von 34 Prozent auf 35 Prozent"), und danach Z. 1011 vom 04.08.2026, Batch „A11y-Batch: Sheet-Backdrop (0.8.8)" („Score: Barrierefreiheit 35 % -> 36 %"). Der jüngste belegte Wert ist **36 %** und ist hier genau so übernommen — **nicht** neu gerechnet und kein dritter Wert. Der beschreibende Text links daneben (194 Buttons, `section`-Flächen) gehört zu den Batches 0.8.9/0.8.10, für die diese Datei **keinen** Log-Eintrag führt — belegt nur in `docs/ROADMAP.md` Z. 32, Abschnitt „Aktueller Fokus (2026-08-04)". Der Text wurde also nachgezogen, die Prozentzahl nicht. Vollständiges Prüfergebnis über alle zehn Bereiche samt zwei offener Punkte: Abschnitt „Prüfung der Bereichstabelle gegen die eigenen Log-Einträge (2026-08-06, Lauf 10:16)" am Ende dieser Datei.)* |
+| Dokumentation | **55 %** | Von den neun in M-6 geforderten Dokumenten sind **vier abgedeckt** (eines nur mittelbar), **fünf fehlen**. *(Korrigiert 06.08.2026, Lauf 11:2x: hier stand **30 %** mit „7 von 9 geforderten Dokumenten fehlen". Nachgezählt gegen die Liste in M-6 selbst (Z. 368–374): **Architecture** → `docs/MOBILE_ARCHITECTURE.md` plus die Modulübersicht in `CLAUDE.md`; **Security** → `docs/SECURITY.md`; **Deployment** → `docs/RELEASE.md` (Versionsschema, Ablauf 3.0–3.7, Rollback); **Development** → nur mittelbar, als Abschnitt „Build- & Testkommandos" in `CLAUDE.md`, kein eigenes Dokument — deshalb halb gezählt. Weiterhin **fehlend**: Troubleshooting, FAQ, Contributing, Support, Compatibility. Nicht auf der M-6-Liste, aber real vorhanden und hier nicht mitgerechnet: `docs/AUDIT.md`, `docs/ROADMAP.md`, `docs/GERAETE-CHECKLISTE.md`, zwei ADRs, `docs/brand/`. Rechnung: 30 % + (3,5/9 × 70) ≈ 57 %, auf das im übrigen Raster verwendete 5er-Gitter abgerundet auf **55 %**.)* |
+| CI/Release | 60 % | *Korrigiert 06.08.2026 — hier stand „0 % / Kein `.github/`, keine `package.json`, keine Versionierung".* Belegt vorhanden: `.github/workflows/pruefung.yml` (seit 02.08., 9 Stufen bei jedem Push auf `main` und bei jedem PR — 7 statische plus API-Vertrag und Browser gegen eine Wegwerf-Instanz), `VERSION` (0.9.3, einziger Ursprung der Versionsnummer, in CI durch `huelle_check.py` mitgeprüft) und `docs/RELEASE.md` (seit 06.08., Versionsschema, Ablauf 3.0–3.7, 10 Abnahmekriterien, Rollback). Abzug für: kein automatisierter Release-/Tag-Schritt, und seit `22f7c68`/`59c5fcf` ist nichts gepusht — die CI läuft derzeit also nicht gegen den aktuellen Stand (Deploy-Key fehlt, PO-STATUS.md offene Frage 3). **Keine `package.json` ist kein Mangel**, sondern Architekturentscheidung: das Projekt kommt bewusst ohne Build-Schritt und Paketmanager aus (CLAUDE.md, „Build- & Laufzeit-Konzept") |
+| Store-Reife | **25 %** | K-1 ist **entschieden** (Capacitor) und die nativen Hüllen liegen im Repository — ausgeliefert ist nichts. *(Korrigiert 06.08.2026, Lauf 11:2x: hier stand **15 %** mit „als PWA **nicht** App-Store-fähig". Das ist überholt: `native/capacitor.config.json` (appId `ski.frigew.docuwunder`), `native/package.json` mit `@capacitor/android`+`@capacitor/ios` 8.5, erzeugte Plattformprojekte `native/android/` und `native/ios/`, Kopierschritt `native/vorbereiten.mjs`; die Wahl ist in `docs/MOBILE_ARCHITECTURE.md` Abschnitt 2 begründet („**Capacitor** — **Gewählt.**"), und `.gitignore` hält die Plattformprojekte ausdrücklich eingecheckt. Nur **+10**, weil dieselbe Datei sich selbst als „Machbarkeitsprüfung, keine Auslieferung" überschreibt: `native/node_modules/` fehlt, `native/android/app/build/` ist leer, es gibt keinen Store-Zugang, keine Signierung, keinen Eintrag und keinen belegten Build. Der Weg ist gewählt und begehbar gemacht, begangen ist er nicht.)* |
 
 Der niedrige Gesamtwert kommt nicht von schlechter Substanz. Das Produkt ist funktional
 weit; es fehlen die Dinge, die aus einem funktionierenden Programm ein **auslieferbares
@@ -1017,3 +1035,287 @@ näher.
 - Tests: volle Suite lief nach der Aenderung durch - 11 Stufen gruen (Huelle, Leistung bei grossen Bestaenden, API-Vertrag [24/24], Browser [46/46]), keine Konsolenfehler, kein Testverlust. Kein dedizierter neuer automatisierter Fokus-Trap-Test fuer Sheets ergaenzt - offene Nacharbeit fuer den naechsten Accessibility-Batch (Playwright/axe-Tastaturtest fuer Sheet-Oeffnen/-Schliessen).
 - Nicht verifiziert: manuelle Pruefung mit VoiceOver/TalkBack/NVDA und echtem Tastatur-only-Durchlauf steht weiterhin aus.
 - Version: 0.9.0 -> 0.9.1 (PATCH: Accessibility-Verbesserung an bestehenden Dialogen, kein API-/Datenmodellwechsel, kein neues sichtbares Feature).
+
+## Prüfung der Bereichstabelle gegen die eigenen Log-Einträge (2026-08-06, Lauf 10:16)
+
+**Kein Code-Batch, keine Versionsänderung — VERSION bleibt 0.9.3.** Diese Prüfung ist reine
+Schreibarbeit an dieser Datei; keine App-Quelldatei wurde angefasst, kein Test gelaufen.
+
+**Warum dieser Abschnitt am Dateiende steht und nicht bei der Tabelle:** Die Korrekturnotizen
+in Abschnitt 1 zitieren Zeilennummern dieser Datei (z. B. Z. 968–1025 im Kopf). Jede Einfügung
+weiter oben hätte sie verschoben und damit alle Belege des 09:12-Laufs entwertet. Deshalb steht
+hier der Bericht und in Zeile 46 nur die Korrektur selbst — die ersetzt genau eine Zeile durch
+genau eine Zeile und verschiebt nichts.
+
+**Auftrag und Abgrenzung.** Geprüft wurde: Wo schreibt ein **jüngerer** Log-Eintrag im hinteren
+Teil dieser Datei (ab Z. 576) für einen Bereich der Tabelle (Z. 38–49) eine **andere** Zahl
+fort? Die vom Dokument selbst empfohlene vollständige Neuableitung der Bereichstabelle
+(Z. 1026) war **nicht** beauftragt und ist **nicht** erfolgt.
+
+**Suchweise.** Je Bereich mit dem **Namen** gesucht, nicht mit der Prozentzahl — Lehre des
+09:12-Laufs, dass Zahlen auch ausgeschrieben vorkommen („bleibt bei 56 Prozent", Z. 1002) und
+bei einer reinen Zahlensuche durchfallen. Zusätzlich gesucht: `Score`, `Reife`, `Teilscore`,
+`Teilbereich`, `Prozent`, `%`, `steigt`, `angehoben`.
+
+**Ergebnis: ein Widerspruch, neun geprüfte Bereiche ohne widersprechenden Log-Eintrag.**
+
+| Bereich | Fundstellen im Log-Teil (ab Z. 576) | Ergebnis |
+|---|---|---|
+| Funktionsumfang 90 % | nur Z. 817 („kein neuer Funktionsumfang in scan.js selbst") — Wortverwendung, keine Bereichszahl | geprüft, unverändert |
+| Testabdeckung 80 % | Z. 1001 beginnt mit „Testabdeckung:", nennt aber Buttons/Restschuld, **keine** Bereichszahl | geprüft, unverändert (siehe offener Punkt 1) |
+| Architektur 65 % | nur Z. 659 („Architektur-/Phasenplan") — Wortverwendung, keine Bereichszahl | geprüft, unverändert |
+| Sicherheit 55 % | nur Z. 600 / Z. 605 („Sicherheits-/CI-Batch", „Sicherheits-/Release-Gate") — keine Bereichszahl | geprüft, unverändert |
+| Performance 45 % | Z. 909 / Z. 941 (perf_check, Meilenstein C) nennen DOM-Knoten, Stufen und Versionen, **keine** Bereichszahl | geprüft, unverändert |
+| PWA 75 % | keine Fundstelle im Log-Teil | geprüft, unverändert |
+| **Barrierefreiheit 45 %** | Z. 1002 (04.08.2026, Batch 0.8.7: 34 → 35 %) und danach Z. 1011 (04.08.2026, Batch „A11y-Batch: Sheet-Backdrop (0.8.8)": 35 → **36 %**) | **korrigiert auf 36 %** (Z. 46) |
+| Dokumentation 30 % | nur Z. 663 („Reine Dokumentation, kein Codeeingriff") — keine Bereichszahl | geprüft, unverändert |
+| CI/Release 60 % | keine Bereichszahl im Log-Teil; die 60 % stammen aus der Korrektur vom 06.08.2026 in der Zeile selbst (09:12-Lauf) | geprüft, unverändert |
+| Store-Reife 15 % | keine Fundstelle im Log-Teil | geprüft, unverändert |
+
+„Geprüft, unverändert" heißt: gesucht **und** nichts gefunden — das ist ein Ergebnis, kein
+Ausbleiben von Arbeit.
+
+**Zur einen Korrektur (Z. 46).** Übernommen ist exakt der jüngste belegte Wert **36 %** aus
+Z. 1011. Es wurde **nichts** neu gerechnet und kein dritter Wert gebildet. Nebenbefund, der
+festgehalten gehört: Der beschreibende Text derselben Zeile (194 Buttons, 0 klickbare
+`div`/`span`, `section`-Flächen) beschreibt einen Stand **nach** 0.8.8 — er gehört zu den
+Batches 0.8.9/0.8.10, für die diese Datei **keinen** Log-Eintrag führt (belegt nur in
+`docs/ROADMAP.md` Z. 32, „Aktueller Fokus (2026-08-04)"). Der Text wurde also irgendwann
+nachgezogen, die Prozentzahl daneben nicht. Genau daraus entstand der Widerspruch.
+
+**Zwei offene Punkte, bewusst festgehalten statt weggerechnet:**
+
+1. ~~**`Testabdeckung 80 %` nennt in der Begründung „44 Browserprüfungen".**~~ **AUFGELÖST
+   06.08.2026, Lauf 11:2x — der gültige Wert ist 47.** Ursprünglicher Befund: Ein jüngerer
+   Eintrag derselben Datei belegt **46/46** (Z. 1035, 04.08.2026, Fokus-Trap-Batch);
+   `/opt/paperless/PO-STATUS.md` (Tageslog 00:40 CHAYA) und `ops/ABNAHME-CHECKLISTE.md`
+   (Rasterpunkt 6) nennen für den Kopf-Codestand `59c5fcf` **47/47**. Der 10:16-Lauf hat das
+   bewusst nicht entschieden, weil es aus dem Log-Teil dieser Datei allein nicht belegbar war.
+   Entschieden wurde es jetzt aus der einzigen Quelle, die es entscheiden kann: dem Testcode.
+   `tests/browser_check.py` Z. 1586–1632 registriert **47** Prüfungen; Gegenprobe 47 `def t_*`
+   (Z. 238–1572). Weder 44 noch 46 sind für `59c5fcf` erreichbar. Beide waren zu ihrer Zeit
+   richtig — 46 + der seither ergänzte `t_sheet_fokus_trap` (Z. 1419/1626) = 47, exakt die
+   Nacharbeit, die Z. 1035 selbst als offen notiert. Zahl in Z. 41 korrigiert; Herleitung,
+   Zählmuster und die geprüften Bedingungen im Abschnitt „Auszählung der Browserprüfungen aus
+   dem Testcode (2026-08-06, Lauf 11:2x)" am Ende dieser Datei.
+2. **Die Summe der Bereiche passt nicht zur Kopfzahl 56 %.** Sie tat es schon vorher nicht —
+   die Kopfzahl ist eine Fortschreibung (Z. 28–36), die Bereichstabelle stammt vom 02.08.2026.
+   Durch die Korrektur −9 Punkte bei Barrierefreiheit wird der Abstand größer. Auftragsgemäß
+   wurde **nicht** nachgerechnet und die **Kopfzahl bleibt bei 56 %**. Die Abweichung bleibt
+   hiermit als offener Punkt notiert; sie fällt mit der vollständigen Neuableitung der
+   Bereichstabelle weg, die Z. 1026 empfiehlt und die weiterhin aussteht.
+   **TEILAUFGELÖST 06.08.2026, Lauf 11:2x.** Die Neuableitung ist erfolgt (Abschnitt
+   „Neuableitung der Bereichstabelle" am Dateiende) — **acht** der zehn Bereiche sind jetzt
+   aus dem Codestand belegt, **zwei** nicht (Performance braucht einen Lauf von
+   `tests/perf_check.py`, Barrierefreiheit braucht die Geräteprüfung). Nebenbefund, der die
+   Frage der „nicht passenden Summe" weitgehend erklärt: die Kopfzahl **56 % war exakt das
+   ungewichtete Mittel der zehn Bereiche**, so wie die Tabelle nach der 09:12-Korrektur
+   (CI/Release 0 → 60 %) dastand — 560/10 = 56,0. Erst die 10:16-Korrektur
+   (Barrierefreiheit 45 → 36 %) hat daraus 551/10 = 55,1 % gemacht. Die Tabelle und der Kopf
+   waren also nicht willkürlich auseinander, sondern um genau 0,9 Punkte. **Die Kopfzahl
+   bleibt trotzdem bei 56 %**, weil die Neuableitung sie nicht vollständig trägt — was dafür
+   noch fehlt, steht am Ende jenes Abschnitts.
+
+**Nicht geprüft in diesem Lauf:** ob die Bereichszahlen inhaltlich noch stimmen (das wäre die
+Neuableitung), ob die Belege der Log-Einträge selbst zutreffen, und der Codestand — es wurde
+nur Datei gegen Datei gelesen, kein Test, kein Skript, kein Docker-Befehl.
+
+## Auszählung der Browserprüfungen aus dem Testcode (2026-08-06, Lauf 11:2x)
+
+**Kein Code-Batch, keine Versionsänderung — VERSION bleibt 0.9.3.** Reine Lese- und
+Schreibarbeit. **Es wurde kein Test ausgeführt** (Ausführungsrechte-Wand, siehe
+`/opt/paperless/PO-STATUS.md`); gezählt wurde im Quelltext.
+
+**Ergebnis: 47 Prüfungen. Eindeutig, unbedingt.** Damit ist offener Punkt 1 aufgelöst und
+Z. 41 von 44 auf 47 korrigiert.
+
+### Das Zählmuster (damit die Zahl nachprüfbar ist)
+
+`tests/browser_check.py` zählt nicht über Dekoratoren oder Namenskonventionen, sondern über
+**eine einzige Liste und einen einzigen Aufrufpunkt**:
+
+| Was | Fundstelle | Beleg |
+|---|---|---|
+| Der Zähler | Z. 139 | `ergebnisse = []` — die einzige Sammelliste der Datei |
+| Die Registrierung | Z. 142–152 | `def pruefe(name, fn)` hängt **genau einen** Eintrag an `ergebnisse` an, auf jedem der drei Pfade: Erfolg (Z. 145), `AssertionError` (Z. 148), sonstige Ausnahme (Z. 151). Kein Pfad überspringt das Anhängen |
+| Der einzige Aufrufpunkt | Z. 1634 | `pruefe(name, fn)` — steht **einmal** in der Datei (außerhalb der Definition), innerhalb der Schleife |
+| Die Prüfliste | Z. 1585–1633 | `for name, fn in [ … ]:` — ein Literal ohne Bedingung, ohne Verzweigung, ohne `+`-Verkettung |
+| Die Ausgabezeile | Z. 1642 / 1644 | `f"{len(fehler)} von {len(ergebnisse)} Pruefungen fehlgeschlagen"` bzw. `f"Alle {len(ergebnisse)} Pruefungen bestanden"` — das „x/y" der Berichte ist also exakt `len(ergebnisse)` |
+
+**Gezählt nach diesem Muster: die Listeneinträge Z. 1586 bis Z. 1632, ein Eintrag je Zeile —
+das sind 1632 − 1586 + 1 = 47.** Erster Eintrag Z. 1586 `("Oberflaeche baut sich auf", …)`,
+letzter Eintrag Z. 1632 `("App startet ohne Netz", …)`.
+
+**Zwei unabhängige Gegenproben:**
+
+1. **Funktionszählung.** Die Datei definiert genau **47** Prüffunktionen `def t_*` (erste
+   Z. 238 `t_aufgebaut`, letzte Z. 1572 `t_startet_ohne_netz`). Jede kommt in der Liste genau
+   einmal vor; es gibt keine definierte, aber nicht registrierte Funktion und keinen
+   Listeneintrag ohne Funktion. Definitionen und Registrierungen stimmen also überein.
+2. **Historische Anschlussprobe.** Z. 1035 (04.08.2026, Fokus-Trap-Batch) belegt **46/46** und
+   notiert im selben Satz als offene Nacharbeit: „Kein dedizierter neuer automatisierter
+   Fokus-Trap-Test fuer Sheets ergaenzt". Genau dieser Test existiert heute
+   (`t_sheet_fokus_trap`, definiert Z. 1419, registriert Z. 1626). 46 + 1 = **47**. Die
+   ältere Zahl 44 ist ebenso erklärt: Z. 986/994 (03./04.08.) belegen 44/44, Z. 1018 dann 45,
+   Z. 1025 dann 46 — eine lückenlos aufsteigende Kette 44 → 45 → 46 → 47.
+
+### Die Bedingungsfrage (der häufigste Fehler bei so einer Zählung)
+
+Ausdrücklich geprüft, ob die Gesamtzahl von einer Bedingung abhängt — sie hängt **nicht**
+davon ab. Es gibt drei bedingte Stellen, und keine davon verändert die 47:
+
+| Bedingung | Fundstelle | Wirkung auf die Zahl |
+|---|---|---|
+| **Playwright fehlt** | Z. 157–161 | `main()` kehrt mit `return 0` zurück, **bevor** die Liste erreicht wird. Ergebnis: **0** Prüfungen, und die Zeile „x/y" wird nie gedruckt — stattdessen „Browserpruefung uebersprungen". Also 47 **oder gar keine Ausgabe**, nie eine Zahl dazwischen |
+| **Kein API-Token** | Z. 38–46 | `token()` bricht mit `sys.exit(2)` ab, schon beim Import (Z. 49). Kein Lauf, keine Zahl |
+| **Server ohne passende Daten** | Z. 345, 361, 383 | Drei Prüffunktionen können früh mit `return "uebersprungen – …"` aussteigen (keine Dokumentarten / kein Dokument mit brauchbarem Titel / kein Dokument vorhanden). **Das senkt die Gesamtzahl nicht:** ein `return` ist für `pruefe()` ein normaler Rücklauf, wird über Z. 145 als *bestanden* gezählt und erscheint als „ok … – uebersprungen …" in der Ausgabe. Diese drei bleiben Teil der 47 |
+
+Die dritte Zeile ist der Punkt, an dem eine Auszählung typischerweise 44 oder 46 herausbekäme:
+inhaltsabhängig übersprungene Prüfungen **verschwinden hier nicht aus der Summe**. Die
+Differenz 46 vs. 47 hat mit Bedingungen also nichts zu tun — sie ist rein zeitlich (der
+Fokus-Trap-Test kam nach dem 46er-Lauf dazu).
+
+### Was damit **nicht** belegt ist
+
+Gezählt ist, wie viele Prüfungen dieser Codestand **definiert** — nicht, dass sie grün sind.
+Die Aussage „47/47 grün" stammt aus `/opt/paperless/PO-STATUS.md` (Tageslog 00:40 CHAYA) und
+ist hier nur auf ihre **Nennerzahl** hin bestätigt worden, nicht auf den Zähler. Ein grüner
+Lauf zu `59c5fcf` ist in dieser Sitzung nicht reproduziert worden.
+
+### Weitere Fundstellen derselben Zahl (geprüft)
+
+Per `grep` über `/opt/paperless-app/docs/*.md`, `/opt/paperless/ops/ABNAHME-CHECKLISTE.md`,
+`/opt/paperless/README.md`, `/opt/paperless/BETRIEBSHANDBUCH.md` und
+`/opt/paperless/ROADMAP.md` gesucht:
+
+- **Korrigiert:** nur Z. 41 dieser Datei. Das war die einzige Fundstelle, die 44 als **Aussage
+  über den aktuellen Stand** führte.
+- **Bewusst nicht angefasst — historische Log-Einträge, die zu ihrem Datum richtig waren:**
+  `docs/AUDIT.md` Z. 986/994 (44), Z. 1018 (45), Z. 1025/1035 (46);
+  `docs/ROADMAP.md` Z. 971 (44), Z. 992 (45), Z. 998 (46);
+  `docs/adr/0005-goldstandard-scanner.md` Z. 195/218/230 (43/45/46) sowie die älteren
+  37/40/41/43er-Einträge. Ein Log-Eintrag beschreibt einen Lauf zu einem Zeitpunkt; ihn auf
+  47 zu ziehen wäre Geschichtsfälschung, nicht Korrektur.
+- **Befund ohne Korrektur, gehört nach `/opt/paperless/ops/ABNAHME-CHECKLISTE.md`:** Z. 269
+  („App: zuletzt belegter Vollauf grün") zitiert korrekt aus `docs/ROADMAP.md` Z. 971 und
+  endet bei **46** — während Z. 271 derselben Datei für denselben Codestand 47/47 nennt. Das
+  Zitat ist richtig, die Schlussfolgerung „zuletzt belegt" ist überholt. **Nicht geändert**,
+  weil Z. 269 zur Punktevergabe von Rasterpunkt 6 gehört und die Rasterpunkte 1b/7 am
+  06.08. 10:2x frisch nachgerechnet wurden; die Korrektur gehört in die Hand dessen, der das
+  Raster führt. Ebenso Z. 394 (Rasterpunkt G), die den jetzt aufgelösten Widerspruch als
+  Begründung für einen **−1**-Abzug führt — dieser Abzugsgrund ist mit diesem Lauf entfallen,
+  die Neubewertung steht dem Watchdog zu, nicht diesem Lauf.
+
+## Neuableitung der Bereichstabelle (2026-08-06, Lauf 11:2x)
+
+**Kein Code-Batch, keine Versionsänderung — VERSION bleibt 0.9.3.** Keine App-Quelldatei
+angefasst, **kein Test ausgeführt**. Alles unten ist aus Dateien gelesen, nicht gemessen und
+nicht gelaufen.
+
+Dies ist die Neuableitung, die Z. 1026 seit dem 04.08.2026 empfiehlt und die der 10:16-Lauf
+als offenen Punkt 2 hinterlassen hat. Sie ist **teilvollständig**: acht Bereiche sind belegt,
+zwei nicht.
+
+### Wo die Zeilenbelege dieser Datei geblieben sind
+
+Gegengeprüft wie beim 10:16-Lauf: Die Korrekturen in Abschnitt 1 ersetzen jeweils **eine
+Zeile durch eine Zeile** (Tabellenzeilen sind einzeilig), und alles Neue steht am Dateiende.
+Die zitierten Zeilennummern **Z. 1002, 1011, 1026 und 1035** stehen nach diesem Lauf
+unverändert an ihrer Stelle; nachgeprüft per `grep -n` auf den jeweiligen Wortlaut.
+
+### Methode — und was sie nicht ist
+
+Die Datei hat nie dokumentiert, **wie** die zehn Bereichszahlen am 02.08.2026 zustande kamen.
+Eine Zahl „neu abzuleiten" heißt hier deshalb ausdrücklich **nicht**, ein neues Rechenmodell
+zu erfinden und zehn frische Werte auszuwerfen — das wäre genau die unbelegte Zahlenbildung,
+die dieses Projekt verbietet. Angewandt wurde stattdessen eine engere, nachprüfbare Regel:
+
+> **Eine Bereichszahl wird nur dann bewegt, wenn ein in dieser Datei namentlich geführter
+> Befund dieses Bereichs seinen Zustand belegbar geändert hat.** Bewegt wird um den Betrag,
+> den der Befund in der Begründung des alten Wertes ausmachte, auf dem 5er-Gitter, das die
+> Tabelle ohnehin verwendet. Ändert sich nichts Belegtes, bleibt die Zahl stehen — auch dann,
+> wenn sie „gefühlt" falsch ist.
+
+Der beschreibende **Text** einer Zeile wird dagegen immer korrigiert, wenn er belegt falsch
+ist, auch ohne Zahlenbewegung (so bei Architektur).
+
+Ein **Fund zur Herkunft der Kopfzahl** fiel dabei nebenbei ab und ist unten festgehalten.
+
+### Die zehn Bereiche
+
+| # | Bereich | alt | neu | Belegte Grundlage |
+|---|---|---:|---:|---|
+| 1 | Funktionsumfang | 90 % | **90 %** | *Bestätigt, nicht bewegt.* Die Begründung „keine Attrappen mehr" hält: `grep` über `app.js`, `api.js`, `erfassen.js`, `scan.js`, `ordnung.js`, `betrieb.js`, `suche.js`, `vorschau.js`, `mitglieder.js`, `sperre.js`, `logik.js` nach `TODO`/`FIXME`/`Attrappe`/`Platzhalter`/`noch nicht implementiert` findet **zwei** Treffer, beide sind Kommentare über bewusste Oberflächen-Platzhalter (`app.js` Z. 1464 „Rechte Spalte ohne Auswahl", `vorschau.js` Z. 77 „gezeichnetes Blatt"), kein unfertiger Code. Seit dem 02.08. sind Fähigkeiten **dazu**gekommen (Auto-Auslöser mit Randerkennung v0.9.0, optionales TOTP-Feld v0.9.3) — für eine Erhöhung fehlt aber ein Maßstab, was 100 % wäre. Bleibt bei 90 % |
+| 2 | Testabdeckung | 80 % | **80 %** | *Zahl bestätigt, Begründung korrigiert (44 → 47).* Alle vier Zahlen der Begründung erstmals im Code nachgezählt: **11 Stufen** (`tests/run_e2e.py` Z. 34–51: neun statische + zwei gegen den Server), **60 Unit-Tests** (`tests/logik.test.js`, 60 × `test(` am Zeilenanfang), **24 API-Prüfungen** (`tests/api_check.py` Z. 490–515, Liste `PRUEFUNGEN`), **47 Browserprüfungen** (`tests/browser_check.py` Z. 1586–1632 — eigener Abschnitt oben). Die genannte Lücke „Fehlerpfade" besteht fort. Kein belegter Grund für eine Bewegung |
+| 3 | Architektur | 65 % | **65 %** | *Zahl bestätigt, Begründung korrigiert (2.145 → 2.260 Zeilen).* `wc -l app.js` = **2.260**; die Datei ist seit dem Audit um 115 Zeilen gewachsen. M-1 (Z. 325–336) forderte die Auslagerung von Sitzung, Navigation, Dokumentliste, Einstellungen — **keine** dieser vier Dateien existiert (`ls` im Wurzelverzeichnis: kein `sitzung.js`, `navigation.js`, `dokumente.js`, `einstellungen.js`). Der Befund ist also offen **und** der Trend läuft rückwärts. Trotzdem **kein Abschlag**: Für „wie viel kostet ein Wachstum um 115 Zeilen" gibt es keinen Maßstab in dieser Datei, und ein erfundener Abschlag wäre schlimmer als ein alter Wert |
+| 4 | Sicherheit | 55 % | **65 %** | *Bewegt, +10.* Die alte Begründung nannte drei Dinge: XSS behoben (H-1), keine CSP (K-4), API-Adresse ungeprüft (H-2). **H-2 ist erfüllt** — `logik.js` Z. 300 `basisPruefen()`, Export Z. 339, Verwendung in `api.js` `setBase()` Z. 397–416, sechs Unit-Tests `tests/logik.test.js` Z. 421–469 (nur `https`; `http` nur `localhost`/`127.0.0.1`; fremde Herkunft erst nach ausdrücklicher Erlaubnis; `javascript:` abgewiesen; Adresse mit eingebetteten Zugangsdaten abgewiesen — das ist Punkt für Punkt die Lösung, die H-2 Z. 261–265 verlangt), dazu die Browserprüfung `t_api_adresse_wird_geprueft` (`tests/browser_check.py` Z. 458/1597). **K-4 bleibt offen**, gegengeprüft: kein `Content-Security-Policy` in `index.html`, `start.js`, `sw.js`. Einer von zwei offenen Punkten geschlossen, der kritische bleibt → +10, nicht mehr |
+| 5 | Performance | 45 % | **45 % (alt)** | **Nicht belegbar ohne Ausführung.** Die 45 % stammen aus einer Messung vom 02./03.08.2026 (K-3, Z. 153 ff.; Prüfstufe `tests/perf_check.py`). Ob die Decke bei ~2.000 Dokumenten noch dort liegt, entscheidet **nur ein Lauf von `tests/perf_check.py`** — gesperrt durch die Ausführungsrechte-Wand. Der Wert bleibt unverändert stehen und ist hiermit ausdrücklich als **alt und unbestätigt** gekennzeichnet. Keine Schätzung an seine Stelle |
+| 6 | PWA | 75 % | **85 %** | *Bewegt, +10.* Der einzige Mangel, den die alte Begründung nannte, ist geschlossen: **H-5 („Cache-Version von Hand", Z. 307 ff.) ist erfüllt.** `sw.js` Z. 37 führt `VERSION` als berechnete Prüfsumme (`91fb2ebabddb`), erzeugt von `tools/huelle.py`; `tests/huelle_check.py` ist eine eigene Stufe der Kette (`tests/run_e2e.py` Z. 41) und benennt H-5 im Kopfkommentar als Anlass („Seitdem ist die Version eine Pruefsumme ueber den Inhalt"). Die vier Browserprüfungen zu Worker, Hülle, Cache-Inhalt und Offline-Start (`tests/browser_check.py` Z. 1629–1632) bestehen unverändert. Rest-Abzug bleibt für die iOS-Installationsschwäche, die K-1 beschreibt |
+| 7 | Barrierefreiheit | 36 % | **36 % (Rest alt)** | *Nicht bewegt — frisch und nur teilweise belegbar.* Der Wert ist erst am 06.08. 10:16 aus Z. 1011 gezogen worden und wird hier **nicht** erneut angefasst. Belegt bestätigt ist der beschreibende Teil: `tests/a11y_check.py` führt für **alle acht** `vorlage/*.js` eine Baseline von **0** klickbaren `div`/`span` und erzwingt mindestens 25 Buttons — die Aussage „0 verbleibende klickbare div/span" ist also nicht behauptet, sondern durch eine Prüfstufe gesichert. **Nicht belegbar ohne Geräteprüfung** ist der Rest: `docs/GERAETE-CHECKLISTE.md` führt 29 Prüfpunkte (bis „### 29 · Wärme, Akku und PDF-Größe"), und der Kopf der Datei ist **leer** (Z. 24–29: Gerät, Betriebssystem, Browser, Datum unausgefüllt) → **0 von 29 durchgeführt**. Solange das so ist, kann die Zahl nicht steigen |
+| 8 | Dokumentation | 30 % | **55 %** | *Bewegt, +25.* Dieser Bereich hat als einziger einen **eigenen Maßstab in der Datei**: M-6 (Z. 368–374) zählt neun geforderte Dokumente auf. Nachgezählt gegen diese Liste: **Architecture** → `docs/MOBILE_ARCHITECTURE.md` (+ Modulübersicht in `CLAUDE.md`), **Security** → `docs/SECURITY.md`, **Deployment** → `docs/RELEASE.md`, **Development** → nur mittelbar als Abschnitt „Build- & Testkommandos" in `CLAUDE.md`, deshalb **halb** gezählt. Fehlend bleiben fünf: Troubleshooting, FAQ, Contributing, Support, Compatibility. Rechnung auf dem Maßstab der Zeile selbst: 30 % + (3,5/9 × 70) ≈ 57 %, auf das 5er-Gitter der Tabelle **abgerundet auf 55 %**. Bewusst **nicht** mitgerechnet, obwohl vorhanden: `docs/AUDIT.md`, `docs/ROADMAP.md`, `docs/GERAETE-CHECKLISTE.md`, `docs/adr/0004`+`0005`, `docs/brand/` — sie stehen nicht auf der M-6-Liste, und sie hineinzurechnen hieße, den Maßstab passend zum Wunschergebnis zu ändern |
+| 9 | CI/Release | 60 % | **60 %** | *Bestätigt, nicht bewegt.* Der Wert stammt aus der 09:12-Korrektur desselben Tages. Die dort genannten Belege sind hier nachgeprüft und existieren: `.github/workflows/pruefung.yml` (vorhanden, 02.08.2026), `VERSION` mit Inhalt `0.9.3`, `docs/RELEASE.md`. Der genannte Abzugsgrund besteht ebenfalls fort: `git`-Kopf ist `59c5fcfbd3a2f9365c05590b4692a21a1720449d` (`.git/refs/heads/main`), und nach `/opt/paperless/PO-STATUS.md` (offene Frage 3) ist seither nichts gepusht — die CI läuft also weiterhin nicht gegen den aktuellen Stand |
+| 10 | Store-Reife | 15 % | **25 %** | *Bewegt, +10.* K-1 (Z. 63–80) stellte drei Wege zur Wahl; **einer ist gewählt und begonnen**: `docs/MOBILE_ARCHITECTURE.md` Abschnitt 2 hält „**Capacitor** — **Gewählt.**" fest, und die Hülle existiert im Repository: `native/capacitor.config.json` (appId `ski.frigew.docuwunder`), `native/package.json` mit `@capacitor/android`/`@capacitor/ios` 8.5, die erzeugten Plattformprojekte `native/android/` und `native/ios/`, der Kopierschritt `native/vorbereiten.mjs`; `.gitignore` hält die Plattformprojekte ausdrücklich eingecheckt und verweist dafür auf ebendieses Dokument. Nur **+10**, weil dieselbe Datei sich im Kopf als „**Machbarkeitsprüfung, keine Auslieferung**" bezeichnet: `native/node_modules/` fehlt, `native/android/app/build/` ist leer, kein Store-Zugang, keine Signierung, kein Eintrag, kein belegter Build |
+
+### Ergebnis: acht belegt, zwei nicht
+
+**Belegt neu abgeleitet (8):** Funktionsumfang, Testabdeckung, Architektur, Sicherheit, PWA,
+Dokumentation, CI/Release, Store-Reife. Davon **vier bewegt** (Sicherheit +10, PWA +10,
+Dokumentation +25, Store-Reife +10) und **vier bestätigt stehengelassen**, zwei davon mit
+korrigiertem Begründungstext (Testabdeckung, Architektur).
+
+**Nicht belegbar (2):** **Performance** — nicht belegbar ohne einen Lauf von
+`tests/perf_check.py`. **Barrierefreiheit** — der Rest nicht belegbar ohne die Geräteprüfung
+(0 von 29 Punkten in `docs/GERAETE-CHECKLISTE.md`). Beide behalten ihren **alten** Wert, und
+beide sind in der Tabelle oben als alt gekennzeichnet.
+
+### Die Kopfzahl — und warum sie bei 56 % bleibt
+
+**Fund zur Herkunft der Kopfzahl.** Die Kopfzahl war nie willkürlich: **56 % ist exakt das
+ungewichtete arithmetische Mittel der zehn Bereiche**, so wie die Tabelle nach der
+09:12-Korrektur dastand (90+80+65+55+45+75+45+30+60+15 = 560; 560/10 = **56,0**). Erst die
+10:16-Korrektur der Barrierefreiheit (45 → 36 %) hat daraus 551/10 = **55,1 %** gemacht. Der
+vom 10:16-Lauf als „passt nicht" notierte Abstand beträgt also **0,9 Punkte** — er ist an
+diesem Tag entstanden, nicht seit dem 02.08. gewachsen. Das ist ein Fund aus den Zahlen
+selbst; die Datei dokumentiert diese Rechenweise nirgends ausdrücklich.
+
+**Neues Mittel nach dieser Ableitung:** 90+80+65+65+45+85+36+55+60+25 = 606 → **60,6 %**.
+
+**Die Kopfzahl wird trotzdem NICHT geändert und bleibt bei 56 %.** Grund: Sie darf nur
+ersetzt werden, wenn die Neuableitung sie vollständig trägt — und zwei der zehn Summanden
+sind nicht belegt, sondern alt übernommen. Ein Mittel, in das zwei unbestätigte Werte
+eingehen, ist keine belegte Zahl, sondern eine gut aussehende. Dass die unbelegten Werte
+gerade die beiden **niedrigen** sind (45 % und 36 %), macht es schlimmer, nicht besser: eine
+Messung, die sie senkt, senkt die 60,6 % sofort spürbar.
+
+**Was genau fehlt, damit 56 % ersetzt werden darf** — beides steht bereits als
+Ausführungsarbeit an und ist in `/opt/paperless/ops/AUSFUEHRUNGS-WARTESCHLANGE.md` zu suchen
+bzw. dort zu ergänzen:
+
+1. **Ein Lauf von `tests/perf_check.py`** gegen den aktuellen Codestand → belegt den Bereich
+   Performance.
+2. **Die Geräteprüfung nach `docs/GERAETE-CHECKLISTE.md`** (29 Punkte, derzeit 0 bearbeitet,
+   Durchführung durch Damien) → belegt den Rest der Barrierefreiheit.
+
+Liegen beide vor, ist die Kopfzahl eine reine Rechenaufgabe: Mittel der zehn dann belegten
+Bereiche. Vorher nicht.
+
+### Nicht geprüft, und ein ungeklärter Widerspruch
+
+- **Nicht geprüft:** ob die Bereichszahlen, die hier *bestätigt* wurden, gegen einen anderen
+  als den in dieser Datei dokumentierten Maßstab noch stimmen; sämtliche Laufzeitaussagen
+  (nichts wurde ausgeführt); der Serverzustand.
+- **Ungeklärter Widerspruch, ausdrücklich offen gelassen:** `docs/SECURITY.md` Abschnitt 2
+  behauptet, die Kopfzeile `Content-Security-Policy` sei in Caddy „**gesetzt und notwendig**",
+  während K-4 dieser Datei („Es gibt keine CSP") und der Codestand (kein CSP in `index.html`,
+  `start.js`, `sw.js`) dagegen stehen. Entscheiden ließe sich das nur an
+  `/etc/caddy/Caddyfile` — **diese Datei liegt außerhalb der für diese Sitzung freigegebenen
+  Verzeichnisse und konnte nicht gelesen werden** (Versuch unternommen, abgewiesen). Deshalb
+  wurde bei Sicherheit **kein** Zuschlag für eine möglicherweise vorhandene CSP vergeben:
+  im Zweifel gilt der ungünstigere, belegte Stand. Der Punkt ist als Prüfauftrag in
+  `/opt/paperless/ops/AUSFUEHRUNGS-WARTESCHLANGE.md` nachzutragen.
+- **Berührt, aber nicht angefasst:** `/opt/paperless/ops/ABNAHME-CHECKLISTE.md` **Rasterpunkt
+  1b (App-Selbstauskunft)** rechnet mit der Kopfzahl **56 %**. Die bleibt unverändert, also
+  ändert sich an 1b **nichts** — der Punkt wurde am 06.08. 10:2x frisch auf 13/20
+  nachgerechnet und ist hier absichtlich nicht berührt worden. Berührt ist er nur insofern,
+  als die **Bereichstabelle**, aus der 1b argumentiert, sich geändert hat; sollte die
+  Kopfzahl später auf das dann belegte Mittel gezogen werden, ist 1b neu zu rechnen.

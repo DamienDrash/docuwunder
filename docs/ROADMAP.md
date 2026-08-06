@@ -185,6 +185,18 @@ Echte Einladungen brauchen eine Entscheidung:
 - **Eigener kleiner Dienst** — mehr Kontrolle, aber ein zusätzlicher Dienst mit
   Administratorrechten auf das Archiv.
 
+**✅ ENTSCHIEDEN (Damien, 05.08.2026): Status quo.** Der Administrator legt das Konto in der
+App an, das Passwort wird einmalig angezeigt und weitergegeben — genau der heute umgesetzte
+Weg. Es wird also **kein** Einladungslink gebaut und **kein** Zwischendienst eingeführt.
+**Authentik bleibt dokumentierte Spätoption**, nicht verworfen: Paperless ist über
+`allauth.socialaccount` für OIDC vorbereitet, und die Instanz läuft bereits. Damit ist diese
+Grundsatzfrage geschlossen und blockiert nichts mehr; die Beschreibung darüber bleibt als
+Begründung stehen.
+Wieder aufmachen würde die Entscheidung nur ein neuer Bedarf, den der Status quo nicht mehr
+trägt — etwa Konten für Personen außerhalb des Haushalts oder eine Anzahl von Mitgliedern,
+bei der händisches Anlegen nicht mehr praktikabel ist.
+Beleg: `/opt/paperless/ROADMAP.md` (Entscheidung 3 von 5) und `/opt/paperless/PO-STATUS.md`.
+
 ### 🟡 3.2 Gruppenbesitzer und Rollen
 Paperless kennt beides nicht: Django-Gruppen haben keinen Besitzer, Rechte hängen an der
 Gruppe statt am Mitglied. Die App bildet deshalb nur ab, was existiert. Ein echtes
@@ -234,6 +246,26 @@ Start bis zur bedienbaren Oberfläche: **139 ms**.
 **Bekannte Grenze:** Wer alle 5.000 Dokumente lädt, klickt 83-mal „Weitere laden" und landet
 bei rund 85.000 Knoten. Dort wurde nicht gemessen. Falls das je zum Thema wird, ist
 Virtualisierung die Antwort — vorher nicht.
+
+**⏸ VERTAGT (Damien, 05.08.2026): Meilenstein C Virtualisierung wird nicht jetzt gebaut.**
+Begründung: Die Messungen zeigen unterhalb von `DOC_MAX` keinen Bedarf — Speicher und
+Scrollzeit bleiben bis mindestens 11.000 DOM-Knoten flach, tiefes Blättern kostet nichts
+extra, und eine frische Ansicht des Dokumente-Tabs hat bei jeder Archivgröße dieselbe
+DOM-Größe (server-seitige Paginierung wirkt). Virtualisierung wäre damit Aufwand ohne
+messbaren Gewinn — und ein Umbau der Liste ist ein Risiko, das ohne Gegenwert nicht lohnt.
+**`tests/perf_check.py` bleibt der Wächter** und läuft in jedem Testlauf mit.
+**Welches Signal die Entscheidung wieder aufmacht** (dann ist Meilenstein C erneut zu
+bewerten, nicht sofort zu bauen):
+
+1. **`perf_check` schlägt an** — die Stufe wird rot oder ihre Messwerte verschlechtern sich
+   deutlich gegenüber der hier festgehaltenen Grundlinie.
+2. **`DOC_MAX` wird überschritten** oder heraufgesetzt: die belegte Zahl ist 33.753 DOM-Knoten
+   bei 1.201 geladenen Dokumenten (gegen 1.773 bei frischer Ansicht) — das ist der bekannte
+   Risikofall. Steigt `DOC_MAX`, steigt er mit.
+3. Spürbare Trägheit auf einem echten Gerät nach wiederholtem „Weitere laden" — bisher nur
+   im Browser auf dem Rechner gemessen, siehe `docs/GERAETE-CHECKLISTE.md`.
+
+Beleg: `/opt/paperless/ROADMAP.md` (Entscheidung 4 von 5) und `/opt/paperless/PO-STATUS.md`.
 
 ### ✅ 3.4 Mehrseitiges Scannen
 Aus mehreren Aufnahmen wird **ein** PDF. Vorher wurde ein einzelnes Foto hochgeladen; ein
@@ -447,6 +479,126 @@ federt es nur, statt ins Leere zu blättern.
 **Nebenbefund:** Beim Einbau habe ich `s` in `valsPosteingang` benutzt, wo es nicht im
 Gültigkeitsbereich stand. Die Oberfläche stürzte ab — und die Fehlergrenze aus 1.2 fing es
 sauber ab: „Da ist etwas schiefgegangen. Deine Dokumente sind davon nicht betroffen."
+
+### 🟠 3.14 Die Testreihe füllt das echte Archiv
+
+Nachgetragen am 06.08.2026 aus `/opt/paperless/ops/OCR-BEFUND.md`, **Abschnitt 4**
+(„Nebenbefund: Duplikate und Papierkorb"). Der Befund stammt vom 05.08. und war dort
+ausdrücklich als „gehört in die App-Roadmap" markiert, stand hier aber noch nicht.
+
+**Das Problem:** Die Testreihe lädt bei jedem Durchlauf dieselben Dateien erneut hoch —
+`hoch.jpg`, `quer.jpg`, `zz-Pruefung-Scan.pdf`, `app-test.pdf`. Paperless legt sie brav
+erneut an und protokolliert dabei nur eine Warnung:
+
+```
+[WARNING] [paperless.consumer] Consuming duplicate hoch.jpg:
+          215 existing document(s) share the same content.
+[WARNING] [paperless.consumer] Consuming duplicate zz-Pruefung-Scan.pdf:
+          58 existing document(s) share the same content.
+```
+
+**Der Beleg, dass es weiterläuft:** Der Zähler für `hoch.jpg` stieg allein am Abend des
+05.08. von 213 auf 215. Und der Dokumentenbestand der **produktiven** Instanz wuchs
+zwischen dem Backup vom 05.08. 21:30 und dem vom 06.08. 03:33 von **445 auf 465**
+Dokumente, ohne dass in dieser Zeit jemand echte Belege eingelesen hätte
+(`/opt/backups/paperless/backup.log`).
+
+**Die Tragweite:** Das ist die belegte Ursache für die über 300 Papierkorb-Einträge aus
+dem App-Testbericht und für einen erheblichen Teil der Dokumentenzahl. Es passiert nicht
+in einer Sandkiste, sondern **im echten Archiv mit echten Nutzdaten daneben**. Zwei
+Folgeschäden, die schwerer wiegen als der Speicherplatz:
+
+- Jede Zählung über die Datenbank ist verfälscht — auch die Kennzahlen im Backup-Manifest
+  und in den Leistungsmessungen.
+- Die Testartefakte sind im Nachhinein **nicht sicher von echten Dokumenten zu
+  unterscheiden** (siehe `/opt/paperless/ops/PAPIERKORB-PLAN.md`). Jeder Testlauf macht
+  das Aufräumen teurer.
+
+**Drei Auswege — bewertet, keiner umgesetzt:**
+
+| Weg | Was er löst | Was er kostet / offen lässt |
+|---|---|---|
+| **a) Aufräumen am Ende des Testlaufs** | Der Bestand wächst nicht weiter; die Testreihe hinterlässt nichts. | Löst nur die *Zukunft*. Ein abgebrochener oder roter Lauf räumt nicht auf — dann bleibt genau der Fall übrig, den man nicht mehr zuordnen kann. Und ohne (b) muss das Aufräumen die Dokumente über den Dateinamen finden, also über ein Kriterium, das ein echtes Dokument theoretisch auch tragen kann. |
+| **b) Eindeutige Kennzeichnung der Testuploads** (Schlagwort und/oder Titelpräfix, z. B. `ZZ-TEST-<Zeitstempel>`) | Macht Testdokumente **zweifelsfrei identifizierbar** — vorwärts wie rückwärts. Danach ist Aufräumen ein sicherer Filter statt einer Sichtprüfung. | Verhindert das Anwachsen **nicht**. Ist für sich genommen nur die halbe Lösung — aber die Hälfte, die alle anderen Wege erst sicher macht. Kleiner Eingriff: die Testreihe setzt beim Upload ein Schlagwort bzw. einen Titelpräfix. |
+| **c) Getrennte Testinstanz oder eigener Testbenutzer** | Die sauberste Trennung: echte Nutzdaten werden von der Testreihe gar nicht mehr berührt. Ein eigener Testbenutzer ist die kleine Variante (Besitz-Filter statt eigener Instanz), eine zweite Instanz die große. | Eine zweite Instanz heißt: zweiter Container, zweite Datenbank, zweiter Speicher, zweiter Update-Pfad — echter Betriebsaufwand für ein Nebenprodukt. Ein eigener Testbenutzer ist billig, trennt aber nur logisch: dieselbe Datenbank, dieselbe OCR-Warteschlange, dieselben Duplikatzähler. |
+
+**Empfehlung (Entscheidung bleibt offen):** **b) zuerst, a) unmittelbar danach.** Die
+Kennzeichnung ist der kleinste Eingriff mit der größten Wirkung, weil sie das eigentlich
+teure Problem löst — die Unterscheidbarkeit — und das Aufräumen aus (a) überhaupt erst
+gefahrlos macht. Umgekehrt wäre (a) allein ein Löschlauf, der sich auf Dateinamen
+verlässt. **c)** ist die technisch sauberste Antwort und bleibt das Fernziel; sie lohnt
+sich, sobald ohnehin eine zweite Instanz gebraucht wird (etwa zum Erproben eines
+paperless-Updates vor dem Fenster). Vorher steht der Betriebsaufwand nicht im Verhältnis.
+
+Das nachträgliche Aufräumen des bereits entstandenen Bestands ist **nicht** Teil dieses
+Punktes: es betrifft die produktive Instanz, braucht ein frisches Backup und Damiens
+Sichtprüfung und ist in `/opt/paperless/ops/PAPIERKORB-PLAN.md` vorbereitet (offene
+Frage 5).
+
+### 🟠 3.15 Veralteter Suchparameter `title_content` — tickt auf das nächste Update-Fenster
+
+Ebenfalls am 06.08.2026 nachgetragen, Quelle `/opt/paperless/ops/OCR-BEFUND.md`,
+**Abschnitt 5** („Nebenbefund: zwei Meldungen aus der API"). Auch dieser Punkt war dort
+als App-Thema markiert und fehlte hier.
+
+**Der Beleg im Code:** `api.js`, **Zeile 514** — in `documents.search()`:
+
+```js
+return request('GET', '/documents/', Object.assign({ params: mit({ query: q }) }, opts || {}))
+  .catch(function (e) {
+    if (e.status !== 400) throw e;
+    return request('GET', '/documents/', Object.assign({ params: mit({ title_content: q }) }, opts || {}))
+```
+
+Die Suche fragt zuerst den Volltextindex (`query=`, Whoosh-Syntax). Quittiert der Server
+das mit `400`, fällt sie auf `title_content=` zurück — die schlichte Teilstringsuche über
+Titel und Inhalt, damit die Suche „nie einfach nichts tut".
+
+**Was der Server dazu protokolliert** — beide Meldungen treten regelmäßig **zusammen** mit
+den App-Testläufen auf, weil sie zwei Hälften desselben Vorgangs sind:
+
+```
+[WARNING] [paperless.api] An error occurred listing search results: Syntax Error: :::[
+[WARNING] [paperless.api] Deprecated document filter parameter 'title_content' used; use `text` instead.
+```
+
+Die erste Zeile ist der fehlgeschlagene `query=`-Versuch: Ein Suchtext wie `:::[` ist
+keine gültige Whoosh-Syntax und wird vor dem Absenden nicht maskiert. Die zweite Zeile ist
+der Rückfall, der genau dadurch ausgelöst wird.
+
+**Wie dringend ist das? Heute gar nicht — und irgendwann auf einen Schlag.**
+
+- Es läuft. Das Backend ist auf `ghcr.io/paperless-ngx/paperless-ngx:3.0.5` **gepinnt**
+  (kein `:latest`), `title_content` ist dort noch vorhanden und funktioniert. Es gibt
+  **keine Eile**.
+- Aber es ist eine tickende Uhr, und man weiß, wann sie klingelt: beim nächsten
+  Versionssprung. Das Update-Fenster ist der **1. Dienstag im Monat, 20:00–21:00**,
+  nächster Termin **01.09.2026** —
+  `/opt/paperless/ops/UPDATE-RUNBOOK.md`, **Abschnitt 0**. Fällt der Parameter in der
+  Zielversion weg, liefert der Rückfallpfad einen Fehler statt Ergebnissen, und zwar
+  ausgerechnet dann, wenn ohnehin alles neu ist. Deshalb gehört dieser Punkt in die
+  Vorbereitung des Fensters (Runbook Abschnitt 1: „geänderte oder entfallene
+  Parameter prüfen"), nicht in eine Notfallschicht danach.
+
+**Zwei getrennte Aufgaben, nicht eine:**
+
+1. **`title_content` → `text`.** Ein Parametername in einer Zeile. Braucht einen
+   Vertragstest gegen die API (`tests/api_check.py` prüft bereits Auslöser- und
+   Aktionsnummern gegen den Server — dasselbe Muster), damit der Rückfallpfad nicht
+   wieder unbemerkt veraltet. Der Rückfall als *Mechanismus* bleibt richtig und soll
+   bleiben.
+2. **Den Syntaxfehler gar nicht erst erzeugen.** Der `400` ist heute kein sichtbarer
+   Schaden — der Rückfall greift, die Nutzerin bekommt Treffer (die Antwort ist mit
+   `einfach: true` markiert). Der Preis ist eine zusätzliche Rundreise zum Server bei
+   jeder Suche mit Sonderzeichen und eine Warnung im Serverprotokoll bei jedem Versuch.
+   Eingaben mit Whoosh-Sonderzeichen (`: [ ] ( ) * ?`) also entweder maskieren oder
+   erkennen und direkt einfach suchen. **Anmerkung zur Quelle:** OCR-BEFUND Abschnitt 5
+   schreibt, für den Benutzer heiße das „Suche ohne Treffer statt Fehlermeldung" — das
+   trifft so nicht zu, weil der Rückfall in `api.js` genau das abfängt. Der Befund selbst
+   (Syntaxfehler wird erzeugt, Parameter ist veraltet) bleibt richtig.
+
+**In diesem Nachtrag wurde `api.js` nicht angefasst** — der Punkt ist dokumentiert, nicht
+umgesetzt.
 
 ---
 
@@ -852,3 +1004,61 @@ Unit-Tests machen die Lage nur schlechter.
 - Modale Sheets (Zuweisen, Loeschen, Automatisierung, etc.) setzen jetzt beim Oeffnen den Tastaturfokus in den Dialog, halten Tab/Umschalt+Tab per echtem Fokus-Trap darin, und geben den Fokus beim Schliessen an das aufrufende Element zurueck. `role="dialog"`/`aria-modal="true"` ergaenzt. Details und Testevidenz: docs/AUDIT.md.
 - Naechster Schritt: dedizierter automatisierter Fokus-Trap-Test fuer Sheets, danach Fortsetzung mit Meilenstein B (verbleibende Pointer-/Tastaturfaelle), Meilenstein C (Virtualisierungsentscheidung) oder Meilenstein D (Release-Dokumentation).
 - Version: 0.9.0 -> 0.9.1 (PATCH).
+
+## Zwei offene Grundsatzfragen entschieden, Meilenstein D erledigt (2026-08-06)
+
+Reiner Dokumentations-Batch, **keine Code-Aenderung**: keine Quelldatei angefasst, `VERSION`
+und die Huellenversion in `sw.js` bleiben unveraendert (Doku ist nicht Teil der Huelle).
+
+- **Meilenstein C Virtualisierung: VERTAGT** (Damien, 05.08.2026). Kein Bedarf unterhalb
+  `DOC_MAX` messbar, `tests/perf_check.py` bleibt Waechter. Zwei Signale machen die
+  Entscheidung wieder auf (perf_check schlaegt an / `DOC_MAX` ueberschritten oder
+  heraufgesetzt) — Einzelheiten stehen bei **3.3**, wo die Messwerte liegen.
+- **Einladungen 3.1: ENTSCHIEDEN** (Damien, 05.08.2026). Status quo, der Administrator legt
+  Konten in der App an; Authentik bleibt dokumentierte Spaetoption. Einzelheiten bei **3.1**.
+  Damit ist die letzte Grundsatzfrage aus Phase 3 geschlossen.
+- **Meilenstein D erledigt:** neue Datei `docs/RELEASE.md` — Versionsschema, Umfang eines
+  Release (inkl. Service-Worker-Cache-Busting ueber die Huellen-Pruefsumme), Ablauf Schritt
+  fuer Schritt, Abnahmekriterien, Rollback, Stolperfallen (Subpath `/paperless`, Arbeitsbaum
+  ist die Auslieferung, CI 2.18.4 vs. Produktion 3.0.5). Der Push-Schritt ist als aktuell
+  blockiert markiert (Deploy-Key noch nicht eingetragen).
+- **Geraeteverifikation vorbereitet:** neue Datei `docs/GERAETE-CHECKLISTE.md` — 29 Pruefpunkte
+  zum Abhaken auf einem echten Telefon (Kamera-Berechtigung inkl. Verweigerung, Auto- und
+  Handausloeser, Randvorschlag, Mehrseiten-Scan, schlechtes Licht, Offline, App-Wechsel,
+  Dauerlast). Erst nach diesem Durchlauf darf laut ADR 0005 von „Goldstandard" oder
+  Swift-Paperless-Paritaet gesprochen werden.
+- Nicht verifiziert in diesem Batch: **kein Testlauf** (`tests/run_e2e.py` nicht ausgefuehrt —
+  die Sitzung, die diesen Batch geschrieben hat, hatte keine Ausfuehrungsrechte fuer neue
+  Shell-Befehle). Da keine Quelldatei geaendert wurde, ist kein Testergebnis betroffen; ein
+  Lauf mit Rechten sollte die Suite dennoch einmal bestaetigen, bevor committet wird.
+- Version: unveraendert 0.9.3 (reiner Doku-Batch, keine ausgelieferte Datei betroffen).
+
+## Zwei offene Befunde aus dem Backend-Protokoll nachgezogen (2026-08-06)
+
+Ebenfalls reiner Dokumentations-Batch, **keine Code-Aenderung**. Beide Punkte standen
+seit dem 05.08. in `/opt/paperless/ops/OCR-BEFUND.md` ausdruecklich als „gehoert in die
+App-Roadmap", fehlten hier aber; am 06.08. per `grep` gegengeprueft (kein Treffer fuer
+`title_content` und `Syntax Error` in dieser Datei) und jetzt additiv ergaenzt.
+
+- **3.14 Die Testreihe fuellt das echte Archiv** (neu, offen). Die App-Testreihe laedt bei
+  jedem Lauf dieselben Dateien erneut in die **produktive** Instanz; Duplikatzaehler
+  `hoch.jpg` 215, `zz-Pruefung-Scan.pdf` 58, steigend (OCR-BEFUND Abschnitt 4).
+  Zusaetzlicher Beleg fuer „laeuft weiter": 445 → 465 Dokumente zwischen den
+  Backup-Laeufen vom 05.08. 21:30 und 06.08. 03:33. Drei Auswege bewertet
+  (Aufraeumen am Laufende / eindeutige Kennzeichnung der Testuploads / getrennte
+  Testinstanz oder Testbenutzer), Empfehlung: erst kennzeichnen, dann aufraeumen —
+  Entscheidung bewusst offen gelassen. Nichts umgesetzt.
+- **3.15 Veralteter Suchparameter `title_content`** (neu, offen). Beleg: `api.js`
+  Zeile 514, der Rueckfallpfad von `documents.search()` nach einem `400` auf `query=`.
+  Dazu die im Serverprotokoll begleitende Meldung `Syntax Error: :::[`. Keine Eile —
+  das Backend ist auf 3.0.5 gepinnt —, aber faellig zur Vorbereitung des naechsten
+  Update-Fensters am **01.09.2026** (`ops/UPDATE-RUNBOOK.md` Abschnitt 0). `api.js`
+  wurde **nicht angefasst**, nur dokumentiert.
+- Kleine Korrektur an der Quelle festgehalten: OCR-BEFUND Abschnitt 5 schreibt, die
+  Nutzerin sehe „Suche ohne Treffer statt Fehlermeldung". Das stimmt nicht — der
+  Rueckfall in `api.js` liefert Treffer (Antwort mit `einfach: true`). Der Befund selbst
+  bleibt gueltig.
+- Nicht verifiziert in diesem Batch: **kein Testlauf** (`tests/run_e2e.py` nicht
+  ausgefuehrt — dieselbe Ausfuehrungsrechte-Wand wie beim Batch davor). Da keine
+  Quelldatei geaendert wurde, ist kein Testergebnis betroffen.
+- Version: unveraendert 0.9.3 (reiner Doku-Batch, `sw.js`-Huellenversion unveraendert).
