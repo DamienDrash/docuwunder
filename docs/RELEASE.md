@@ -235,9 +235,17 @@ git push origin v0.9.4
 
 Danach laufen die GitHub-Actions (`.github/workflows/pruefung.yml`): erst die statischen
 Stufen, dann — nur wenn die grün sind — API- und Browserprüfung gegen eine Wegwerf-Instanz von
-paperless-ngx. Achtung: die CI startet **`paperless-ngx:2.18.4`**, die Produktion läuft auf
-**3.0.5**. Grüne CI ist deshalb kein vollständiger Ersatz für Schritt 3.1 gegen den echten
-Server.
+paperless-ngx. Die CI startet seit dem 06.08.2026 **`paperless-ngx:3.0.5`** — dieselbe
+Version wie die Produktion. Grüne CI ist trotzdem kein vollständiger Ersatz für Schritt 3.1
+gegen den echten Server: die Wegwerf-Instanz ist leer, läuft ohne Caddy und ohne Subpfad
+(`PAPERLESS_FORCE_SCRIPT_NAME`), und **die Änderung ist noch nie gelaufen** (Nachweis wäre
+der nächste Actions-Lauf, `/opt/paperless/ops/AUSFUEHRUNGS-WARTESCHLANGE.md` Nr. 16).
+
+*(Korrigiert 06.08.2026: hier stand „Achtung: die CI startet **`paperless-ngx:2.18.4`**, die
+Produktion läuft auf **3.0.5**." Das stimmte und war der belegte Mangel aus
+`/opt/paperless/ops/ABNAHME-CHECKLISTE.md`, Rasterpunkt 6, Kriterium D. Die Version ist in
+`.github/workflows/pruefung.yml` gezogen worden statt weiter beschrieben zu werden;
+Begründung und Vorbehalt stehen im Kopfkommentar des Jobs `gegen_server`.)*
 
 Der Push ist **nicht** die Auslieferung. Er ist die Sicherung und die zweite Meinung.
 
@@ -375,10 +383,23 @@ Datei nicht in `HUELLE` steht. Immer alle drei Stellen (3.2).
 **5 · Ein offenes Fenster zeigt die alte Fassung.** Nach dem Release erst prüfen, wenn die App
 wirklich neu gestartet wurde. Sonst hält man die vorige Fassung für die neue.
 
-**6 · CI-Version ≠ Produktionsversion.** GitHub prüft gegen `paperless-ngx:2.18.4`, produktiv
-läuft `3.0.5`. Was nur eine der beiden Fassungen betrifft (API-Umbenennungen, MFA-Verhalten),
-kann grün in der CI und rot in Produktion sein — deshalb ist der lokale Lauf gegen den echten
-Server Teil der Abnahme.
+**6 · Die CI-Version steigt nicht von selbst mit.** GitHub prüft seit dem 06.08.2026 gegen
+`paperless-ngx:3.0.5` — dieselbe Version, die produktiv läuft. Fest bleibt sie trotzdem,
+damit ein Update von paperless-ngx den Lauf nicht überraschend rot färbt. Der Preis dieser
+Festigkeit: **beide Zahlen müssen im selben Commit steigen** — die in
+`.github/workflows/pruefung.yml` (Job `gegen_server`) und die in
+`/opt/paperless/docker-compose.yml` Z. 7. Wer nur das Backend hebt, hat ab dem nächsten
+Update-Fenster wieder eine CI, die einen Vertrag gegen eine Version prüft, die niemand
+betreibt. Das gehört deshalb in die Vorbereitung des Fensters (`ops/UPDATE-RUNBOOK.md`
+Abschnitt 0), nicht in eine Schicht danach.
+
+*(Korrigiert 06.08.2026: hier stand „**CI-Version ≠ Produktionsversion.** GitHub prüft gegen
+`paperless-ngx:2.18.4`, produktiv läuft `3.0.5`. Was nur eine der beiden Fassungen betrifft
+(API-Umbenennungen, MFA-Verhalten), kann grün in der CI und rot in Produktion sein …" — der
+Befund war richtig und ist behoben, indem die Version gezogen wurde. Der Satz zur
+Fehlerklasse bleibt gültig und ist der Grund, warum das Auseinanderlaufen der beiden Zahlen
+jetzt hier als Stolperfalle steht. **Ungelaufen:** die Änderung ist Aktenlage, der Beweis
+ist der nächste Actions-Lauf — Warteschlange Nr. 16.)*
 
 **7 · Der Zugangsschlüssel überlebt vieles.** Ein bereits ausgestellter API-Token bleibt auch
 nach Aktivierung von Zwei-Faktor gültig. Ein Anmeldeproblem zeigt sich deshalb oft **nur** bei

@@ -1,9 +1,25 @@
 # Die Pruefstufen bei jedem Push.
 #
-# Aufgeteilt in zwei Aufgaben, weil sie verschiedene Voraussetzungen haben:
-# die statischen Stufen brauchen nichts als Python und Node, die uebrigen
-# einen laufenden Paperless-Server. Die statischen laufen deshalb immer und
-# in Sekunden; faellt eine davon, erspart das den teuren Teil.
+# Aufgeteilt in drei Aufgaben, weil sie verschiedene Voraussetzungen haben:
+# die statischen Stufen brauchen nichts als Python und Node, die Leistungsstufe
+# zusaetzlich Playwright/Chromium (aber keinen Server), die uebrigen einen
+# laufenden Paperless-Server. Die statischen laufen deshalb immer und in
+# Sekunden; faellt eine davon, erspart das den teuren Teil.
+#
+# Warum die dritte Aufgabe (06.08.2026): bis dahin fuehrte diese Datei nur
+# 9 der 11 Stufen aus tests/run_e2e.py aus - a11y_check.py und perf_check.py
+# fehlten, also genau die zwei Bereiche, die in docs/AUDIT.md als "nicht
+# belegbar" markiert sind. a11y_check.py steht jetzt bei den statischen
+# Stufen, an derselben Stelle wie in run_e2e.py: sie liest nur Dateien unter
+# vorlage/, braucht kein Paket und keine Sekunde. perf_check.py bekommt eine
+# eigene Aufgabe, weil ein Playwright-Install die Zusage "nichts als Python
+# und Node, in Sekunden" fuer die statischen Stufen brechen wuerde; als
+# eigene Aufgabe laeuft sie parallel zu gegen_server und haelt die schnelle
+# Rueckmeldung frei.
+#
+# Damit fuehrt die CI dieselben 11 Stufen wie tests/run_e2e.py, nur anders
+# verteilt: 8 statisch + 1 Leistung + 2 gegen den Server (run_e2e.py: 9 + 2,
+# weil perf_check.py dort bei den statischen Stufen gefuehrt wird).
 name: Pruefung
 
 on:
@@ -28,6 +44,10 @@ jobs:
         run: python3 tests/logik_check.py
       - name: Vorlagenbindungen
         run: python3 tests/template_check.py
+      # Gleiche Stelle wie in tests/run_e2e.py: direkt nach den Vorlagen-
+      # bindungen. Liest ausschliesslich vorlage/*.js, keine Abhaengigkeit.
+      - name: Barrierefreiheit
+        run: python3 tests/a11y_check.py
       - name: Aufrufe im Zustand
         run: python3 tests/aufrufe_check.py
       - name: Huellenversion
@@ -36,6 +56,42 @@ jobs:
         run: python3 tests/geheim_check.py
       - name: PWA
         run: python3 tests/pwa_check.py
+
+  # Braucht Playwright/Chromium, aber KEINEN Paperless-Server: die Stufe faehrt
+  # einen eigenen kleinen Auslieferungs-Server hoch und ersetzt jede
+  # Paperless-Antwort durch synthetisches Routing (Kopfkommentar
+  # tests/perf_check.py). Laeuft deshalb parallel zu gegen_server und nicht
+  # darin.
+  #
+  # VORBEHALT, in dieser Datei nicht durch einen Lauf belegt (06.08.2026):
+  # fehlt das Python-Paket playwright, steigt tests/perf_check.py Z. 108-112
+  # mit "Playwright fehlt - Leistungspruefung uebersprungen" und Exit 0
+  # aus. Ein gruener Lauf dieser Aufgabe ist also nur dann ein Nachweis, wenn
+  # die Ausgabe die fuenf Bestandsgroessen (100/1.000/5.000/20.000/50.000)
+  # wirklich enthaelt. Die uebrigen Annahmen der Stufe passen zur
+  # Actions-Umgebung und wurden dafuer einzeln durchgesehen: kein fester Port
+  # (freier_port() bindet ephemer auf 127.0.0.1), kein Schreibzugriff auf die
+  # Platte, kein Zugriff ausserhalb des Checkouts, und keine einzige ihrer
+  # Pruefungen bewertet eine Zeitdauer - bewertet werden nur DOM-Knoten und
+  # die Anzahl der /documents/-Anfragen. Ein langsamer Runner macht sie also
+  # nicht rot. Laufzeit: fuenf Bestandsgroessen plus der DOC_MAX-Grenzfall mit
+  # bis zu 25 Klicks, dazu der Playwright-Install - Minuten, nicht Sekunden.
+  leistung:
+    name: Leistung bei grossen Bestaenden
+    runs-on: ubuntu-latest
+    needs: statisch
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+
+      - name: Playwright einrichten
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Leistung bei grossen Bestaenden
+        run: python3 tests/perf_check.py
 
   gegen_server:
     name: Gegen einen echten Server
@@ -50,9 +106,46 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
 
-      # Eine Wegwerf-Instanz. Feste Version, damit ein Update von
-      # paperless-ngx den Lauf nicht ueberraschend rot faerbt - wann sie
-      # steigt, entscheidet ein Commit.
+      # Eine Wegwerf-Instanz. Feste Version - aber die der Produktion.
+      #
+      # Fest bleibt sie aus dem alten, weiterhin richtigen Grund: ein Update von
+      # paperless-ngx soll den Lauf nicht ueberraschend rot faerben. Wann sie
+      # steigt, entscheidet ein Commit - und zwar DERSELBE, der
+      # /opt/paperless/docker-compose.yml (Z. 7) hebt. Die beiden Zahlen sind
+      # zwei Haelften einer Angabe; laufen sie auseinander, prueft diese Datei
+      # einen Vertrag gegen eine Version, die niemand betreibt.
+      #
+      # Gezogen am 06.08.2026 von 2.18.4 auf 3.0.5. Vorher stand hier
+      # "ghcr.io/paperless-ngx/paperless-ngx:2.18.4", waehrend server1 seit dem
+      # 05.08.2026 auf 3.0.5 gepinnt ist. Was dafuer spricht, aus den Dateien
+      # belegt und nicht geraten:
+      #   - tests/api_check.py Z. 230-233 haelt die Ausloeser- und
+      #     Aktionsnummern der Workflows fest (ERWARTET_AUSLOESER 1-4,
+      #     ERWARTET_AKTIONEN 1-6, Gegenstueck zu TRIGGER/AKTION in
+      #     betrieb.js Z. 40-53). Diese Zuordnung ist gegen den ECHTEN Server
+      #     erhoben und gruen gemeldet worden - und der laeuft 3.0.5. Gegen
+      #     2.18.4 ist sie nie belegt worden.
+      #   - docs/RELEASE.md, Stolperfalle 6, nennt genau die Klasse von
+      #     Unterschieden, die hier zaehlt: API-Umbenennungen und
+      #     MFA-Verhalten. Die MFA-Arbeit aus v0.9.3 zielt auf das Verhalten
+      #     von 3.0.5 (allauth 65.16.1, POST /api/token/ erzwingt den Code).
+      #   - Der Suchparameter title_content (api.js Z. 514, geprueft von
+      #     t_suche_einfach) ist in 3.0.5 VERALTET, aber vorhanden und
+      #     funktionsfaehig - belegt durch die Warnung im Serverprotokoll der
+      #     Produktion ("Deprecated document filter parameter 'title_content'
+      #     used; use `text` instead", docs/ROADMAP.md 3.15). Der Zug auf 3.0.5
+      #     bricht diese Stufe also nicht, macht die Veralterung aber dort
+      #     sichtbar, wo sie hingehoert.
+      # Ein Grund DAGEGEN wurde in den vorliegenden Dateien nicht gefunden.
+      #
+      # OFFEN, weil aus den Dateien nicht entscheidbar (kein Netzzugriff, kein
+      # Lauf): welche der sechs Aktionsnummern 2.18.4 ueberhaupt kennt. Sollte
+      # dort eine gefehlt haben, war dieser Job gegen 2.18.4 gar nicht gruen zu
+      # bekommen - protokolliert ist ohnehin kein einziger Lauf dieser Datei.
+      #
+      # UNGELAUFEN: Diese Aenderung ist Aktenlage, kein Nachweis. Der Beweis ist
+      # der naechste Actions-Lauf; er steht als Nr. 16 in
+      # /opt/paperless/ops/AUSFUEHRUNGS-WARTESCHLANGE.md.
       - name: Paperless starten
         run: |
           docker run -d --name paperless --network host \
@@ -64,7 +157,7 @@ jobs:
             -e PAPERLESS_OCR_LANGUAGE=deu+eng \
             -e PAPERLESS_ADMIN_USER=pruefer \
             -e PAPERLESS_ADMIN_PASSWORD=pruefung12345 \
-            ghcr.io/paperless-ngx/paperless-ngx:2.18.4
+            ghcr.io/paperless-ngx/paperless-ngx:3.0.5
           for i in $(seq 1 90); do
             curl -sf http://127.0.0.1:8099/api/ >/dev/null && break
             sleep 5

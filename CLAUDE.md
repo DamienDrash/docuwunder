@@ -152,7 +152,8 @@ Das eigene Konto lässt sich weder herabstufen noch entfernen — das wäre die 
 ## Build- & Testkommandos
 - **Alle Tests:** `python3 /opt/paperless-app/tests/run_e2e.py`
 - **Nur ohne Server:** `python3 tests/run_e2e.py --statisch`
-- Stufen: `syntax_check` → `logik_check` (Unit-Tests ohne Browser) → `template_check` (jeder gelesene Wert kommt aus `renderVals`) → `a11y_check` (semantische Leitplanken) → `version_check` (Hüllen-Hash) → `pwa_check` → `api_check` → `browser_check`.
+- Stufen (11, Reihenfolge wie in `tests/run_e2e.py` Z. 33–52): `syntax_check` → `logik_check` (Unit-Tests ohne Browser) → `template_check` (jeder gelesene Wert kommt aus `renderVals`) → `a11y_check` (semantische Leitplanken) → `aufrufe_check` (jedes `this.name()` trifft eine Methode) → `huelle_check` (Hüllen-Hash) → `geheim_check` (nichts Geheimes in versionierten Dateien) → `pwa_check` → `perf_check` (Leistung bei 100…50.000 Dokumenten, Mock-API) → `api_check` → `browser_check`. Die ersten neun sind die statischen (`--statisch`), die letzten zwei brauchen einen Server.
+  *(Korrigiert 06.08.2026: hier standen acht Stufen, darunter `version_check` — eine Datei dieses Namens gibt es nicht, die Stufe heißt `tests/huelle_check.py`. Es fehlten `aufrufe_check`, `geheim_check` und `perf_check`. `logik_check` stand bereits richtig da.)*
 - Token für die letzten beiden Stufen: `PAPERLESS_TOKEN=…` oder `tests/.token` (nicht versioniert).
 
 ## Roadmap & Status
