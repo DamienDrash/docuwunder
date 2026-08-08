@@ -480,7 +480,7 @@ federt es nur, statt ins Leere zu blättern.
 Gültigkeitsbereich stand. Die Oberfläche stürzte ab — und die Fehlergrenze aus 1.2 fing es
 sauber ab: „Da ist etwas schiefgegangen. Deine Dokumente sind davon nicht betroffen."
 
-### 🟠 3.14 Die Testreihe füllt das echte Archiv
+### 🟡 3.14 Die Testreihe füllt das echte Archiv — Teil b umgesetzt, a/c offen
 
 Nachgetragen am 06.08.2026 aus `/opt/paperless/ops/OCR-BEFUND.md`, **Abschnitt 4**
 („Nebenbefund: Duplikate und Papierkorb"). Der Befund stammt vom 05.08. und war dort
@@ -534,6 +534,33 @@ Das nachträgliche Aufräumen des bereits entstandenen Bestands ist **nicht** Te
 Punktes: es betrifft die produktive Instanz, braucht ein frisches Backup und Damiens
 Sichtprüfung und ist in `/opt/paperless/ops/PAPIERKORB-PLAN.md` vorbereitet (offene
 Frage 5).
+
+**Teil b umgesetzt (08.08.2026, Commit `f45ae30`), gemäß Damiens Freigabe vom 08.08.2026
+(„erst Testuploads eindeutig kennzeichnen, danach aufräumen"; siehe `/opt/paperless/PO-STATUS.md`,
+Abschnitt „Freigaben und Entscheidungen von Damien (08.08.2026)", Punkt 7).** Alle drei
+Upload-Stellen der Testreihe tragen jetzt einen zur Laufzeit erzeugten Titelpräfix nach dem
+Muster `ZZ-TEST-<Zeitstempel>`:
+
+- `tests/api_check.py`, `t_upload_roundtrip` — Titel-Override beim Upload-Aufruf (die API
+  unterstützt das bereits über `multipart({"title": …}, …)`).
+- `tests/browser_check.py`, `t_scan_wird_ein_pdf` — Titel-Override über das ohnehin vorhandene
+  Titelfeld im Scan-Bildschirm.
+- `tests/browser_check.py`, `t_datei_kommt_beim_server_an` — dieser Weg fragt keinen Titel ab;
+  der Server leitet ihn aus dem Dateinamen ab. Die Testdatei wird deshalb zur Laufzeit in eine
+  temporäre, markierte Kopie umbenannt, bevor sie ausgewählt wird — kein Eingriff in `app.js`
+  nötig.
+
+Nachweis: `tests/run_e2e.py --statisch` 9/9 grün; `tests/api_check.py` 24/24 grün (Upload-Test
+belegt den neuen Präfix im Titel); `tests/browser_check.py` lief mehrfach mit denselben,
+umgebungsbedingten Fehlschlägen (403 auf einzelne Ressourcen, Cache-Abweichung,
+`net::ERR_ABORTED`), die nachweislich **nicht** mit dieser Änderung zusammenhängen — beide
+Upload-Prüfungen liefen in mehreren Läufen sauber grün, sobald der davonstehende 403-Fehler
+ausblieb; Details im Tageslog von `/opt/paperless/PO-STATUS.md`.
+
+**Ausdrücklich offen bleiben Teil a) Aufräumen und Teil c) eigene Testinstanz/-benutzer** —
+beide waren nicht Gegenstand dieses Auftrags. Der Bestand wächst mit jedem Testlauf weiterhin;
+diese Änderung macht die Testartefakte nur zuverlässig auffindbar, verhindert ihr Entstehen
+nicht.
 
 ### 🟠 3.15 Veralteter Suchparameter `title_content` — tickt auf das nächste Update-Fenster
 
