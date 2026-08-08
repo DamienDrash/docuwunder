@@ -1062,3 +1062,324 @@ App-Roadmap", fehlten hier aber; am 06.08. per `grep` gegengeprueft (kein Treffe
   ausgefuehrt — dieselbe Ausfuehrungsrechte-Wand wie beim Batch davor). Da keine
   Quelldatei geaendert wurde, ist kein Testergebnis betroffen.
 - Version: unveraendert 0.9.3 (reiner Doku-Batch, `sw.js`-Huellenversion unveraendert).
+
+### 🟠 3.16 Zwei-Faktor-Einrichtung in der App (UX-Entscheidung Damien, 08.08.2026)
+
+**Warum.** TOTP lässt sich derzeit nur in der Paperless-ngx-Weboberfläche einrichten
+(`/paperless/` → My Profile → MFA). Wer DocuWunder nutzt, muss dafür die App verlassen
+und eine fremde, ganz anders aussehende Oberfläche bedienen. Damien am 08.08.2026:
+Aus UX-Sicht gehört das in unsere App. **Abgrenzung bleibt bestehen:** das ist kein
+Einstieg in den Nachbau der Paperless-Kontoverwaltung (Nutzer anlegen, Rechte, Gruppen
+— bleibt bewusst draußen), sondern genau **ein** klar begrenzter Selbstbedienungs-Flow
+für das eigene Konto, vergleichbar mit `sperre.js` (lokale Gerätesperre).
+
+**Die Vorarbeit ist da.** `api.js` beherrscht MFA beim **Login** bereits vollständig:
+`login(username, password, code)` schickt `code` optional mit (Z. 461–465) und
+unterscheidet die Fehlerfälle „MFA code is required" und „Invalid MFA code" (Z. 478–481,
+seit v0.9.3). Was fehlt, ist ausschließlich die **Einrichtung**.
+
+**Der Server kann es schon — ohne Umweg.** allauth stellt den Headless-Modus bereit,
+also genau für eigene Oberflächen gedacht, kein Scraping:
+
+```
+GET    /api/auth/headless/browser/v1/account/authenticators/totp
+       -> 404 + { "secret": "...", "totp_url": "otpauth://totp/..." }   (noch nicht aktiv)
+       -> 200 + Authenticator-Daten                                     (bereits aktiv)
+POST   /api/auth/headless/browser/v1/account/authenticators/totp
+       { "code": "123456" }  -> aktiviert
+DELETE /api/auth/headless/browser/v1/account/authenticators/totp        -> deaktiviert
+GET/POST .../authenticators/recovery-codes                              -> Wiederherstellungscodes
+GET    /api/auth/headless/browser/v1/account/authenticators             -> Liste (Typ, created_at, last_used_at)
+```
+
+Belegt am 08.08.2026 gegen die laufende Instanz (`manage.py shell`, URL-Auflösung) und
+gegen den Paketcode `allauth/headless/mfa/views.py` (`ManageTOTPView`) sowie
+`allauth/headless/mfa/response.py` (`_authenticator_data`). Das `totp_url` ist die
+fertige `otpauth://`-Zeichenkette — der QR-Code wird daraus **im Browser gezeichnet**,
+das Geheimnis verlässt den Server nur an den angemeldeten Nutzer selbst.
+
+**Was zu bauen ist.**
+- Neues Modul `zweifaktor.js` nach dem Muster der übrigen Sachgebietsmodule
+  (`start()` / `methoden`, angehängt per `Object.assign` in `app.js`) — **nicht** in
+  `app.js` selbst.
+- Einstieg unter „Mehr" → Sicherheit, neben der bestehenden Gerätesperre.
+- Ablauf: Status lesen → falls inaktiv: QR-Code + Geheimnis als Text (zum Abtippen, wenn
+  die Kamera nicht kann) → Eingabefeld 6-stellig → aktivieren → **Wiederherstellungscodes
+  einmalig anzeigen**, mit ausdrücklicher Bestätigung „Ich habe sie gesichert" und einem
+  Hinweis, dass sie danach nicht wieder angezeigt werden.
+- Deaktivieren mit Rückfrage.
+- QR-Erzeugung: eine kleine Bibliothek, die **ohne Build-Schritt** als Script-Tag läuft
+  (Architekturvorgabe: kein Bundler, kein npm zur Laufzeit — siehe CLAUDE.md
+  „Build- & Laufzeit-Konzept"). Sie gehört in die Hülle (`sw.js`, `VERSION` hoch) und in
+  `tests/syntax_check.py`, wie jedes neue Modul.
+
+**Sicherheitsregeln für die Umsetzung.**
+- Geheimnis und Wiederherstellungscodes **nie** protokollieren, nie in den Zustand
+  schreiben, der in `localStorage` landet, nie in eine Fehlermeldung aufnehmen.
+- Nach dem Verlassen des Bildschirms aus dem Speicher entfernen.
+- Keine Screenshots der Codes in Tests oder Belegen.
+
+**Abnahme.**
+1. Einrichtung vollständig in der App möglich, ohne `/paperless/` zu öffnen.
+2. Anmeldung danach mit Code funktioniert (der Weg dafür existiert bereits).
+3. Wiederherstellungscodes wurden genau einmal angezeigt und die Bestätigung ist erzwungen.
+4. Deaktivieren funktioniert und ist als solches erkennbar.
+5. `tests/run_e2e.py --statisch` grün, Hüllenprüfung inbegriffen.
+6. Kein Geheimnis in Protokollen, Zustand oder Tests auffindbar (gezielt gegengeprüft).
+
+**Bezug zur Backend-Roadmap.** Erledigt **nicht** den 👤-Punkt „TOTP für `damien`
+tatsächlich eingerichtet" in `/opt/paperless/ROADMAP.md` (MS-3) — der verlangt eine
+tatsächliche Einrichtung durch Damien. Dieser Punkt macht sie nur bequemer und ist
+die Voraussetzung dafür, dass sie in der App stattfinden kann.
+
+#### Nachtrag 08.08.2026 — gemessene Randbedingungen (VOR der Umsetzung lesen)
+
+Diese Punkte sind gegen die laufende Instanz gemessen, nicht angenommen. Sie ändern
+den Bauplan an einer entscheidenden Stelle.
+
+**1. Der DRF-Token der App reicht NICHT.** DocuWunder authentifiziert sich überall mit
+`Authorization: Token …` (`api.js` Z. 157, Token aus `POST /api/token/`). Gegen die
+Headless-MFA-Endpunkte quittiert der Server das mit **HTTP 401**:
+
+```
+GET /paperless/api/auth/headless/browser/v1/account/authenticators/totp
+    -H "Authorization: Token <gültiger DRF-Token>"
+-> 401 {"status":401,"data":{"flows":[{"id":"login"}]},"meta":{"is_authenticated":false}}
+```
+
+**Mit Session-Cookie funktioniert derselbe Aufruf** (Login über
+`/paperless/accounts/login/` mit CSRF, dann Cookie mitschicken):
+
+```
+-> 404 {"status":404,"meta":{"secret":"…","totp_url":"otpauth://totp/…?secret=…&issuer=Paperless-ngx"}}
+```
+
+Der Status **404 ist hier die Normalantwort** für „noch kein TOTP eingerichtet" — genau
+in dieser Antwort stecken `secret` und `totp_url`. Nicht als Fehler behandeln.
+
+**Konsequenz für den Bauplan:** Der 2FA-Bildschirm braucht eine **eigene, kurzlebige
+Session** neben dem Token — CSRF holen, `POST /paperless/accounts/login/`, Cookie für
+die Dauer des Einrichtungsvorgangs halten, danach verwerfen. Das ist der einzige
+gemessene Weg; es ist **keine** Alternative erfunden worden. Falls der Worker einen
+saubereren Weg findet (z. B. eine Paperless-eigene Route, die den Token akzeptiert),
+darf er ihn nehmen — aber nur, wenn er ihn ebenso gemessen belegt.
+
+**Vorsicht:** Der Session-Login verlangt das Passwort erneut. Das ist bei einer
+Sicherheitsumstellung üblich und vertretbar (Re-Authentifizierung), muss der Nutzerin
+aber erklärt werden. Das Passwort darf **nirgends** gespeichert werden, auch nicht im
+Zustand — nur für den einen Aufruf im Speicher halten.
+
+**2. Pfad-Präfix.** `FORCE_SCRIPT_NAME=/paperless` — alle Endpunkte liegen unter
+`/paperless/api/auth/headless/…`. Die App bildet ihre Basis bereits so
+(`defaultBase()` → `../paperless/api`), der Auth-Zweig liegt aber **daneben**, nicht
+darunter: `…/paperless/api/auth/headless/browser/v1/…`.
+
+**3. Aussteller-Name.** `MFA_TOTP_ISSUER = "Paperless-ngx"` — steht so im `totp_url`
+und erscheint später in der Authenticator-App des Nutzers.
+
+**4. Backend nur LESEN.** Diagnose im laufenden Container (`docker exec … grep/cat`,
+`manage.py shell` mit reinen Abfragen) ist ausdrücklich **erlaubt** und erwünscht, um
+Annahmen zu prüfen. Verboten bleiben Änderungen: keine Konfiguration, keine Migration,
+kein Neustart, kein Schreibzugriff auf DB, `media/`, `consume/` oder Papierkorb.
+
+#### Nachtrag 2 (08.08.2026) — `mfa.totp.secret` in der Session ist NORMAL, kein Leck
+
+Ein Worker-Lauf hat am 08.08. gestoppt, weil er glaubte, durch einen Session-Login ein
+Geheimnis in der Datenbank hinterlassen zu haben. Das Anhalten war richtig — die
+Einschätzung war es nicht. Nachgeprüft im Paketcode:
+
+```python
+# allauth/mfa/totp/internal/auth.py, get_totp_secret()
+secret = context.request.session[SECRET_SESSION_KEY] = generate_totp_secret()
+```
+
+Das Kandidaten-Geheimnis **gehört** in die Session — es ist der Zustandsträger zwischen
+Schritt 1 (GET liefert QR-Code) und Schritt 2 (POST prüft den 6-stelligen Code). Ohne
+ihn könnte der Server den eingegebenen Code gar nicht prüfen. Jeder Nutzer, der die
+Einrichtung öffnet, erzeugt so einen Eintrag; bei `SESSION_ENGINE=cached_db` landet der
+in `django_session`. Gemessen am 08.08.: von den vorhandenen Sessions mit
+`mfa.totp.secret` stammten **vier aus Ende Juli**, also aus normalem Betrieb lange vor
+diesem Arbeitspaket.
+
+**Wichtig zur Einordnung:** Das Geheimnis ist bis zur Aktivierung wertlos — jeder GET
+erzeugt mit `regenerate=True` ein neues, und erst der bestätigte POST macht eines davon
+dauerhaft. Ein nicht aktiviertes Kandidaten-Geheimnis schützt nichts und öffnet nichts.
+
+**Folge für die Umsetzung:**
+- Session-Einträge dieser Art sind **kein** Verstoß gegen „keine Secrets at rest" und
+  **kein** Grund anzuhalten. Nicht aufräumen, nicht löschen — die Sessions laufen ab.
+- Die Regel „Geheimnis nie protokollieren, nie in den persistierten Client-Zustand"
+  bleibt unverändert bestehen: gemeint ist der **Browser** (localStorage, Logs,
+  Fehlermeldungen, Tests) — nicht die serverseitige Django-Session.
+- Für Verifikationsläufe gilt weiterhin: **kein** `force_login()` und kein Umweg über
+  fremde Passwörter. Der reguläre Weg (CSRF holen, `POST /paperless/accounts/login/`)
+  reicht und ist genau der, den die App später selbst geht.
+
+#### Nachtrag 3 (08.08.2026) — Umsetzung, gebauter Weg und Abnahme
+
+**Abweichung vom Bauplan aus Nachtrag 1, gemessen belegt.** Statt die klassische
+HTML-Seite `/paperless/accounts/login/` per Formular-POST anzusteuern (das wäre
+Scraping), nutzt `zweifaktor.js` für die kurzlebige Sitzung denselben
+Headless-JSON-Weg wie für die MFA-Verwaltung selbst:
+
+```
+GET    .../auth/headless/browser/v1/config              (setzt das CSRF-Cookie,
+                                                           auch anonym — jede
+                                                           Browser-Headless-Antwort
+                                                           tut das: browser_view()
+                                                           ruft get_token() vor
+                                                           jeder Antwort,
+                                                           allauth/headless/internal/
+                                                           decorators.py)
+POST   .../auth/headless/browser/v1/auth/login           { username, password }
+POST   .../auth/headless/browser/v1/auth/2fa/authenticate { code }   (nur, wenn
+                                                           bereits ein zweiter
+                                                           Faktor aktiv ist — der
+                                                           Fall, der beim späteren
+                                                           Deaktivieren eintritt)
+DELETE .../auth/headless/browser/v1/auth/session          (Sitzung verwerfen,
+                                                           beim Schliessen des
+                                                           Bildschirms und beim
+                                                           Abmelden — SessionView,
+                                                           allauth/headless/account/
+                                                           views.py, ruft
+                                                           adapter.logout())
+```
+
+Grund: `allauth/headless/account/views.py` (`LoginView`) und
+`allauth/account/internal/flows/login.py` (`resume_login`) zeigen, dass die
+eigentliche Django-Anmeldung (`adapter.login()`) erst **nach** einer noch
+ausstehenden MFA-Stufe erfolgt — bei einer klassischen Formular-Anmeldung wäre
+das ein Redirect auf eine zweite, ebenfalls klassische HTML-Seite
+(`/accounts/2fa/authenticate/`), die diese App gar nicht rendert. Der
+Headless-Weg bildet dieselbe Zustandsmaschine rein in JSON ab: bleibt der
+zweite Faktor nach dem Passwort noch offen, liefert `POST auth/login` **401**
+mit `data.flows` inkl. `{"id":"mfa_authenticate","is_pending":true}`
+(`allauth/headless/base/response.py`, `BaseAuthenticationResponse._get_flows`);
+`POST auth/2fa/authenticate` (`AuthenticateView`,
+`allauth/headless/mfa/views.py`) schliesst dieselbe Anmeldung ab. Das ist der
+„sauberere Weg", den Nachtrag 1 ausdrücklich erlaubt, sofern er ebenso
+gemessen belegt wird — hier geschehen durch Lesen des Paketcodes
+(`allauth/headless/account/views.py`, `allauth/headless/mfa/views.py`,
+`allauth/account/internal/flows/login.py`, `allauth/headless/base/response.py`,
+`allauth/headless/internal/decorators.py`) und einen echten Aufruf gegen die
+laufende Instanz mit absichtlich falschem Passwort (siehe unten).
+
+**Weitere gemessene Randbedingungen, die den Bauplan innerhalb von
+`zweifaktor.js` bestimmt haben:**
+- `GET .../authenticators/totp` erzeugt bei jedem Aufruf ohne aktives TOTP ein
+  **neues** Kandidaten-Geheimnis (`ManageTOTPView.get`, `regenerate=True`).
+  `zweifaktor.js` ruft ihn deshalb genau einmal beim Betreten des
+  Einrichtungsschritts (`zweiStatusLaden`, Z. 197) und danach nicht erneut —
+  ein falscher Aktivierungscode lässt das angezeigte Geheimnis unverändert
+  stehen, statt es durch einen erneuten Ladevorgang zu entwerten.
+- Fehlerantworten von allauth sind **englisch** (kein deutsches Sprachpaket in
+  dieser Instanz, daran wird nichts geändert — CLAUDE.md, „Keine Änderung an
+  der Paperless-Konfiguration"). Live gemessen mit absichtlich falschem
+  Passwort gegen `POST auth/login`:
+  ```
+  -> 400 {"status":400,"errors":[{"message":"The username and/or password you
+       specified are not correct.","code":"username_password_mismatch",
+       "param":"password"}]}
+  ```
+  `zweifaktor.js` übersetzt bekannte `code`-Werte in eigene deutsche Sätze
+  (`FEHLER_TEXT`, Z. 96) und zeigt den englischen Servertext **nie** an — das
+  schliesst zugleich aus, dass je ein Serverfehlertext unbeabsichtigt Details
+  preisgibt.
+- Aktivierung (`POST .../authenticators/totp`) erzeugt Wiederherstellungscodes
+  automatisch als Seiteneffekt (`totp/internal/flows.py`,
+  `auto_generate_recovery_codes`), liefert sie aber **nicht** in derselben
+  Antwort zurück. `zweifaktor.js` holt sie deshalb direkt danach über einen
+  eigenen `POST .../authenticators/recovery-codes`-Aufruf
+  (`zweiWiederherstellCodesHolen`, Z. 236) — der liefert sie immer sichtbar
+  (`can_view=True` fest im View, `ManageRecoveryCodesView.post`), anders als
+  ein GET nach dem ersten Anzeigen, das der Server dann verweigert
+  (`view_recovery_codes`, `RECOVERY_CODES_SHOW_ONCE`). Schlägt dieser Aufruf
+  fehl, bleibt TOTP trotzdem aktiv — die App zeigt dann ausdrücklich einen
+  Fehler statt so zu tun, als sei nichts gewesen.
+
+**QR-Bibliothek: `qrcode-generator` (kazuhikoarase), MIT-Lizenz, npm-Version
+2.0.4.** Begründung der Wahl:
+- Eine einzelne Datei ohne Abhängigkeiten (`vendor/qrcode-generator.js`,
+  56.694 Byte, unverändert aus `dist/qrcode.js` des npm-Pakets übernommen,
+  SHA-256 `79ec86f8…f778f791c`), lädt als klassisches `<script>` — kein
+  Bundler, kein npm zur Laufzeit, genau die Vorgabe aus CLAUDE.md
+  „Build- & Laufzeit-Konzept".
+- Reine Berechnung, kein DOM-Zugriff: `qrcode(0, 'M').createDataURL(6, 8)`
+  liefert eine fertige `data:image/gif;base64,…`-Zeichenkette
+  (`zweiQrUrl`, zweifaktor.js Z. 282), die als `<img src>` eingesetzt wird.
+  Bewusst **nicht** die vom selben Paket angebotene `createSvgTag()`
+  (liefert eine SVG-Zeichenkette, die als Markup in den DOM müsste) — dieses
+  Projekt hat bereits ein XSS gefunden und behoben (docs/AUDIT.md, H-1);
+  ein Data-URL-Bild vermeidet jede neue Stelle, an der Fremddaten (der
+  otpauth-Text selbst enthält das Geheimnis) als HTML interpretiert werden
+  könnten.
+- Getestet: `node` lädt die Datei unverändert per `require()` (das
+  UMD-Ende der Datei exportiert `module.exports`, im Browser bleibt dieser
+  Zweig unausgeführt und `qrcode` landet stattdessen als einfache
+  Top-Level-`var` im globalen Scope) und erzeugt aus einer echten
+  `otpauth://`-Beispieladresse eine gültige Data-URL (4.138 Zeichen,
+  `data:image/gif;base64,R0lGODdh…`).
+
+**Modulschnitt.** `zweifaktor.js` liefert `start()` / `methoden`, angehängt
+per `Object.assign(Oberflaeche.prototype, …, DWZweifaktor.methoden)` in
+`app.js` — wie `betrieb.js`/`ordnung.js`, **nicht** wie `sperre.js` (das ist
+eine freistehende Bibliothek ohne Objekt-Assign, siehe CLAUDE.md). Die
+Sicherheitsmechanik (Session, CSRF, Fetch) bleibt bewusst **innerhalb** von
+`zweifaktor.js` statt in `api.js`: `api.js` spricht überall per DRF-Token und
+sagt das in seinem eigenen Kopfkommentar so („Token-Auth in DRF erzwingt
+keinen CSRF-Schutz") — das wäre nach Ergänzung einer Session-Ausnahme nicht
+mehr richtig. Einstieg: „Mehr" → Einstellungen → Verbindung, unmittelbar unter
+der Gerätesperre (`vorlage/verwaltung.js`), Ablauf als Sheet
+(`sheet: 'zwei'`, `vorlage/sheets.js`) statt als eigener Bildschirm — wie
+`mitglieder.js`s einmalig gezeigte Zugangsdaten (`sheet: 'zugang'`), aus
+demselben Grund: die vorhandene Schliessen-Logik (`closeSheet`, Escape-Taste)
+räumt den Zustand zuverlässig ab, ohne einen zweiten Mechanismus für
+Bildschirm-Stapel zu brauchen.
+
+**Abnahme, Punkt für Punkt.**
+
+1. **Einrichtung vollständig in der App möglich, ohne `/paperless/` zu
+   öffnen.** Gebaut: Passwort-Schritt → Status lesen → QR-Code + Geheimnis →
+   6-stelliger Code → Aktivieren, alles im Sheet `zwei`. Code- und
+   Server-seitig durchgehend belegt (siehe oben); **kein** vollständiger
+   Live-Durchlauf mit echter Aktivierung, weil kein Passwort für `damien`
+   vorlag und keins beschafft wurde (verboten: Passwort aus `.env`/Backend
+   lesen — dort steht es ohnehin nicht — oder erraten). **Nicht abschliessend
+   belegt.**
+2. **Anmeldung danach mit Code funktioniert.** Unverändert vorhandener Weg
+   (`api.js` `login(username, password, code)`, seit v0.9.3) — von diesem
+   Arbeitspaket nicht angefasst. **Belegt durch Bestand, nicht neu geprüft.**
+3. **Wiederherstellungscodes genau einmal gezeigt, Bestätigung erzwungen.**
+   Serverseitig erzwungen (`RECOVERY_CODES_SHOW_ONCE`, ein zweites GET liefert
+   keine Codes mehr) und clientseitig zusätzlich: „Fertig" bleibt deaktiviert,
+   bis die Checkbox angehakt ist (`zweiCodesFertigAktiv`,
+   `vorlage/sheets.js`). **Nicht live durchlaufen**, aus demselben Grund wie
+   Punkt 1.
+4. **Deaktivieren funktioniert, erkennbar als solches.** Rückfrage-Schritt
+   (`zweiDeaktivierenFragen`) vor der eigentlichen Aktion, eigener
+   Abschlussschritt `deaktiviert` mit eigenem Status-Punkt. **Nicht live
+   durchlaufen**, aus demselben Grund.
+5. **`tests/run_e2e.py --statisch` grün, Hüllenprüfung inbegriffen.**
+   **Belegt** — Lauf vom 08.08.2026: „Alle Stufen bestanden (9)", `VERSION`
+   der Hülle per `tools/huelle.py` neu gesetzt.
+6. **Kein Geheimnis in Protokollen, Zustand oder Tests auffindbar.**
+   **Belegt**, gezielt gegengeprüft: `tests/geheim_check.py` grün über die
+   versionierten Dateien (119 Dateien, inkl. `zweifaktor.js` und
+   `vendor/qrcode-generator.js`); `grep` gegen `zweifaktor.js` zeigt **kein**
+   `console.*` mit Bezug zu Geheimnis/Code/Zwei und **kein**
+   `localStorage`-Zugriff (das Geheimnis liegt ausschliesslich in
+   `state.zweiSetup`/`state.zweiCodes`, geräumt von `beimSchliessen()`/
+   `beimAbmelden()`); Fehlermeldungen kommen ausschliesslich aus der eigenen
+   `FEHLER_TEXT`-Tabelle, nie aus dem Servertext.
+
+**Ergebnis: 3.16 bleibt offen**, trotz vollständig gebauter und statisch
+geprüfter Umsetzung — die Punkte 1, 3 und 4 verlangen einen echten
+Durchlauf mit dem tatsächlichen Konto, den nur Damien (oder ein Worker mit
+seinem Passwort und einem installierten Browser-Testwerkzeug — hier fehlt
+zusätzlich Playwright) leisten kann. Diese drei Punkte sind **plausibel
+gemacht** (Server-Endpunkte einzeln gegen den Paketcode und teils live
+verifiziert, die App-Logik durch alle neun statischen Prüfstufen), aber
+nicht **bewiesen**. Vor dem Abhaken: einmal mit Damiens Zugangsdaten durch
+den Bildschirm gehen (Einrichten → Codes sichern → Abmelden/Anmelden mit
+Code → Deaktivieren) und das Ergebnis hier eintragen.
