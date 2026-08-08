@@ -26,6 +26,11 @@ import urllib.request
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 BASIS = os.environ.get("PAPERLESS_URL", "http://127.0.0.1:8099/paperless/api").rstrip("/")
 
+# Kennzeichnet jeden von diesem Lauf erzeugten Testupload eindeutig gegenueber
+# echten Dokumenten im Archiv (Roadmap 3.14, Teil b). Der Zeitstempel kommt
+# zur Laufzeit aus diesem Skript, nicht hartkodiert.
+ZZ_TEST_MARKER = f"ZZ-TEST-{int(time.time())}"
+
 ergebnisse = []
 
 
@@ -395,7 +400,7 @@ def t_upload_roundtrip():
 
     Genau dieser Ablauf steckt in uploadDatei()/wartAufVerarbeitung().
     """
-    titel = f"App-Testdokument {int(time.time())}"
+    titel = f"{ZZ_TEST_MARKER}-App-Testdokument"
     rumpf, ctyp = multipart({"title": titel}, "app-test.pdf", MINI_PDF)
     st, antwort, _ = hole("/documents/post_document/", method="POST", daten=rumpf, typ=ctyp)
     assert st == 200, f"Upload -> HTTP {st}"

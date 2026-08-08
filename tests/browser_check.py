@@ -20,10 +20,12 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import socket
 import time
 import socketserver
 import sys
+import tempfile
 import threading
 import urllib.error
 import urllib.parse
@@ -33,6 +35,11 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 BACKEND = os.environ.get("PAPERLESS_URL", "http://127.0.0.1:8099/paperless/api").rstrip("/")
 # Aus …/paperless/api wird die Wurzel, unter der das Backend haengt.
 BACKEND_ROOT = BACKEND[: -len("/api")] if BACKEND.endswith("/api") else BACKEND
+
+# Kennzeichnet jeden von diesem Lauf erzeugten Testupload eindeutig gegenueber
+# echten Dokumenten im Archiv (Roadmap 3.14, Teil b). Der Zeitstempel kommt
+# zur Laufzeit aus diesem Skript, nicht hartkodiert.
+ZZ_TEST_MARKER = f"ZZ-TEST-{int(time.time())}"
 
 
 def token() -> str:
@@ -977,16 +984,23 @@ def main():
                 antworten = []
                 seite.on("response", lambda r: antworten.append((r.status, r.url))
                          if r.request.method == "POST" else None)
-                with seite.expect_file_chooser() as wahl:
-                    seite.locator('text="Datei"').last.click()
-                wahl.value.set_files([str(pathlib.Path(__file__).parent / "bilder" / "hoch.jpg")])
+                # "Datei hochladen" fragt keinen Titel ab - der Server leitet ihn aus
+                # dem Dateinamen ab. Deshalb bekommt die hochgeladene Kopie den
+                # ZZ-TEST-Marker im Namen, damit der entstehende Titel im Archiv
+                # eindeutig als Testupload erkennbar ist (Roadmap 3.14, Teil b).
+                with tempfile.TemporaryDirectory() as tmp:
+                    markierte_datei = pathlib.Path(tmp) / f"{ZZ_TEST_MARKER}-hoch.jpg"
+                    shutil.copyfile(pathlib.Path(__file__).parent / "bilder" / "hoch.jpg", markierte_datei)
+                    with seite.expect_file_chooser() as wahl:
+                        seite.locator('text="Datei"').last.click()
+                    wahl.value.set_files([str(markierte_datei)])
                 seite.wait_for_timeout(4000)
                 assert any(s == 200 and "post_document" in u for s, u in antworten), \
                     f"nichts hochgeladen: {antworten}"
 
                 for _ in range(40):
                     time.sleep(3)
-                    r = urllib.request.Request(BACKEND + "/documents/?title__icontains=hoch")
+                    r = urllib.request.Request(BACKEND + "/documents/?title__icontains=" + ZZ_TEST_MARKER)
                     r.add_header("Authorization", "Token " + TOKEN)
                     d = json.loads(urllib.request.urlopen(r).read())
                     if d["count"]:
@@ -1193,7 +1207,7 @@ def main():
                 seite.locator('text="Weiter"').click()
                 seite.wait_for_timeout(900)
                 assert seite.locator('text="2 Seiten"').count() > 0, "Seitenzahl fehlt"
-                titel = "zz-Pruefung-Scan"
+                titel = f"{ZZ_TEST_MARKER}-Pruefung-Scan"
                 seite.locator("input").last.fill(titel)
                 antworten = []
                 seite.on("response", lambda r: antworten.append((r.status, r.url))
