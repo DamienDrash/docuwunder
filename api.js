@@ -511,7 +511,7 @@ window.PaperlessAPI = (function () {
         return request('GET', '/documents/', Object.assign({ params: mit({ query: q }) }, opts || {}))
           .catch(function (e) {
             if (e.status !== 400) throw e;
-            return request('GET', '/documents/', Object.assign({ params: mit({ title_content: q }) }, opts || {}))
+            return request('GET', '/documents/', Object.assign({ params: mit({ text: q }) }, opts || {}))
               .then(function (d) { return Object.assign({}, d, { einfach: true }); });
           });
       },

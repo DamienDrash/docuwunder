@@ -312,14 +312,44 @@ def t_suche_fehleingabe():
 
 
 def t_suche_einfach():
+    # Vertragstest fuer den Parameternamen selbst (Roadmap 3.15, Teil 1):
+    # api.js faellt bei HTTP 400 auf text= zurueck. title_content= ist beim
+    # Server (3.0.5) als deprecated markiert; faellt der Parameter irgendwann
+    # ganz weg, schlaegt dieser Test an statt erst der Rueckfallpfad im Betrieb.
     _, d, _ = hole("/documents/", {"page_size": 1})
     if not d["results"]:
         return "uebersprungen – keine Dokumente"
     titel = (d["results"][0].get("title") or "")[:6]
     if not titel.strip():
         return "uebersprungen – kein Titel"
-    _, r, _ = hole("/documents/", {"title_content": titel, "page_size": 5})
-    assert r["count"] >= 1, f"title_content findet „{titel}“ nicht"
+    _, r, _ = hole("/documents/", {"text": titel, "page_size": 5})
+    assert r["count"] >= 1, f"text findet „{titel}“ nicht"
+
+
+def t_suche_rueckfall_ausgeloest():
+    """Loest den echten Rueckfallpfad aus api.js Zeile fuer Zeile aus.
+
+    Anders als t_suche_fehleingabe (nur der Ausloeser) und t_suche_einfach
+    (nur der Parameter fuer sich) fuehrt dieser Test genau die zwei Schritte
+    aus documents.search() nacheinander mit derselben Eingabe aus: eine
+    Whoosh-Sonderzeichen-Eingabe (siehe Roadmap 3.15, Teil 1: `: [ ] ( ) * ?`)
+    schlaegt bei query= mit 400 fehl, worauf api.js mit demselben Text auf
+    text= zurueckfaellt und dessen Ergebnis mit einfach: true kennzeichnet.
+    Das Kennzeichen selbst ist ein Attribut der JS-Antwort und erscheint nicht
+    im JSON des Servers - hier wird deshalb die serverseitige Grundlage
+    dafuer geprueft: dass genau diese Abfolge (400, dann 200) bei genau dieser
+    Eingabe tatsaechlich eintritt.
+    """
+    eingabe = ":[]()*?"
+    try:
+        hole("/documents/", {"query": eingabe, "page_size": 1})
+        raise AssertionError(f"query={eingabe!r} wurde nicht abgelehnt – der Rueckfallpfad wuerde nie greifen")
+    except urllib.error.HTTPError as e:
+        assert e.code == 400, f"query={eingabe!r} -> erwartet HTTP 400, bekam {e.code}"
+    st, r, _ = hole("/documents/", {"text": eingabe, "page_size": 5})
+    assert st == 200, f"text={eingabe!r} (der Rueckfall aus api.js) -> HTTP {st} statt 200"
+    assert "count" in r and "results" in r, "Rueckfallantwort ohne results/count"
+    return "400 auf query=, 200 auf text= – Rueckfallpfad wie in api.js"
 
 
 # --- Dateien ---------------------------------------------------------------
@@ -510,6 +540,7 @@ PRUEFUNGEN = [
     ("Volltextsuche mit Hervorhebung", t_volltextsuche),
     ("Kaputte Sucheingabe wird abgelehnt", t_suche_fehleingabe),
     ("Einfache Suche als Rueckfall", t_suche_einfach),
+    ("Rueckfallpfad end-to-end ausgeloest (Roadmap 3.15)", t_suche_rueckfall_ausgeloest),
     ("Vorschau und Miniaturbild", t_vorschau),
     ("Sammel-Download als ZIP", t_sammel_download),
     ("Notizen anlegen und entfernen", t_notizen),
