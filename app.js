@@ -36,6 +36,11 @@
   // Schlagwoerter, Ablageorte) und der Ordnerbaum, den die App aus den Namen
   // der Ablageorte ableitet.
   const DWOrdnung = global.DWOrdnung;
+  // Und die Zwei-Faktor-Einrichtung in zweifaktor.js: TOTP fuers eigene
+  // Konto einrichten, Wiederherstellungscodes einmalig zeigen, deaktivieren -
+  // mit einer eigenen, kurzlebigen Sitzung neben dem Zugangsschluessel, mit
+  // dem die App sonst spricht.
+  const DWZweifaktor = global.DWZweifaktor;
 
 // Der Rahmen, in dem die ganze Oberflaeche sitzt.
 //
@@ -182,6 +187,10 @@ class Oberflaeche extends React.Component {
       // Mitgliederverwaltung: Entwurf, einmalig gezeigte Zugangsdaten,
       // Gruppen- und Personenauswahl. Was dazugehoert, steht in mitglieder.js.
       ...DWMitglieder.start(),
+      // Zwei-Faktor-Einrichtung: Ablaufschritt, fluechtiges Passwort,
+      // Geheimnis und Wiederherstellungscodes. Was dazugehoert, steht in
+      // zweifaktor.js.
+      ...DWZweifaktor.start(),
       // Wie viele Dokumente der aktuelle Filter serverseitig umfasst - nicht,
       // wie viele geladen sind.
       docsTotal: 0,
@@ -267,7 +276,7 @@ class Oberflaeche extends React.Component {
     this._esc = (e) => {
       if (e.key !== 'Escape') return;
       const s = this.state;
-      if (s.sheet) { this.setState({ sheet: null, editDraft: null, pendingDel: null, ...DWOrdnung.beimSchliessen(), ...DWMitglieder.beimSchliessen() }); return; }
+      if (s.sheet) { this.setState({ sheet: null, editDraft: null, pendingDel: null, ...DWOrdnung.beimSchliessen(), ...DWMitglieder.beimSchliessen(), ...DWZweifaktor.beimSchliessen() }); return; }
       if (s.scan) { this.setState({ scan: null }); return; }
       if (s.selMode) { this.setState({ selMode: false, sel: [] }); return; }
       if (s.stack.length) this.pop();
@@ -1400,6 +1409,7 @@ class Oberflaeche extends React.Component {
       felderM: [], suchenM: [], users: [],
       ...DWOrdnung.beimAbmelden(),
       ...DWBetrieb.beimAbmelden(),
+      ...DWZweifaktor.beimAbmelden(),
       loading: false, loadErr: null
     });
   }
@@ -1798,6 +1808,59 @@ class Oberflaeche extends React.Component {
         ? 'Dein Zugangsschlüssel liegt verschlüsselt. Ohne Face ID, Touch ID oder Windows Hello ist er unbrauchbar — auch für jemanden mit Zugriff auf das Gerät.'
         : 'Verschlüsselt den Zugangsschlüssel. Er lässt sich dann nur noch mit der Biometrie dieses Geräts entsperren.',
 
+      // --- Zwei-Faktor-Authentifizierung (TOTP) -----------------------------
+      // Der Einstieg neben der Sperre; der eigentliche Ablauf steht als Sheet
+      // weiter unten (shZwei), die Schritte liefert zweifaktor.js.
+      zweiZeigen: !!(s.me && s.me.username),
+      zweiOeffnen: () => this.zweiOeffnen(),
+
+      shZwei: s.sheet === 'zwei',
+      zweiSchritt: s.zweiSchritt,
+      zweiLaedt: s.zweiLaedt,
+      zweiFehler: s.zweiFehler,
+
+      // Schritt 'passwort': eigene, kurzlebige Anmeldung. Der Nutzername
+      // steht schon fest (das eigene Konto), nur das Passwort fehlt.
+      zweiPassNutzer: s.me ? s.me.username : '',
+      zweiPasswort: s.zweiPasswort,
+      setZweiPasswort: (e) => this.setZweiPasswort(e),
+      zweiAnmeldenGo: () => this.zweiAnmelden(),
+      zweiAnmeldenAktiv: !s.zweiLaedt && !!s.zweiPasswort,
+
+      // Schritt 'code2fa': ein zweiter Faktor ist schon aktiv (z. B. beim
+      // Deaktivieren) - derselbe Code wie beim normalen Anmelden.
+      zweiCode: s.zweiCode,
+      setZweiCode: (e) => this.setZweiCode(e),
+      zweiCodeBestaetigenGo: () => this.zweiCodeBestaetigen(),
+      zweiCodeAktiv: !s.zweiLaedt && s.zweiCode.length === 6,
+
+      // Schritt 'einrichten': QR-Code (im Browser aus der otpauth-Adresse
+      // gezeichnet, verlaesst das Geraet nie) und das Geheimnis als Text fuer
+      // die manuelle Eingabe, wenn die Kamera nicht geht.
+      zweiQrSrc: s.zweiSetup ? this.zweiQrUrl(s.zweiSetup.totpUrl) : '',
+      zweiSecretText: s.zweiSetup ? (s.zweiSetup.secret.match(/.{1,4}/g) || []).join(' ') : '',
+      zweiAktivierenGo: () => this.zweiAktivieren(),
+      zweiAktivierenAktiv: !s.zweiLaedt && s.zweiCode.length === 6,
+
+      // Schritt 'codes': die Wiederherstellungscodes, genau einmal gezeigt.
+      // zweiCodesUebernommenGo ist erst wirksam, wenn die Bestaetigung
+      // angehakt ist (siehe zweiCodesUebernommen in zweifaktor.js).
+      zweiCodesListe: (s.zweiCodes || []).map((c, i) => ({ id: i, text: c })),
+      zweiBestaetigt: s.zweiBestaetigt,
+      setZweiBestaetigt: (e) => this.setZweiBestaetigt(e),
+      zweiCodesUebernommenGo: () => this.zweiCodesUebernommen(),
+      zweiCodesFertigAktiv: !!s.zweiBestaetigt,
+
+      // Schritt 'aktiv': Status, Deaktivieren mit Rueckfrage (Schritt
+      // 'deaktivieren').
+      zweiAktivSeitText: s.zweiAktivSeit ? this.api().util.dateDE(new Date(s.zweiAktivSeit * 1000).toISOString()) : '',
+      zweiDeaktivierenFragenGo: () => this.zweiDeaktivierenFragen(),
+
+      // Schritt 'deaktivieren': Rueckfrage, unmissverstaendlich als
+      // Sicherheitsverlust benannt.
+      zweiDeaktivierenGo: () => this.zweiDeaktivieren(),
+      zweiDeaktivierenAbbrechenGo: () => this.zweiDeaktivierenAbbrechen(),
+
       schluesselHinweis: (() => {
         const A = this.api();
         if (!A || !A.hasToken()) return 'Nicht angemeldet.';
@@ -1966,7 +2029,7 @@ class Oberflaeche extends React.Component {
             : 'Die Gruppe hat keine Mitglieder.')
         : '',
       gwGo: () => this.gruppeEntfernen(s.gruppeSel),
-      sheetOn: !!s.sheet, closeSheet: () => this.setState({ sheet: null, editDraft: null, pendingDel: null, ...DWOrdnung.beimSchliessen() }),
+      sheetOn: !!s.sheet, closeSheet: () => this.setState({ sheet: null, editDraft: null, pendingDel: null, ...DWOrdnung.beimSchliessen(), ...DWZweifaktor.beimSchliessen() }),
       // Fokus in den Dialog setzen, sobald das Panel im DOM steht - sonst
       // bleibt der Tastaturfokus hinter dem sichtbaren Sheet auf dem Element,
       // das es geoeffnet hat.
@@ -2229,7 +2292,7 @@ class Oberflaeche extends React.Component {
 // valsDokument und valsMehr merken nichts davon, dass die Bodies in
 // mitglieder.js, erfassen.js, suche.js, vorschau.js, betrieb.js und
 // ordnung.js stehen.
-Object.assign(Oberflaeche.prototype, DWMitglieder.methoden, DWErfassen.methoden, DWSuche.methoden, DWVorschau.methoden, DWBetrieb.methoden, DWOrdnung.methoden);
+Object.assign(Oberflaeche.prototype, DWMitglieder.methoden, DWErfassen.methoden, DWSuche.methoden, DWVorschau.methoden, DWBetrieb.methoden, DWOrdnung.methoden, DWZweifaktor.methoden);
 
 
   // Wurzel: loest 'System' zum tatsaechlichen Schema auf, damit die

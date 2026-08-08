@@ -253,6 +253,88 @@
         <div style=${stil('font-size:12.5px;color:var(--lab2);margin-top:2px')}>Das Konto wird gelöscht. Dokumente dieser Person bleiben erhalten.</div>
       </button>` : null}` : null}
 
+  ${v.shZwei ? html`<div style=${stil(S.sheetTitel)}>Zwei-Faktor-Authentifizierung</div>
+
+    ${v.zweiFehler ? html`<div style=${stil('font-size:13.5px;color:var(--red);padding:0 20px 10px;line-height:1.5')}>${v.zweiFehler}</div>` : null}
+
+    ${v.zweiSchritt === 'passwort' ? html`
+      <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 14px;line-height:1.5')}>Paperless verlangt dafür eine eigene, kurze Anmeldung neben deinem Gerätezugang. Bestätige dein Passwort für ${v.zweiPassNutzer}, um fortzufahren.</div>
+      <div style=${stil('padding:0 20px 14px')}>
+        <label style=${stil('position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)')} for="zwei-passwort">Passwort</label>
+        <input id="zwei-passwort" type="password" autocomplete="current-password" value=${v.zweiPasswort} onInput=${v.setZweiPasswort} placeholder="Passwort" aria-label="Passwort" style=${stil(S.feld)} />
+      </div>
+      <div style=${stil('padding:0 20px 30px')}>
+        <button type="button" aria-label="Weiter" disabled=${!v.zweiAnmeldenAktiv} onClick=${v.zweiAnmeldenGo} style=${stil(S.buttonReset + S.knopf + (v.zweiAnmeldenAktiv ? '' : ';opacity:0.5'))}>${v.zweiLaedt ? 'Bitte warten …' : 'Weiter'}</button>
+        <button type="button" aria-label="Abbrechen" onClick=${v.closeSheet} style=${stil(S.buttonReset + 'width:100%;text-align:center;padding:14px 0 0;font-size:15.5px;color:var(--lab2);cursor:pointer')}>Abbrechen</button>
+      </div>` : null}
+
+    ${v.zweiSchritt === 'code2fa' ? html`
+      <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 14px;line-height:1.5')}>Dein Konto ist bereits durch einen zweiten Faktor geschützt. Gib den aktuellen Code aus deiner Authenticator-App ein.</div>
+      <div style=${stil('padding:0 20px 14px')}>
+        <label style=${stil('position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)')} for="zwei-code-anmelden">Code</label>
+        <input id="zwei-code-anmelden" inputmode="numeric" autocomplete="one-time-code" value=${v.zweiCode} onInput=${v.setZweiCode} placeholder="123456" aria-label="Sechsstelliger Code" style=${stil(S.feld + ';text-align:center;letter-spacing:4px;font-size:20px')} />
+      </div>
+      <div style=${stil('padding:0 20px 30px')}>
+        <button type="button" aria-label="Bestätigen" disabled=${!v.zweiCodeAktiv} onClick=${v.zweiCodeBestaetigenGo} style=${stil(S.buttonReset + S.knopf + (v.zweiCodeAktiv ? '' : ';opacity:0.5'))}>${v.zweiLaedt ? 'Bitte warten …' : 'Bestätigen'}</button>
+        <button type="button" aria-label="Abbrechen" onClick=${v.closeSheet} style=${stil(S.buttonReset + 'width:100%;text-align:center;padding:14px 0 0;font-size:15.5px;color:var(--lab2);cursor:pointer')}>Abbrechen</button>
+      </div>` : null}
+
+    ${v.zweiSchritt === 'einrichten' ? html`
+      <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 14px;line-height:1.5')}>Scanne den Code mit einer Authenticator-App (etwa Google Authenticator oder Authy) oder gib das Geheimnis von Hand ein, wenn die Kamera nicht geht.</div>
+      ${v.zweiQrSrc ? html`<div style=${stil('display:flex;justify-content:center;padding:0 20px 14px')}><img src=${v.zweiQrSrc} width="200" height="200" alt="QR-Code für die Einrichtung des zweiten Faktors" style=${stil('border-radius:12px;background:#fff;padding:10px')} /></div>` : null}
+      <div style=${stil('margin:0 20px 14px;background:var(--fill);border-radius:12px;padding:14px 16px')}>
+        <div style=${stil('font-size:12px;color:var(--lab2)')}>Geheimnis</div>
+        <div style=${stil('font-family:ui-monospace,\'SF Mono\',Menlo,monospace;font-size:15px;font-weight:600;margin-top:2px;letter-spacing:0.5px;word-break:break-all')}>${v.zweiSecretText}</div>
+      </div>
+      <div style=${stil('font-size:12.5px;color:var(--lab2);padding:0 20px 10px')}>Danach den 6-stelligen Code aus der App eingeben:</div>
+      <div style=${stil('padding:0 20px 14px')}>
+        <label style=${stil('position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)')} for="zwei-code-aktivieren">Code</label>
+        <input id="zwei-code-aktivieren" inputmode="numeric" autocomplete="one-time-code" value=${v.zweiCode} onInput=${v.setZweiCode} placeholder="123456" aria-label="Sechsstelliger Code" style=${stil(S.feld + ';text-align:center;letter-spacing:4px;font-size:20px')} />
+      </div>
+      <div style=${stil('padding:0 20px 30px')}>
+        <button type="button" aria-label="Aktivieren" disabled=${!v.zweiAktivierenAktiv} onClick=${v.zweiAktivierenGo} style=${stil(S.buttonReset + S.knopf + (v.zweiAktivierenAktiv ? '' : ';opacity:0.5'))}>${v.zweiLaedt ? 'Bitte warten …' : 'Aktivieren'}</button>
+        <button type="button" aria-label="Abbrechen" onClick=${v.closeSheet} style=${stil(S.buttonReset + 'width:100%;text-align:center;padding:14px 0 0;font-size:15.5px;color:var(--lab2);cursor:pointer')}>Abbrechen</button>
+      </div>` : null}
+
+    ${v.zweiSchritt === 'codes' ? html`
+      <div style=${stil('font-size:13.5px;color:var(--lab2);padding:0 20px 14px;line-height:1.5')}>Diese Wiederherstellungscodes werden jetzt genau einmal angezeigt. Jeder gilt für eine Anmeldung, falls die Authenticator-App einmal nicht erreichbar ist. Sichere sie jetzt — danach lassen sie sich nicht erneut anzeigen.</div>
+      <div style=${stil('margin:0 20px 14px;background:var(--fill);border-radius:12px;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px')}>
+        ${(v.zweiCodesListe || []).map((c) => html`<div key=${c.id} style=${stil('font-family:ui-monospace,\'SF Mono\',Menlo,monospace;font-size:14.5px;font-weight:600;letter-spacing:0.5px')}>${c.text}</div>`)}
+      </div>
+      <button type="button" aria-label="Ich habe die Wiederherstellungscodes gesichert" aria-pressed=${!!v.zweiBestaetigt} onClick=${() => v.setZweiBestaetigt({ target: { checked: !v.zweiBestaetigt } })} style=${stil(S.buttonReset + 'width:calc(100% - 40px);margin:0 20px 14px;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:var(--fill);cursor:pointer;text-align:left')}>
+        <div style=${stil('width:22px;height:22px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' + (v.zweiBestaetigt ? 'var(--acc)' : 'var(--card)') + ';border:1px solid ' + (v.zweiBestaetigt ? 'var(--acc)' : 'var(--sep)'))}>${v.zweiBestaetigt ? html`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--onAcc)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"></path></svg>` : null}</div>
+        <span style=${stil('font-size:14.5px;flex:1')}>Ich habe sie gesichert. Sie werden danach nicht wieder angezeigt.</span>
+      </button>
+      <div style=${stil('padding:0 20px 30px')}>
+        <button type="button" aria-label="Fertig" disabled=${!v.zweiCodesFertigAktiv} onClick=${v.zweiCodesUebernommenGo} style=${stil(S.buttonReset + S.knopf + (v.zweiCodesFertigAktiv ? '' : ';opacity:0.5'))}>Fertig</button>
+      </div>` : null}
+
+    ${v.zweiSchritt === 'aktiv' ? html`
+      <div style=${stil('margin:0 20px 14px;background:var(--fill);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:10px')}>
+        <span style=${stil('width:9px;height:9px;border-radius:50%;background:var(--grn);flex-shrink:0')}></span>
+        <div><div style=${stil('font-size:15px;font-weight:600')}>Zwei-Faktor-Authentifizierung ist aktiv</div>${v.zweiAktivSeitText ? html`<div style=${stil('font-size:12.5px;color:var(--lab2);margin-top:2px')}>Eingerichtet am ${v.zweiAktivSeitText}</div>` : null}</div>
+      </div>
+      <div style=${stil('font-size:12.5px;color:var(--lab2);padding:0 20px 16px;line-height:1.5')}>Beim Anmelden wird jetzt zusätzlich zum Passwort der Code aus deiner Authenticator-App verlangt.</div>
+      <div style=${stil('padding:0 20px 14px')}>
+        <button type="button" aria-label="Zwei-Faktor-Authentifizierung deaktivieren" onClick=${v.zweiDeaktivierenFragenGo} style=${stil(S.buttonReset + 'width:100%;height:50px;border-radius:12px;background:rgba(179,38,30,0.10);display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:600;color:var(--red);cursor:pointer')}>Deaktivieren</button>
+      </div>
+      <button type="button" aria-label="Fertig" onClick=${v.closeSheet} style=${stil(S.buttonReset + 'width:100%;text-align:center;padding:8px 20px 30px;font-size:15.5px;color:var(--lab2);cursor:pointer')}>Fertig</button>` : null}
+
+    ${v.zweiSchritt === 'deaktivieren' ? html`
+      <div style=${stil('font-size:14.5px;color:var(--lab2);padding:0 20px 20px;line-height:1.55')}>Zwei-Faktor-Authentifizierung wirklich deaktivieren? Dein Konto ist danach nur noch durch dein Passwort geschützt.</div>
+      <div style=${stil('padding:0 20px 30px')}>
+        <button type="button" aria-label="Wirklich deaktivieren" disabled=${v.zweiLaedt} onClick=${v.zweiDeaktivierenGo} style=${stil(S.buttonReset + 'width:100%;height:50px;border-radius:12px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer' + (v.zweiLaedt ? ';opacity:0.6' : ''))}>${v.zweiLaedt ? 'Bitte warten …' : 'Deaktivieren'}</button>
+        <button type="button" aria-label="Abbrechen" onClick=${v.zweiDeaktivierenAbbrechenGo} style=${stil(S.buttonReset + 'width:100%;text-align:center;padding:14px;font-size:15.5px;color:var(--lab2);cursor:pointer')}>Abbrechen</button>
+      </div>` : null}
+
+    ${v.zweiSchritt === 'deaktiviert' ? html`
+      <div style=${stil('margin:0 20px 16px;background:var(--fill);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:10px')}>
+        <span style=${stil('width:9px;height:9px;border-radius:50%;background:var(--lab3);flex-shrink:0')}></span>
+        <div style=${stil('font-size:15px;font-weight:600')}>Zwei-Faktor-Authentifizierung wurde deaktiviert</div>
+      </div>
+      <button type="button" aria-label="Fertig" onClick=${v.closeSheet} style=${stil(S.buttonReset + 'width:calc(100% - 40px);height:50px;border-radius:12px;background:var(--acc);color:var(--onAcc);display:flex;align-items:center;justify-content:center;font-size:16.5px;font-weight:600;cursor:pointer;margin:0 20px 30px')}>Fertig</button>` : null}
+    ` : null}
+
   </div>
 </div>` : null;
   };
