@@ -562,7 +562,7 @@ beide waren nicht Gegenstand dieses Auftrags. Der Bestand wächst mit jedem Test
 diese Änderung macht die Testartefakte nur zuverlässig auffindbar, verhindert ihr Entstehen
 nicht.
 
-### 🟠 3.15 Veralteter Suchparameter `title_content` — tickt auf das nächste Update-Fenster
+### 🟡 3.15 Veralteter Suchparameter `title_content` — Teil 1 umgesetzt, Teil 2 offen
 
 Ebenfalls am 06.08.2026 nachgetragen, Quelle `/opt/paperless/ops/OCR-BEFUND.md`,
 **Abschnitt 5** („Nebenbefund: zwei Meldungen aus der API"). Auch dieser Punkt war dort
@@ -626,6 +626,18 @@ der Rückfall, der genau dadurch ausgelöst wird.
 
 **In diesem Nachtrag wurde `api.js` nicht angefasst** — der Punkt ist dokumentiert, nicht
 umgesetzt.
+
+**Teil 1 umgesetzt (08.08.2026, Commit `657e5f3`): `title_content` → `text`.** `api.js`,
+Zeile 514, fällt beim Rückfallpfad jetzt auf `text=` zurück statt auf das veraltete
+`title_content=`. Neuer Vertragstest `t_suche_rueckfall_ausgeloest` in `tests/api_check.py`
+löst den echten Rückfallpfad end-to-end mit einer Whoosh-Sonderzeichen-Eingabe aus (`400`
+auf `query=`, `200` auf `text=`) und schlägt an, sollte der Parameter beim nächsten
+Update-Fenster (01.09.2026) ebenfalls wegfallen. Nachweis: `tests/run_e2e.py --statisch`
+9/9 grün, `tests/api_check.py` 25/25 grün.
+
+**Teil 2 bleibt offen:** den Syntaxfehler bei `query=` gar nicht erst erzeugen (Whoosh-
+Sonderzeichen `: [ ] ( ) * ?` maskieren oder erkennen und direkt einfach suchen) — eine
+eigene, riskantere Änderung an der Sucheingabe, bewusst nicht Teil dieses Auftrags.
 
 ---
 
