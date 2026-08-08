@@ -216,16 +216,18 @@ git tag -a v0.9.4 -m "DocuWunder 0.9.4"
 - **Vor dem ersten Tag prüfen, ob die Namensform stimmt:** `git tag --list`. Existieren noch
   keine Tags, gilt ab jetzt `v<VERSION>`.
 
-### 3.6 Auf GitHub pushen — **AKTUELL BLOCKIERT**
+### 3.6 Auf GitHub pushen — Deploy-Key prüfen und pushen
 
-> **Blockiert.** Der Push braucht Damiens Eintrag des Deploy-Keys mit Schreibrecht im
-> GitHub-Repository (offene Frage 3 in `/opt/paperless/PO-STATUS.md`). Der Schlüssel liegt
-> seit 05.08.2026 21:31 auf dem Host (`/home/ubuntu/.ssh/paperless-app-deploy`, ed25519 ohne
-> Passphrase, nur für dieses Repo), das Remote ist auf SSH umgestellt, `known_hosts` ist
-> gefüllt. `ssh -T` antwortet erwartungsgemäß mit „Permission denied", bis der öffentliche
-> Teil eingetragen ist. Commit `22f7c68` (v0.9.2) und alles danach warten.
+> **Transportweg:** Das Remote muss `git@github.com:DamienDrash/docuwunder.git` sein;
+> `core.sshCommand` nutzt ausschließlich `/home/ubuntu/.ssh/paperless-app-deploy` mit
+> `IdentitiesOnly=yes`. Der Deploy-Key braucht im Repository Write access. Kein PAT wird
+> für den Git-Push des unbeaufsichtigten Checkouts verwendet.
+>
+> **Vor jedem Push:** `ssh -T git@github.com` muss die Deploy-Key-Authentifizierung
+> bestätigen. Bei `Permission denied (publickey)` nicht auf HTTPS/PAT ausweichen, sondern
+> den Repository-Deploy-Key und dessen Write access in GitHub prüfen.
 
-Sobald freigegeben:
+Nach erfolgreicher SSH-Prüfung:
 
 ```bash
 git -C /opt/paperless-app remote -v      # zeigt das konfigurierte SSH-Remote
